@@ -33,7 +33,7 @@ export default function MarketplaceHome() {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id || null)
-      const { data: productsData } = await supabase.from('products').select('*').eq('status', 'active').order('created_at', { ascending: false })
+      const { data: productsData } = await supabase.from('products').select('*, profiles(*)').eq('status', 'active').order('created_at', { ascending: false })
       setProducts(productsData || [])
       if (user) {
         const { data: favs } = await supabase.from('favorites').select('product_id').eq('user_id', user.id)
@@ -75,7 +75,8 @@ export default function MarketplaceHome() {
         </div>
       </header>
 
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-[100px] z-40">
+      {/* Correction: top-25 au lieu de top-[100px] */}
+      <div className="bg-white border-b border-gray-100 py-3 sticky top-25 z-40">
          <div className="max-w-md mx-auto px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore'].map((ile) => (
               <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>{ile}</button>
@@ -86,7 +87,8 @@ export default function MarketplaceHome() {
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="flex justify-between gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {CATEGORIES.map((cat) => (
-                <button key={cat.label} onClick={() => setSelectedCategory(selectedCategory === cat.label ? null : cat.label)} className="flex flex-col items-center gap-2 min-w-[70px]">
+                // Correction: min-w-17.5 au lieu de min-w-[70px]
+                <button key={cat.label} onClick={() => setSelectedCategory(selectedCategory === cat.label ? null : cat.label)} className="flex flex-col items-center gap-2 min-w-17.5">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1 shadow-sm border transition-all ${selectedCategory === cat.label ? 'bg-brand text-white border-brand scale-110' : 'bg-green-50 text-brand border-green-100'}`}><cat.icon size={24} /></div>
                     <span className={`text-[10px] font-medium ${selectedCategory === cat.label ? 'text-brand font-bold' : 'text-gray-600'}`}>{cat.label}</span>
                 </button>
@@ -94,7 +96,8 @@ export default function MarketplaceHome() {
         </div>
       </div>
 
-      <div className="max-w-md mx-auto px-3 min-h-[300px]">
+      {/* Correction: min-h-75 au lieu de min-h-[300px] */}
+      <div className="max-w-md mx-auto px-3 min-h-75">
         {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand" /></div> : (
             <div className="grid grid-cols-2 gap-3">
             {displayProducts.map((product) => {
