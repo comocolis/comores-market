@@ -84,6 +84,7 @@ export default function PublierPage() {
         setIsForgotPassword(false)
       } 
       else if (isLogin) {
+        // Connexion classique
         const { error } = await supabase.auth.signInWithPassword({
           email: authData.email,
           password: authData.password,
@@ -91,7 +92,8 @@ export default function PublierPage() {
         if (error) throw error
         window.location.reload()
       } else {
-        const { error } = await supabase.auth.signUp({
+        // INSCRIPTION AVEC AUTO-LOGIN
+        const { data, error } = await supabase.auth.signUp({
           email: authData.email,
           password: authData.password,
           options: { 
@@ -104,8 +106,16 @@ export default function PublierPage() {
           }
         })
         if (error) throw error
-        alert("Compte créé ! Vérifiez votre email pour valider.")
-        setIsLogin(true)
+
+        // Si une session est créée immédiatement, c'est que l'auto-confirm est activé
+        if (data.session) {
+            alert("Compte créé avec succès ! Bienvenue.")
+            window.location.reload()
+        } else {
+            // Fallback si jamais l'option "Confirm email" est réactivée par erreur
+            alert("Compte créé ! Vérifiez votre email pour valider.")
+            setIsLogin(true)
+        }
       }
     } catch (error: any) {
       setAuthError(error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message)
@@ -172,12 +182,12 @@ export default function PublierPage() {
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
-  // --- VUE AUTHENTIFICATION (Login/Register) ---
+  // --- VUE AUTHENTIFICATION ---
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
         
-        {/* BOUTON RETOUR (NOUVEAU) */}
+        {/* BOUTON RETOUR VERS ACCUEIL */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex items-center">
             <Link href="/" className="flex items-center gap-2 text-gray-500 hover:text-brand font-bold bg-white/80 px-4 py-2 rounded-full shadow-sm backdrop-blur-sm transition">
                 <ArrowLeft size={20} />
