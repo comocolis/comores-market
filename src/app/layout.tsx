@@ -16,8 +16,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
+      {/* CORRECTION ICI : max-w-125 au lieu de max-w-[500px] */}
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center`}>
-        <div className="w-full max-w-[500px] min-h-screen bg-white shadow-2xl relative">
+        <div className="w-full max-w-125 min-h-screen bg-white shadow-2xl relative">
           {children}
         </div>
       </body>
