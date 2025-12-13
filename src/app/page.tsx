@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { 
   MapPin, Search, Home as HomeIcon, MessageCircle, User, Plus, 
   Car, Home, Shirt, Smartphone, Armchair, Gamepad2, Loader2, X,
-  Utensils, Briefcase, Heart, UserCheck 
+  Utensils, Briefcase, Heart, UserCheck, Maximize2 
 } from 'lucide-react'
 
 const formatPrice = (amount: number) => new Intl.NumberFormat('fr-KM', { style: 'currency', currency: 'KMF', maximumFractionDigits: 0 }).format(amount)
@@ -25,14 +25,20 @@ export default function MarketplaceHome() {
   const [loading, setLoading] = useState(true)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
+  
+  // États filtres
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIsland, setSelectedIsland] = useState('Tout')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+
+  // NOUVEAU : État pour l'image plein écran
+  const [fullScreenImage, setFullScreenImage] = useState<string | null>(null)
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id || null)
+      // On récupère aussi les infos du vendeur (profiles) pour d'éventuels badges futurs
       const { data: productsData } = await supabase.from('products').select('*, profiles(*)').eq('status', 'active').order('created_at', { ascending: false })
       setProducts(productsData || [])
       if (user) {
@@ -45,7 +51,7 @@ export default function MarketplaceHome() {
   }, [supabase])
 
   const toggleFavorite = async (e: React.MouseEvent, productId: string) => {
-    e.preventDefault()
+    e.preventDefault() // Empêche de cliquer sur le lien de l'annonce
     if (!userId) return alert("Connectez-vous pour ajouter aux favoris !")
     const newFavs = new Set(favorites)
     if (favorites.has(productId)) { newFavs.delete(productId); await supabase.from('favorites').delete().match({ user_id: userId, product_id: productId }) } 
@@ -61,7 +67,7 @@ export default function MarketplaceHome() {
   })
 
   return (
-    <main className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <main className="min-h-screen bg-gray-50 pb-24 font-sans relative">
       <header className="bg-brand sticky top-0 z-50 shadow-md pb-4 pt-safe">
         <div className="max-w-md mx-auto px-4 pt-3">
           <div className="flex items-center justify-between mb-4">
@@ -75,8 +81,8 @@ export default function MarketplaceHome() {
         </div>
       </header>
 
-      {/* Correction: top-25 au lieu de top-[100px] */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-25 z-40">
+      {/* Filtres Îles (Correction visuelle du scroll appliquée précédemment) */}
+      <div className="bg-white border-b border-gray-100 py-3">
          <div className="max-w-md mx-auto px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore'].map((ile) => (
               <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>{ile}</button>
@@ -84,10 +90,10 @@ export default function MarketplaceHome() {
          </div>
       </div>
 
+      {/* Catégories */}
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="flex justify-between gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {CATEGORIES.map((cat) => (
-                // Correction: min-w-17.5 au lieu de min-w-[70px]
                 <button key={cat.label} onClick={() => setSelectedCategory(selectedCategory === cat.label ? null : cat.label)} className="flex flex-col items-center gap-2 min-w-17.5">
                     <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-1 shadow-sm border transition-all ${selectedCategory === cat.label ? 'bg-brand text-white border-brand scale-110' : 'bg-green-50 text-brand border-green-100'}`}><cat.icon size={24} /></div>
                     <span className={`text-[10px] font-medium ${selectedCategory === cat.label ? 'text-brand font-bold' : 'text-gray-600'}`}>{cat.label}</span>
@@ -96,7 +102,7 @@ export default function MarketplaceHome() {
         </div>
       </div>
 
-      {/* Correction: min-h-75 au lieu de min-h-[300px] */}
+      {/* Liste des produits */}
       <div className="max-w-md mx-auto px-3 min-h-75">
         {loading ? <div className="flex justify-center py-20"><Loader2 className="animate-spin text-brand" /></div> : (
             <div className="grid grid-cols-2 gap-3">
@@ -105,11 +111,35 @@ export default function MarketplaceHome() {
                 const isFav = favorites.has(product.id)
                 return (
                 <Link key={product.id} href={`/annonce/${product.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow relative group">
-                <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 z-10 bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm hover:bg-white active:scale-90 transition"><Heart size={18} className={isFav ? "fill-red-500 text-red-500" : "text-gray-500"} /></button>
+                
+                {/* Bouton Favori */}
+                <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 z-20 bg-white/80 backdrop-blur-sm p-1.5 rounded-full shadow-sm hover:bg-white active:scale-90 transition"><Heart size={18} className={isFav ? "fill-red-500 text-red-500" : "text-gray-500"} /></button>
+                
+                {/* Image Container */}
                 <div className="relative aspect-4/3 bg-gray-100">
-                    {imageUrl ? <Image src={imageUrl} alt={product.title} fill className="object-cover" sizes="50vw" /> : <div className="flex items-center justify-center h-full text-gray-300 text-xs">Pas d'image</div>}
-                    <div className="absolute bottom-1 right-1 bg-black/50 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded">{product.location_island}</div>
+                    {imageUrl ? (
+                        <>
+                            <Image src={imageUrl} alt={product.title} fill className="object-cover" sizes="50vw" />
+                            
+                            {/* NOUVEAU : Bouton Agrandir l'image */}
+                            <button 
+                                onClick={(e) => {
+                                    e.preventDefault(); // Empêche d'aller sur la page détail
+                                    e.stopPropagation();
+                                    setFullScreenImage(imageUrl);
+                                }}
+                                className="absolute bottom-2 left-2 z-20 bg-black/30 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/50"
+                                title="Voir l'image en entier"
+                            >
+                                <Maximize2 size={14} />
+                            </button>
+                        </>
+                    ) : (
+                        <div className="flex items-center justify-center h-full text-gray-300 text-xs">Pas d'image</div>
+                    )}
+                    <div className="absolute bottom-1 right-1 bg-black/50 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10">{product.location_island}</div>
                 </div>
+
                 <div className="p-3 flex flex-col flex-1">
                     <h2 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-1">{product.title}</h2>
                     <p className="text-brand font-extrabold text-sm mb-2">{formatPrice(product.price)}</p>
@@ -122,6 +152,19 @@ export default function MarketplaceHome() {
             </div>
         )}
       </div>
+
+      {/* NOUVEAU : Modale Plein Écran */}
+      {fullScreenImage && (
+        <div className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
+            <button onClick={() => setFullScreenImage(null)} className="absolute top-6 right-6 text-white bg-white/10 p-3 rounded-full hover:bg-white/30 transition z-20">
+                <X size={24} />
+            </button>
+            {/* Utilisation de object-contain pour voir TOUTE l'image */}
+            <div className="relative w-full h-full max-h-[90vh] p-4">
+                <Image src={fullScreenImage} alt="Plein écran" fill className="object-contain" priority />
+            </div>
+        </div>
+      )}
 
       <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-md">
         <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
