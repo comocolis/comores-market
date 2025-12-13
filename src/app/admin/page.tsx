@@ -78,7 +78,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-      <div className="bg-gray-900 text-white p-6 pt-safe pb-12 rounded-b-[2rem] shadow-lg">
+      <div className="bg-gray-900 text-white p-6 pt-safe pb-12 rounded-b-4xl shadow-lg">
         <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><Shield className="text-brand" /> Back-Office Admin</h1>
         <p className="text-gray-400 text-sm">Gérez votre business Comores Market.</p>
         

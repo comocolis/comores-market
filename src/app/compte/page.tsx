@@ -8,10 +8,13 @@ import Image from 'next/image'
 import { 
   LogOut, User, MapPin, Trash2, Plus, Home as HomeIcon, 
   Search, MessageCircle, Edit2, Save, X, Camera, Loader2, 
-  Phone, CheckCircle, Star, FileText 
+  Phone, CheckCircle, Star, FileText, Shield 
 } from 'lucide-react'
 
 const inputStyle = "w-full p-2 bg-gray-50 rounded-lg border border-gray-200 text-gray-900 text-sm focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-all"
+
+// ⚠️ REMPLACEZ PAR VOTRE EMAIL POUR VOIR LE BOUTON ADMIN
+const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
 export default function ComptePage() {
   const supabase = createClient()
@@ -110,11 +113,11 @@ export default function ComptePage() {
     router.refresh()
   }
 
-  // --- NOUVEAU : Suppression Propre (Base de données + Images) ---
+  // --- Suppression Propre (Base de données + Images) ---
   const handleDelete = async (id: string, imagesJson: string | null) => {
     if(!confirm("Êtes-vous sûr de vouloir supprimer cette annonce ? Cette action est irréversible.")) return
     
-    // 1. Supprimer les images du Storage
+    // 1. Supprimer les images du Storage pour ne pas encombrer
     if (imagesJson) {
         try {
             const imageUrls: string[] = JSON.parse(imagesJson)
@@ -135,7 +138,7 @@ export default function ComptePage() {
     // 2. Supprimer la ligne en base de données
     await supabase.from('products').delete().eq('id', id)
     
-    // 3. Mettre à jour l'affichage
+    // 3. Mettre à jour l'affichage local
     setMyProducts(myProducts.filter(p => p.id !== id))
   }
 
@@ -148,9 +151,17 @@ export default function ComptePage() {
       <div className="bg-brand pb-32 pt-safe px-6 rounded-b-[2.5rem] shadow-sm relative z-0">
         <div className="flex justify-between items-center mb-4">
             <h1 className="text-white font-bold text-xl">Mon Profil</h1>
-            <button onClick={handleLogout} className="text-white bg-red-500 hover:bg-red-600 p-2 rounded-full transition shadow-md" title="Se déconnecter">
-                <LogOut size={18} />
-            </button>
+            <div className="flex gap-2">
+                {/* BOUTON ADMIN SECRET (Visible seulement par vous) */}
+                {user?.email === ADMIN_EMAIL && (
+                    <Link href="/admin" className="text-brand bg-white p-2 rounded-full transition shadow-md hover:scale-105">
+                        <Shield size={18} />
+                    </Link>
+                )}
+                <button onClick={handleLogout} className="text-white bg-red-500 hover:bg-red-600 p-2 rounded-full transition shadow-md" title="Se déconnecter">
+                    <LogOut size={18} />
+                </button>
+            </div>
         </div>
       </div>
 
@@ -250,9 +261,10 @@ export default function ComptePage() {
         </div>
       </div>
 
-      {/* ANNONCES & ACTIONS */}
+      {/* SECTION ANNONCES & ACTIONS */}
       <div className="px-4 mt-8 space-y-6">
         
+        {/* Bannière PRO pour les non-pros */}
         {!profile?.is_pro && (
             <Link 
                 href="/pro" 
@@ -295,6 +307,7 @@ export default function ComptePage() {
                                     <Link href={`/modifier/${p.id}`} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 rounded-full hover:bg-brand hover:text-white transition">
                                         <Edit2 size={14} />
                                     </Link>
+                                    {/* On passe p.images pour pouvoir supprimer les fichiers du storage */}
                                     <button onClick={() => handleDelete(p.id, p.images)} className="w-8 h-8 flex items-center justify-center bg-red-50 text-red-500 rounded-full hover:bg-red-100 transition">
                                         <Trash2 size={14} />
                                     </button>
@@ -306,7 +319,7 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* NOUVEAU : LIEN LÉGAL */}
+        {/* LIEN MENTIONS LÉGALES */}
         <div className="text-center pt-8 pb-4">
              <Link href="/cgu" className="text-xs text-gray-400 hover:text-gray-600 flex items-center justify-center gap-1">
                 <FileText size={12} /> Mentions Légales & CGU
