@@ -2,177 +2,265 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
-import { Home, Search, MessageCircle, User, Loader2, Plus, ArrowRight, Inbox, Send, X } from 'lucide-react'
+import Image from 'next/image'
+import { Home, Search, MessageCircle, User, Loader2, Plus, ArrowLeft, Send, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
+
+// Type pour une conversation groupée
+type Conversation = {
+  id: string
+  productId: string
+  productTitle: string
+  productImage: string | null
+  counterpartId: string
+  counterpartName: string
+  lastMessage: string
+  lastDate: string
+  messages: any[]
+}
 
 export default function MessagesPage() {
   const supabase = createClient()
   const router = useRouter()
+  
   const [loading, setLoading] = useState(true)
-  const [messages, setMessages] = useState<any[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
-
-  // États pour la réponse
-  const [replyingTo, setReplyingTo] = useState<string | null>(null) // ID du message auquel on répond
+  
+  // Vue : 'list' ou 'chat'
+  const [view, setView] = useState<'list' | 'chat'>('list')
+  const [activeConv, setActiveConv] = useState<Conversation | null>(null)
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  
+  // Pour le chat
   const [replyContent, setReplyContent] = useState('')
-  const [sendingReply, setSendingReply] = useState(false)
+  const [sending, setSending] = useState(false)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const fetchMessages = useCallback(async (userId: string) => {
+  const fetchAndGroupMessages = async (userId: string) => {
     const { data } = await supabase.from('messages')
-        .select('*, sender:profiles!sender_id(full_name), receiver:profiles!receiver_id(full_name), product:products(title)')
+        .select('*, sender:profiles!sender_id(full_name), receiver:profiles!receiver_id(full_name), product:products(title, images)')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
-        .order('created_at', { ascending: false })
-    
-    if (data) setMessages(data)
+        .order('created_at', { ascending: true })
+
+    if (!data) return
+
+    const groups: { [key: string]: Conversation } = {}
+
+    data.forEach((msg) => {
+        const isMe = msg.sender_id === userId
+        const otherId = isMe ? msg.receiver_id : msg.sender_id
+        const otherName = isMe ? msg.receiver?.full_name : msg.sender?.full_name
+        
+        const key = `${msg.product_id}-${otherId}`
+        
+        let img = null
+        try { 
+            // Sécurité pour parser l'image
+            if (msg.product?.images) {
+                const parsed = JSON.parse(msg.product.images)
+                if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0]
+            }
+        } catch {}
+
+        if (!groups[key]) {
+            groups[key] = {
+                id: key,
+                productId: msg.product_id,
+                productTitle: msg.product?.title || 'Annonce supprimée',
+                productImage: img,
+                counterpartId: otherId,
+                counterpartName: otherName || 'Utilisateur',
+                lastMessage: '',
+                lastDate: '',
+                messages: []
+            }
+        }
+        
+        groups[key].messages.push(msg)
+        groups[key].lastMessage = msg.content
+        groups[key].lastDate = msg.created_at
+    })
+
+    const sortedConvs = Object.values(groups).sort((a, b) => 
+        new Date(b.lastDate).getTime() - new Date(a.lastDate).getTime()
+    )
+
+    setConversations(sortedConvs)
     setLoading(false)
-  }, [supabase])
+    
+    if (activeConv) {
+        const updatedActive = sortedConvs.find(c => c.id === activeConv.id)
+        if (updatedActive) setActiveConv(updatedActive)
+    }
+  }
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/publier'); return }
-      
       setCurrentUser(user)
-      await fetchMessages(user.id)
+      await fetchAndGroupMessages(user.id)
 
-      const channel = supabase
-        .channel('realtime-messages')
-        .on(
-          'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'messages' },
-          (payload) => {
-            const newMessage = payload.new as any
-            if (newMessage.receiver_id === user.id || newMessage.sender_id === user.id) {
-                fetchMessages(user.id)
-                if (newMessage.receiver_id === user.id) {
-                    toast.info("Nouveau message reçu !")
-                }
+      const channel = supabase.channel('chat-room')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
+        (payload) => {
+            const m = payload.new as any
+            if (m.sender_id === user.id || m.receiver_id === user.id) {
+                fetchAndGroupMessages(user.id)
             }
-          }
-        )
+        })
         .subscribe()
 
       return () => { supabase.removeChannel(channel) }
     }
     init()
-  }, [router, supabase, fetchMessages])
+  }, [router, supabase])
 
-  const handleSendReply = async (originalMessage: any) => {
-    if (!replyContent.trim()) return
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [activeConv])
 
-    setSendingReply(true)
-    
-    // Déterminer qui est le destinataire (l'autre personne)
-    const otherPersonId = originalMessage.sender_id === currentUser.id 
-        ? originalMessage.receiver_id 
-        : originalMessage.sender_id
+  const handleSend = async () => {
+    if (!replyContent.trim() || !activeConv || !currentUser) return
+    setSending(true)
 
     const { error } = await supabase.from('messages').insert({
         content: replyContent,
         sender_id: currentUser.id,
-        receiver_id: otherPersonId,
-        product_id: originalMessage.product_id
+        receiver_id: activeConv.counterpartId,
+        product_id: activeConv.productId
     })
 
-    if (error) {
-        toast.error("Erreur d'envoi")
-    } else {
-        toast.success("Réponse envoyée !")
-        setReplyingTo(null)
-        setReplyContent('')
-        // Le Realtime mettra à jour la liste automatiquement
-    }
-    setSendingReply(false)
+    if (error) toast.error("Erreur d'envoi")
+    else setReplyContent('')
+    setSending(false)
   }
 
-  return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
-      <div className="bg-brand pt-safe px-6 pb-4 shadow-sm sticky top-0 z-30">
-        <h1 className="text-white font-bold text-xl mt-3">Messages</h1>
-      </div>
-
-      <div className="px-4 py-4 flex-1 flex flex-col">
-        {loading ? (
-            <div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
-        ) : messages.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-gray-400 opacity-60 pb-20">
-                <div className="bg-gray-200 p-4 rounded-full mb-3"><Inbox size={32} /></div>
-                <p className="font-medium">Aucun message pour le moment.</p>
+  // --- VUE : LISTE DES CONVERSATIONS ---
+  if (view === 'list') {
+    return (
+        <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+            <div className="bg-brand pt-safe px-6 pb-4 shadow-sm sticky top-0 z-30">
+                <h1 className="text-white font-bold text-xl mt-3">Mes Messages</h1>
             </div>
-        ) : (
-            <div className="space-y-3">
-                {messages.map(m => {
-                    const isMe = m.sender_id === currentUser?.id
-                    const isReplying = replyingTo === m.id
 
-                    return (
-                        <div key={m.id} className={`p-4 rounded-xl shadow-sm border transition-transform ${isMe ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
-                            <div className="flex justify-between items-start mb-1">
-                                <p className="text-xs font-bold text-brand uppercase tracking-wider">{m.product?.title || 'Annonce supprimée'}</p>
-                                <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleDateString()}</span>
+            <div className="px-4 py-4 space-y-2">
+                {loading ? (
+                    <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" /></div>
+                ) : conversations.length === 0 ? (
+                    <div className="text-center text-gray-400 pt-20">
+                        <MessageCircle size={48} className="mx-auto mb-2 opacity-50" />
+                        <p>Aucune discussion.</p>
+                    </div>
+                ) : (
+                    conversations.map(conv => (
+                        <div 
+                            key={conv.id} 
+                            onClick={() => { setActiveConv(conv); setView('chat') }}
+                            className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3 items-center active:scale-[0.98] transition cursor-pointer"
+                        >
+                            <div className="w-14 h-14 bg-gray-100 rounded-full shrink-0 relative overflow-hidden border border-gray-200">
+                                {conv.productImage ? (
+                                    <Image src={conv.productImage} alt="" fill className="object-cover" />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-400"><ShoppingBag size={20} /></div>
+                                )}
                             </div>
-                            
-                            <p className="text-gray-800 text-sm mb-3 whitespace-pre-line">
-                                {isMe && <span className="text-gray-400 font-bold mr-1">Moi:</span>}
-                                {m.content}
-                            </p>
-                            
-                            {/* BOUTON RÉPONDRE OU FORMULAIRE */}
-                            {!isReplying ? (
-                                <div className="flex justify-between items-center text-[10px] text-gray-500 mt-2 border-t border-gray-200/50 pt-2">
-                                    <span className="flex items-center gap-1">
-                                        <User size={10} /> 
-                                        {isMe ? `À : ${m.receiver?.full_name}` : `De : ${m.sender?.full_name}`}
-                                    </span>
-                                    <button 
-                                        onClick={() => setReplyingTo(m.id)}
-                                        className="flex items-center gap-1 text-brand font-bold bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition"
-                                    >
-                                        Répondre <ArrowRight size={10} />
-                                    </button>
-                                </div>
-                            ) : (
-                                <div className="mt-3 animate-in fade-in slide-in-from-top-2">
-                                    <textarea 
-                                        autoFocus
-                                        className="w-full bg-white border border-brand/30 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-brand/20 mb-2"
-                                        placeholder="Votre réponse..."
-                                        rows={2}
-                                        value={replyContent}
-                                        onChange={e => setReplyContent(e.target.value)}
-                                    />
-                                    <div className="flex gap-2 justify-end">
-                                        <button onClick={() => setReplyingTo(null)} className="p-2 text-gray-400 hover:text-gray-600"><X size={18} /></button>
-                                        <button 
-                                            onClick={() => handleSendReply(m)}
-                                            disabled={sendingReply}
-                                            className="bg-brand text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
-                                        >
-                                            {sendingReply ? <Loader2 size={12} className="animate-spin" /> : <><Send size={12} /> Envoyer</>}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )
-                })}
-            </div>
-        )}
-      </div>
 
-      <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
-          <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand transition"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link>
-          <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand transition"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link>
-          <div className="flex justify-center relative -top-6">
-            <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition"><Plus strokeWidth={3} size={28} /></Link>
-          </div>
-          <Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link>
-          <Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand transition"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-baseline">
+                                    <h3 className="font-bold text-gray-900 truncate text-sm">{conv.counterpartName}</h3>
+                                    <span className="text-[10px] text-gray-400 whitespace-nowrap ml-2">
+                                        {new Date(conv.lastDate).toLocaleDateString()}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-brand font-bold truncate mb-0.5">{conv.productTitle}</p>
+                                <p className="text-sm text-gray-500 truncate">{conv.lastMessage}</p>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
+            <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-md">
+                <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
+                <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link>
+                <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link>
+                <div className="flex justify-center relative -top-6"><Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white"><Plus strokeWidth={3} size={28} /></Link></div>
+                <Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link>
+                <Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link>
+                </div>
+            </nav>
         </div>
-      </nav>
+    )
+  }
+
+  // --- VUE : CHAT ---
+  return (
+    <div className="flex flex-col h-screen bg-gray-50 font-sans">
+        {/* Header Chat */}
+        <div className="bg-white px-4 py-3 shadow-sm flex items-center gap-3 pt-safe sticky top-0 z-40">
+            <button onClick={() => setView('list')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
+                <ArrowLeft size={20} />
+            </button>
+            <div className="flex-1 min-w-0">
+                <h2 className="font-bold text-gray-900 truncate">{activeConv?.counterpartName}</h2>
+                <p className="text-xs text-brand font-medium truncate flex items-center gap-1">
+                    <ShoppingBag size={10} /> {activeConv?.productTitle}
+                </p>
+            </div>
+            {activeConv?.productImage && (
+                <div className="w-10 h-10 rounded-lg overflow-hidden relative border border-gray-100">
+                    <Image src={activeConv.productImage} alt="" fill className="object-cover" />
+                </div>
+            )}
+        </div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5]/10">
+            {activeConv?.messages.map((msg, i) => {
+                const isMe = msg.sender_id === currentUser?.id
+                return (
+                    <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div 
+                            className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm relative ${
+                                isMe 
+                                ? 'bg-brand text-white rounded-br-none' 
+                                : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                            }`}
+                        >
+                            <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                            <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+                                {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </p>
+                        </div>
+                    </div>
+                )
+            })}
+            <div ref={messagesEndRef} />
+        </div>
+
+        {/* Zone de saisie */}
+        <div className="bg-white p-3 border-t border-gray-200 pb-safe">
+            <div className="flex items-end gap-2 bg-gray-100 p-2 rounded-2xl">
+                <textarea 
+                    className="flex-1 bg-transparent border-none focus:ring-0 text-sm max-h-32 min-h-10 py-2 resize-none"
+                    placeholder="Écrivez votre message..."
+                    rows={1}
+                    value={replyContent}
+                    onChange={e => setReplyContent(e.target.value)}
+                />
+                <button 
+                    onClick={handleSend}
+                    disabled={sending || !replyContent.trim()}
+                    className="bg-brand text-white p-2.5 rounded-full shadow-md hover:bg-brand-dark transition disabled:opacity-50 disabled:scale-95"
+                >
+                    {sending ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} className="ml-0.5" />}
+                </button>
+            </div>
+        </div>
     </div>
   )
 }
