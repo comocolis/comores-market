@@ -2,17 +2,68 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Phone, ArrowLeft, Send, Heart, Share2, ShieldAlert, Loader2, CheckCircle, User, ArrowRight } from 'lucide-react'
-// IMPORT TOAST
 import { toast } from 'sonner'
 
-const containsForbiddenContent = (text: string) => {
-  const numberPattern = /(\d[\s-.]?){6,}/
-  const keywordPattern = /(whatsapp|tél|tel|phone|appeler|joindre|numéro|numero|contact|06|07|\+269)/i
-  return numberPattern.test(text) || keywordPattern.test(text)
+// --- ALGORITHME DE SÉCURITÉ AVANCÉ ---
+
+// 1. Dictionnaire des chiffres en lettres
+const NUMBER_WORDS: { [key: string]: string } = {
+  'zero': '0', 'zéro': '0',
+  'un': '1', 'une': '1',
+  'deux': '2',
+  'trois': '3',
+  'quatre': '4',
+  'cinq': '5',
+  'six': '6',
+  'sept': '7',
+  'huit': '8',
+  'neuf': '9',
+  'dix': '10',
+  'vingt': '20',
+  'trente': '30',
+  'quarante': '40',
+  'cinquante': '50',
+  'soixante': '60',
+  'soixante-dix': '70',
+  'quatre-vingt': '80',
+  ' quatre-vingt-dix': '90'
+}
+
+const detectForbiddenContent = (currentMessage: string, history: string) => {
+  // A. On combine l'historique récent avec le message actuel pour contrer le découpage
+  // Ex: History="06", Msg="39" -> Full="06 39"
+  const fullText = (history + " " + currentMessage).toLowerCase()
+
+  // B. Nettoyage des accents pour attraper "zéro" comme "zero"
+  const normalizedText = fullText.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+
+  // C. Remplacement des mots par des chiffres
+  let textWithDigits = normalizedText
+  Object.keys(NUMBER_WORDS).forEach(word => {
+     const regex = new RegExp(`\\b${word}\\b`, 'gi')
+     textWithDigits = textWithDigits.replace(regex, NUMBER_WORDS[word])
+  })
+
+  // D. Suppression de tout ce qui n'est pas un chiffre pour voir la suite pure
+  // Ex: "Appelle le 33. 44 .55" devient "334455"
+  const digitsOnly = textWithDigits.replace(/\D/g, '')
+
+  // E. DÉTECTION FINALE
+  
+  // 1. Suite de 5 chiffres ou plus (attrape les bouts de numéros comme 33344)
+  // On est strict : aux Comores/France, un bout de numéro fait souvent 5+ chiffres
+  const hasLongNumber = digitsOnly.length >= 6
+
+  // 2. Mots clés "Leetspeak" (écritures bizarres)
+  // Attrape: whatsapp, watsap, whtsp, tél, phone, call me...
+  const keywordPattern = /(wh?ats?app?|wht?sp|t[ée]l|phone|appel|joindre|contact|06|07|\+269|269)/i
+  const hasKeyword = keywordPattern.test(normalizedText)
+
+  return hasLongNumber || hasKeyword
 }
 
 export default function AnnoncePage() {
@@ -28,6 +79,9 @@ export default function AnnoncePage() {
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
+
+  // NOUVEAU : Mémoire locale pour l'anti-fragmentation
+  const [sessionHistory, setSessionHistory] = useState('')
 
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
@@ -61,10 +115,11 @@ export default function AnnoncePage() {
     if (!currentUser) return router.push('/publier')
     if (!message.trim()) return
 
+    // 🔒 SÉCURITÉ INTELLIGENTE
     if (!userProfile?.is_pro) {
-        if (containsForbiddenContent(message)) {
-            // ERREUR BLOQUANTE EN ROUGE
-            toast.error("ACTION BLOQUÉE : Le partage de numéro est réservé aux Vendeurs PRO.")
+        // On vérifie le message actuel combiné à ce qu'il a écrit juste avant
+        if (detectForbiddenContent(message, sessionHistory)) {
+            toast.error("ACTION BLOQUÉE : Le partage de numéro (chiffres ou lettres) est réservé aux Vendeurs PRO.")
             return
         }
     }
@@ -79,8 +134,9 @@ export default function AnnoncePage() {
 
     if (error) toast.error("Erreur : " + error.message)
     else {
-        // SUCCÈS EN VERT
         toast.success("Message envoyé avec succès !")
+        // On ajoute le message envoyé à l'historique de session pour surveiller le prochain
+        setSessionHistory(prev => prev + " " + message)
         setMessage('')
     }
     setSending(false)
