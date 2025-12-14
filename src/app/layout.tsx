@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+// IMPORT DE LA LIBRAIRIE
+import { Toaster } from 'sonner';
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -23,12 +25,13 @@ export const metadata: Metadata = {
     ],
   },
 };
+
 export const viewport: Viewport = {
-  themeColor: "#22c55e", // La couleur verte de votre marque
+  themeColor: "#22c55e",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  userScalable: false, // Empêche le zoom pour faire "vrai app"
+  userScalable: false,
 };
 
 export default function RootLayout({
@@ -40,6 +43,8 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center`}>
         <div className="w-full max-w-125 min-h-screen bg-white shadow-2xl relative">
+          {/* LE COMPOSANT MAGIQUE POUR LES NOTIFICATIONS */}
+          <Toaster richColors position="top-center" duration={3000} />
           {children}
         </div>
       </body>

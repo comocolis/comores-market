@@ -6,15 +6,16 @@ import { useState, useEffect, ChangeEvent } from 'react'
 import { Loader2, Camera, LogIn, Eye, EyeOff, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
+// 1. IMPORT DU TOAST
+import { toast } from 'sonner'
 
 const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
 const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
 
-// Liste des indicatifs autorisés
 const PHONE_PREFIXES = [
   { code: '+269', label: '🇰🇲 Comores', flag: '🇰🇲' },
   { code: '+262', label: 'YT Mayotte', flag: '🇾🇹' },
-  { code: '+262', label: 'RE Réunion', flag: '🇷🇪' }, // Même code que Mayotte, mais label différent pour UX
+  { code: '+262', label: 'RE Réunion', flag: '🇷🇪' },
   { code: '+33', label: '🇫🇷 France', flag: '🇫🇷' },
 ]
 
@@ -27,13 +28,11 @@ export default function PublierPage() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   
-  // États Auth
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
   
-  // Nouvel état pour l'indicatif (par défaut Comores)
   const [phonePrefix, setPhonePrefix] = useState('+269')
 
   const [authData, setAuthData] = useState({ 
@@ -47,7 +46,6 @@ export default function PublierPage() {
   
   const [isForgotPassword, setIsForgotPassword] = useState(false)
 
-  // États Annonce
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   const [formData, setFormData] = useState({
@@ -77,8 +75,6 @@ export default function PublierPage() {
 
   const maxImages = profile?.is_pro ? 10 : 3
 
-  // --- LOGIQUE AUTHENTIFICATION ---
-
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -91,20 +87,19 @@ export default function PublierPage() {
             redirectTo: `${origin}/compte/reset`,
         })
         if (error) throw error
-        alert("Email de réinitialisation envoyé ! Vérifiez vos spams.")
+        // 2. SUCCESS TOAST
+        toast.success("Email de réinitialisation envoyé ! Vérifiez vos spams.")
         setIsForgotPassword(false)
       } 
       else if (isLogin) {
-        // Connexion classique
         const { error } = await supabase.auth.signInWithPassword({
           email: authData.email,
           password: authData.password,
         })
         if (error) throw error
+        toast.success("Connexion réussie !")
         window.location.reload()
       } else {
-        // INSCRIPTION : Construction du numéro complet
-        // On enlève le premier '0' si l'utilisateur l'a mis (ex: 033 -> 33)
         const cleanNumber = authData.phone.replace(/^0+/, '')
         const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
 
@@ -114,7 +109,7 @@ export default function PublierPage() {
           options: { 
             data: { 
                 full_name: authData.fullName,
-                phone: fullPhoneNumber, // On enregistre le numéro formaté (ex: +269333...)
+                phone: fullPhoneNumber,
                 island: authData.island,
                 city: authData.city
             } 
@@ -123,26 +118,28 @@ export default function PublierPage() {
         if (error) throw error
 
         if (data.session) {
-            alert("Compte créé avec succès ! Bienvenue.")
+            toast.success("Compte créé avec succès ! Bienvenue.")
             window.location.reload()
         } else {
-            alert("Compte créé ! Vérifiez votre email pour valider.")
+            toast.info("Compte créé ! Vérifiez votre email pour valider.")
             setIsLogin(true)
         }
       }
     } catch (error: any) {
-      setAuthError(error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message)
+      const msg = error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message
+      setAuthError(msg)
+      // 3. ERROR TOAST
+      toast.error(msg)
     } finally {
       setAuthLoading(false)
     }
   }
 
-  // --- LOGIQUE ANNONCES ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selectedFiles = Array.from(e.target.files)
     if (files.length + selectedFiles.length > maxImages) {
-        alert(`Limite : ${maxImages} images max.`)
+        toast.error(`Limite atteinte : ${maxImages} images maximum.`)
         return
     }
     setFiles([...files, ...selectedFiles])
@@ -152,7 +149,7 @@ export default function PublierPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!user) return
-    if (files.length === 0) return alert("Ajoutez au moins une photo.")
+    if (files.length === 0) return toast.warning("Ajoutez au moins une photo.")
     setUploading(true)
 
     try {
@@ -182,12 +179,12 @@ export default function PublierPage() {
       })
 
       if (error) throw error
-      alert('Annonce publiée !')
+      toast.success('Annonce publiée avec succès !')
       router.push('/') 
       router.refresh() 
 
     } catch (error: any) {
-      alert('Erreur : ' + error.message)
+      toast.error('Erreur : ' + error.message)
     } finally {
       setUploading(false)
     }
@@ -195,12 +192,9 @@ export default function PublierPage() {
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
-  // --- VUE AUTHENTIFICATION ---
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
-        
-        {/* BOUTON RETOUR VERS ACCUEIL */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex items-center">
             <Link href="/" className="flex items-center gap-2 text-gray-500 hover:text-brand font-bold bg-white/80 px-4 py-2 rounded-full shadow-sm backdrop-blur-sm transition">
                 <ArrowLeft size={20} />
@@ -220,7 +214,7 @@ export default function PublierPage() {
           </div>
 
           {authError && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-100">
+            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-100 animate-in slide-in-from-top-1">
                 <AlertCircle size={16} /> {authError}
             </div>
           )}
@@ -268,7 +262,6 @@ export default function PublierPage() {
                 <div>
                     <label className={labelStyle}>Téléphone WhatsApp</label>
                     <div className="flex gap-2">
-                        {/* SÉLECTEUR DE PAYS (NOUVEAU) */}
                         <div className="w-1/3 relative">
                             <select 
                                 className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} 
@@ -281,13 +274,10 @@ export default function PublierPage() {
                                     </option>
                                 ))}
                             </select>
-                            {/* Petite flèche custom pour le style */}
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                                 <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                             </div>
                         </div>
-
-                        {/* CHAMP NUMÉRO */}
                         <input 
                             type="tel" 
                             required 
@@ -372,7 +362,6 @@ export default function PublierPage() {
     )
   }
 
-  // --- VUE PUBLIER UNE ANNONCE (Connecté) ---
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">

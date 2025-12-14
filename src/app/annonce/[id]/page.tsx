@@ -5,16 +5,13 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-// CORRECTION ICI : Ajout de ArrowRight dans les imports
 import { MapPin, Phone, ArrowLeft, Send, Heart, Share2, ShieldAlert, Loader2, CheckCircle, User, ArrowRight } from 'lucide-react'
+// IMPORT TOAST
+import { toast } from 'sonner'
 
-// Fonction de détection (Algorithme de sécurité)
 const containsForbiddenContent = (text: string) => {
-  // 1. Détecte une suite de 6 chiffres ou plus (avec espaces, tirets ou points)
   const numberPattern = /(\d[\s-.]?){6,}/
-  // 2. Détecte les mots clés explicites
   const keywordPattern = /(whatsapp|tél|tel|phone|appeler|joindre|numéro|numero|contact|06|07|\+269)/i
-  
   return numberPattern.test(text) || keywordPattern.test(text)
 }
 
@@ -32,7 +29,6 @@ export default function AnnoncePage() {
   const [sending, setSending] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
-  // État pour l'image plein écran
   const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
   useEffect(() => {
@@ -41,7 +37,6 @@ export default function AnnoncePage() {
       setCurrentUser(user)
       
       if (user) {
-         // On récupère le profil de celui qui envoie pour savoir s'il est PRO
          const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
          setUserProfile(profile)
 
@@ -51,7 +46,7 @@ export default function AnnoncePage() {
 
       const { data: productData } = await supabase
         .from('products')
-        .select('*, profiles(*)') // On récupère les infos du vendeur
+        .select('*, profiles(*)')
         .eq('id', params.id)
         .single()
       
@@ -66,10 +61,10 @@ export default function AnnoncePage() {
     if (!currentUser) return router.push('/publier')
     if (!message.trim()) return
 
-    // 🔒 SÉCURITÉ : Blocage des numéros pour les non-PROs
     if (!userProfile?.is_pro) {
         if (containsForbiddenContent(message)) {
-            alert("⚠️ ACTION BLOQUÉE\n\nLe partage de numéro ou WhatsApp est réservé aux Vendeurs PRO.\n\nVeuillez utiliser la messagerie interne pour discuter.")
+            // ERREUR BLOQUANTE EN ROUGE
+            toast.error("ACTION BLOQUÉE : Le partage de numéro est réservé aux Vendeurs PRO.")
             return
         }
     }
@@ -82,9 +77,10 @@ export default function AnnoncePage() {
         product_id: product.id
     })
 
-    if (error) alert("Erreur : " + error.message)
+    if (error) toast.error("Erreur : " + error.message)
     else {
-        alert("Message envoyé avec succès !")
+        // SUCCÈS EN VERT
+        toast.success("Message envoyé avec succès !")
         setMessage('')
     }
     setSending(false)
@@ -96,9 +92,11 @@ export default function AnnoncePage() {
     if (favorites.has(id)) {
         await supabase.from('favorites').delete().match({ user_id: currentUser.id, product_id: id })
         const newFav = new Set(favorites); newFav.delete(id); setFavorites(newFav)
+        toast.info("Retiré des favoris")
     } else {
         await supabase.from('favorites').insert({ user_id: currentUser.id, product_id: id })
         setFavorites(new Set([...favorites, id]))
+        toast.success("Ajouté aux favoris")
     }
   }
 
@@ -119,7 +117,6 @@ export default function AnnoncePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      {/* HEADER IMAGE */}
       <div className="relative w-full h-80 bg-gray-200">
         <Image 
             src={selectedImage || images[0]} 
@@ -148,7 +145,6 @@ export default function AnnoncePage() {
         </div>
       </div>
 
-      {/* CORRECTION LINTER : rounded-t-3xl au lieu de [2rem] */}
       <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[50vh]">
         
         <div className="flex justify-between items-start mb-4">
@@ -164,7 +160,6 @@ export default function AnnoncePage() {
             </div>
         </div>
 
-        {/* INFO VENDEUR */}
         <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden relative">
@@ -188,7 +183,6 @@ export default function AnnoncePage() {
             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
         </div>
 
-        {/* ZONE DE CONTACT */}
         {!isOwner && (
             <div className="space-y-3 pb-8">
                 
@@ -223,7 +217,6 @@ export default function AnnoncePage() {
                             disabled={sending || !message.trim()}
                             className="absolute right-2 bottom-2 bg-brand text-white p-2 rounded-lg hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {/* ICI : ArrowRight fonctionne maintenant car importé */}
                             {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
                         </button>
                     </form>
