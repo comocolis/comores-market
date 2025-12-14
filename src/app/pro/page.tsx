@@ -2,15 +2,20 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Smartphone, CreditCard, ShieldCheck, Camera, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Smartphone, CreditCard, ShieldCheck, Camera, MessageCircle, Mail } from 'lucide-react'
 
 export default function ProPage() {
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
-  const PAYMENT_PHONE = "434 20 63"
+  // 1. Numéro Mvola (Pour le paiement) - Reste un numéro local
+  const MVOLA_NUMBER = "434 20 63"
   
-  const whatsappMessage = encodeURIComponent(`Bonjour, je viens d'envoyer 2500 KMF par Mvola au ${PAYMENT_PHONE}. Voici mon ID de transaction pour activer mon compte PRO.`)
-  const whatsappLink = `https://wa.me/269${PAYMENT_PHONE.replace(/\s/g, '')}?text=${whatsappMessage}`
+  // 2. Numéro WhatsApp (Pour la réception de preuve) - Nouveau numéro +33
+  const WHATSAPP_CONTACT = "33758760743"
+  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
+  
+  const whatsappMessage = encodeURIComponent(`Bonjour, je viens d'envoyer 2500 KMF par Mvola au ${MVOLA_NUMBER}. Voici mon ID de transaction pour activer mon compte PRO.`)
+  const whatsappLink = `https://wa.me/${WHATSAPP_CONTACT}?text=${whatsappMessage}`
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-24">
@@ -21,7 +26,6 @@ export default function ProPage() {
             <ArrowLeft size={20} />
         </Link>
         <div className="text-center mt-4">
-            {/* CORRECTION ICI : J'ai retiré 'text-lg' pour ne garder que 'text-xs' */}
             <h1 className="text-white font-bold opacity-90 tracking-widest uppercase text-xs mb-1">Offre Mensuelle</h1>
             
             <div className="flex items-center justify-center gap-2">
@@ -86,7 +90,7 @@ export default function ProPage() {
                             </div>
                         </div>
                         <div className="text-right whitespace-nowrap">
-                             <p className="font-bold text-xl text-gray-900 tracking-wide">{PAYMENT_PHONE}</p>
+                             <p className="font-bold text-xl text-gray-900 tracking-wide">{MVOLA_NUMBER}</p>
                         </div>
                     </div>
                 </div>
@@ -109,6 +113,18 @@ export default function ProPage() {
                         <MessageCircle size={20} /> Envoyer la preuve
                     </a>
                 </div>
+
+                {/* NOUVEAU : ZONE CONTACT EMAIL */}
+                <div className="border-t border-gray-100 pt-6 mt-2 text-center">
+                    <p className="text-xs text-gray-400 mb-2 font-medium">Besoin d'aide ou autre moyen de paiement ?</p>
+                    <a 
+                        href={`mailto:${CONTACT_EMAIL}`}
+                        className="inline-flex items-center gap-2 text-brand font-bold text-sm bg-brand/5 px-4 py-2 rounded-full hover:bg-brand/10 transition"
+                    >
+                        <Mail size={16} /> {CONTACT_EMAIL}
+                    </a>
+                </div>
+
             </div>
         ) : (
             <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 text-center animate-in fade-in slide-in-from-bottom-2">

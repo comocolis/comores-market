@@ -1,12 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Mail } from 'lucide-react'
 
 export default function CGUPage() {
+  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
+
   return (
-    <div className="min-h-screen bg-gray-50 p-6 font-sans pb-20">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
+      <div className="flex items-center gap-4 mb-8 pt-safe">
         <Link href="/compte" className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition">
             <ArrowLeft size={20} className="text-gray-700" />
         </Link>
@@ -34,8 +36,20 @@ export default function CGUPage() {
             <p>Il est interdit de vendre des produits illicites, dangereux, ou contraires aux bonnes mœurs. Tout contenu abusif sera supprimé sans préavis.</p>
         </section>
 
-        <div className="pt-4 border-t border-gray-100 text-xs text-center text-gray-400">
-            © 2024 Comores Market. Tous droits réservés.
+        {/* NOUVELLE SECTION CONTACT */}
+        <section className="pt-4 border-t border-gray-100 mt-4">
+            <h2 className="text-gray-900 font-bold mb-3">5. Contact & Support</h2>
+            <p className="mb-3">Pour toute question, signalement ou demande de suppression de compte, contactez-nous :</p>
+            <a 
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center"
+            >
+                <Mail size={18} /> {CONTACT_EMAIL}
+            </a>
+        </section>
+
+        <div className="pt-8 text-xs text-center text-gray-400">
+            © 2025 Comores Market. Tous droits réservés.
         </div>
       </div>
     </div>
