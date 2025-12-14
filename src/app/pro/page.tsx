@@ -2,33 +2,35 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, CheckCircle, Smartphone, CreditCard, Send, ShieldCheck, Camera, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Smartphone, CreditCard, ShieldCheck, Camera, MessageCircle } from 'lucide-react'
 
 export default function ProPage() {
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
-  // Numéro de paiement
   const PAYMENT_PHONE = "434 20 63"
   
-  // Message pré-rempli pour WhatsApp
   const whatsappMessage = encodeURIComponent(`Bonjour, je viens d'envoyer 2500 KMF par Mvola au ${PAYMENT_PHONE}. Voici mon ID de transaction pour activer mon compte PRO.`)
   const whatsappLink = `https://wa.me/269${PAYMENT_PHONE.replace(/\s/g, '')}?text=${whatsappMessage}`
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-10">
+    <div className="min-h-screen bg-gray-50 font-sans pb-24">
       
-      {/* HEADER AVEC BOUTON RETOUR */}
-      <div className="bg-brand pt-safe px-4 pb-16 rounded-b-[2.5rem] shadow-sm relative">
-        <Link href="/compte" className="absolute top-4 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition pt-safe-offset">
+      {/* HEADER */}
+      <div className="bg-brand pt-14 px-4 pb-20 rounded-b-[2.5rem] shadow-sm relative">
+        <Link href="/compte" className="absolute top-14 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition">
             <ArrowLeft size={20} />
         </Link>
         <div className="text-center mt-4">
-            <h1 className="text-white font-bold text-xl opacity-90 tracking-wide">OFFRE MENSUELLE</h1>
-            <div className="mt-2 flex items-baseline justify-center gap-1">
-                <span className="text-5xl font-extrabold text-white">2500</span>
-                <span className="text-white/80 font-bold">KMF</span>
+            {/* CORRECTION ICI : J'ai retiré 'text-lg' pour ne garder que 'text-xs' */}
+            <h1 className="text-white font-bold opacity-90 tracking-widest uppercase text-xs mb-1">Offre Mensuelle</h1>
+            
+            <div className="flex items-center justify-center gap-2">
+                <span className="text-6xl font-extrabold text-white tracking-tighter">2500</span>
+                <div className="flex flex-col items-start leading-none pt-2">
+                    <span className="text-lg font-bold text-white">KMF</span>
+                    <span className="text-xs font-medium text-white/80">/ mois</span>
+                </div>
             </div>
-            <p className="text-white/70 text-sm">/ mois</p>
         </div>
       </div>
 
@@ -52,7 +54,6 @@ export default function ProPage() {
 
       {/* ZONE DE PAIEMENT */}
       <div className="px-4 mt-8">
-        {/* Onglets */}
         <div className="bg-gray-200 p-1 rounded-xl flex mb-6">
             <button 
                 onClick={() => setActiveTab('mvola')}
@@ -70,14 +71,12 @@ export default function ProPage() {
 
         {activeTab === 'mvola' ? (
             <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                
                 <div>
                     <div className="flex items-center gap-2 mb-3">
                         <span className="bg-brand text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span>
                         <h3 className="font-bold text-gray-900">Envoyez le paiement</h3>
                     </div>
                     
-                    {/* CORRECTION ICI : Alignement parfait du numéro */}
                     <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex items-center justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0">
                             <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-sm">M</div>
@@ -86,7 +85,6 @@ export default function ProPage() {
                                 <p className="text-xs text-gray-500 truncate">Comores Telma</p>
                             </div>
                         </div>
-                        {/* whitespace-nowrap empêche le numéro de se couper */}
                         <div className="text-right whitespace-nowrap">
                              <p className="font-bold text-xl text-gray-900 tracking-wide">{PAYMENT_PHONE}</p>
                         </div>
@@ -111,7 +109,6 @@ export default function ProPage() {
                         <MessageCircle size={20} /> Envoyer la preuve
                     </a>
                 </div>
-
             </div>
         ) : (
             <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 text-center animate-in fade-in slide-in-from-bottom-2">
@@ -122,7 +119,6 @@ export default function ProPage() {
                 <p className="text-gray-500 text-sm">Le paiement par carte bancaire sera activé prochainement. Veuillez utiliser Mvola.</p>
             </div>
         )}
-
       </div>
     </div>
   )
