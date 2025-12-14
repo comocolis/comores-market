@@ -10,6 +10,14 @@ import Link from 'next/link'
 const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
 const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
 
+// Liste des indicatifs autorisés
+const PHONE_PREFIXES = [
+  { code: '+269', label: '🇰🇲 Comores', flag: '🇰🇲' },
+  { code: '+262', label: 'YT Mayotte', flag: '🇾🇹' },
+  { code: '+262', label: 'RE Réunion', flag: '🇷🇪' }, // Même code que Mayotte, mais label différent pour UX
+  { code: '+33', label: '🇫🇷 France', flag: '🇫🇷' },
+]
+
 export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -25,6 +33,9 @@ export default function PublierPage() {
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
   
+  // Nouvel état pour l'indicatif (par défaut Comores)
+  const [phonePrefix, setPhonePrefix] = useState('+269')
+
   const [authData, setAuthData] = useState({ 
     email: '', 
     password: '', 
@@ -92,14 +103,18 @@ export default function PublierPage() {
         if (error) throw error
         window.location.reload()
       } else {
-        // INSCRIPTION AVEC AUTO-LOGIN
+        // INSCRIPTION : Construction du numéro complet
+        // On enlève le premier '0' si l'utilisateur l'a mis (ex: 033 -> 33)
+        const cleanNumber = authData.phone.replace(/^0+/, '')
+        const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
+
         const { data, error } = await supabase.auth.signUp({
           email: authData.email,
           password: authData.password,
           options: { 
             data: { 
                 full_name: authData.fullName,
-                phone: authData.phone,
+                phone: fullPhoneNumber, // On enregistre le numéro formaté (ex: +269333...)
                 island: authData.island,
                 city: authData.city
             } 
@@ -107,12 +122,10 @@ export default function PublierPage() {
         })
         if (error) throw error
 
-        // Si une session est créée immédiatement, c'est que l'auto-confirm est activé
         if (data.session) {
             alert("Compte créé avec succès ! Bienvenue.")
             window.location.reload()
         } else {
-            // Fallback si jamais l'option "Confirm email" est réactivée par erreur
             alert("Compte créé ! Vérifiez votre email pour valider.")
             setIsLogin(true)
         }
@@ -253,16 +266,39 @@ export default function PublierPage() {
                 </div>
 
                 <div>
-                    <label className={labelStyle}>Téléphone</label>
-                    <input 
-                        type="tel" 
-                        required 
-                        className={inputStyle} 
-                        placeholder="+269..." 
-                        value={authData.phone} 
-                        onChange={e => setAuthData({...authData, phone: e.target.value})}
-                        autoComplete="tel"
-                    />
+                    <label className={labelStyle}>Téléphone WhatsApp</label>
+                    <div className="flex gap-2">
+                        {/* SÉLECTEUR DE PAYS (NOUVEAU) */}
+                        <div className="w-1/3 relative">
+                            <select 
+                                className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} 
+                                value={phonePrefix}
+                                onChange={(e) => setPhonePrefix(e.target.value)}
+                            >
+                                {PHONE_PREFIXES.map(p => (
+                                    <option key={p.label} value={p.code}>
+                                        {p.flag} {p.code}
+                                    </option>
+                                ))}
+                            </select>
+                            {/* Petite flèche custom pour le style */}
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
+                                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                            </div>
+                        </div>
+
+                        {/* CHAMP NUMÉRO */}
+                        <input 
+                            type="tel" 
+                            required 
+                            className={`${inputStyle} w-2/3`} 
+                            placeholder="333 44 55" 
+                            value={authData.phone} 
+                            onChange={e => setAuthData({...authData, phone: e.target.value})}
+                            autoComplete="tel-local"
+                        />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-1 ml-1">Sélectionnez votre indicatif puis entrez votre numéro.</p>
                 </div>
               </div>
             )}
@@ -385,7 +421,7 @@ export default function PublierPage() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
           <div><label className={labelStyle}>Description</label><textarea rows={4} className={inputStyle} placeholder="Détails..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
-          <div><label className={labelStyle}>Téléphone</label><input type="tel" required className={inputStyle} placeholder="+269..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+          <div><label className={labelStyle}>Téléphone (pour cette annonce)</label><input type="tel" required className={inputStyle} placeholder="+269..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
         </div>
 
         <button onClick={handleSubmit} disabled={uploading} className="w-full bg-brand text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 text-lg hover:bg-brand-dark transition disabled:opacity-70">
