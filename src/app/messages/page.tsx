@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Home, Search, MessageCircle, User, Loader2, Plus, ArrowRight, Inbox } from 'lucide-react'
+import { Home, Search, MessageCircle, User, Loader2, Plus, ArrowRight, Inbox, Send, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function MessagesPage() {
@@ -14,7 +14,11 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState<any[]>([])
   const [currentUser, setCurrentUser] = useState<any>(null)
 
-  // 1. Fonction pour récupérer les messages (réutilisable)
+  // États pour la réponse
+  const [replyingTo, setReplyingTo] = useState<string | null>(null) // ID du message auquel on répond
+  const [replyContent, setReplyContent] = useState('')
+  const [sendingReply, setSendingReply] = useState(false)
+
   const fetchMessages = useCallback(async (userId: string) => {
     const { data } = await supabase.from('messages')
         .select('*, sender:profiles!sender_id(full_name), receiver:profiles!receiver_id(full_name), product:products(title)')
@@ -25,7 +29,6 @@ export default function MessagesPage() {
     setLoading(false)
   }, [supabase])
 
-  // 2. Initialisation + Abonnement Temps Réel
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -34,7 +37,6 @@ export default function MessagesPage() {
       setCurrentUser(user)
       await fetchMessages(user.id)
 
-      // --- C'EST ICI QUE LA MAGIE OPÈRE (REALTIME) ---
       const channel = supabase
         .channel('realtime-messages')
         .on(
@@ -42,13 +44,8 @@ export default function MessagesPage() {
           { event: 'INSERT', schema: 'public', table: 'messages' },
           (payload) => {
             const newMessage = payload.new as any
-            
-            // Si le message est pour moi OU envoyé par moi (sur un autre appareil)
             if (newMessage.receiver_id === user.id || newMessage.sender_id === user.id) {
-                // On recharge la liste pour avoir les infos complètes (nom, produit...)
                 fetchMessages(user.id)
-                
-                // Petit son ou notif visuelle si c'est reçu
                 if (newMessage.receiver_id === user.id) {
                     toast.info("Nouveau message reçu !")
                 }
@@ -57,61 +54,107 @@ export default function MessagesPage() {
         )
         .subscribe()
 
-      // Nettoyage quand on quitte la page
-      return () => {
-        supabase.removeChannel(channel)
-      }
+      return () => { supabase.removeChannel(channel) }
     }
-
     init()
   }, [router, supabase, fetchMessages])
 
+  const handleSendReply = async (originalMessage: any) => {
+    if (!replyContent.trim()) return
+
+    setSendingReply(true)
+    
+    // Déterminer qui est le destinataire (l'autre personne)
+    const otherPersonId = originalMessage.sender_id === currentUser.id 
+        ? originalMessage.receiver_id 
+        : originalMessage.sender_id
+
+    const { error } = await supabase.from('messages').insert({
+        content: replyContent,
+        sender_id: currentUser.id,
+        receiver_id: otherPersonId,
+        product_id: originalMessage.product_id
+    })
+
+    if (error) {
+        toast.error("Erreur d'envoi")
+    } else {
+        toast.success("Réponse envoyée !")
+        setReplyingTo(null)
+        setReplyContent('')
+        // Le Realtime mettra à jour la liste automatiquement
+    }
+    setSendingReply(false)
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans flex flex-col">
-      
-      {/* HEADER FIXE */}
       <div className="bg-brand pt-safe px-6 pb-4 shadow-sm sticky top-0 z-30">
         <h1 className="text-white font-bold text-xl mt-3">Messages</h1>
       </div>
 
-      {/* CONTENU */}
       <div className="px-4 py-4 flex-1 flex flex-col">
         {loading ? (
-            <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin text-brand" />
-            </div>
+            <div className="flex-1 flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
         ) : messages.length === 0 ? (
             <div className="flex-1 flex flex-col items-center justify-center text-gray-400 opacity-60 pb-20">
-                <div className="bg-gray-200 p-4 rounded-full mb-3">
-                    <Inbox size={32} />
-                </div>
+                <div className="bg-gray-200 p-4 rounded-full mb-3"><Inbox size={32} /></div>
                 <p className="font-medium">Aucun message pour le moment.</p>
             </div>
         ) : (
             <div className="space-y-3">
                 {messages.map(m => {
                     const isMe = m.sender_id === currentUser?.id
+                    const isReplying = replyingTo === m.id
+
                     return (
-                        <div key={m.id} className={`p-4 rounded-xl shadow-sm border active:scale-[0.98] transition-transform ${isMe ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
+                        <div key={m.id} className={`p-4 rounded-xl shadow-sm border transition-transform ${isMe ? 'bg-green-50 border-green-100' : 'bg-white border-gray-100'}`}>
                             <div className="flex justify-between items-start mb-1">
                                 <p className="text-xs font-bold text-brand uppercase tracking-wider">{m.product?.title || 'Annonce supprimée'}</p>
                                 <span className="text-[9px] text-gray-400">{new Date(m.created_at).toLocaleDateString()}</span>
                             </div>
                             
-                            <p className="text-gray-800 text-sm mb-2 line-clamp-2">
+                            <p className="text-gray-800 text-sm mb-3 whitespace-pre-line">
                                 {isMe && <span className="text-gray-400 font-bold mr-1">Moi:</span>}
                                 {m.content}
                             </p>
                             
-                            <div className="flex justify-between items-center text-[10px] text-gray-500 mt-2 border-t border-gray-200/50 pt-2">
-                                <span className="flex items-center gap-1">
-                                    <User size={10} /> 
-                                    {isMe ? `À : ${m.receiver?.full_name}` : `De : ${m.sender?.full_name}`}
-                                </span>
-                                <Link href={`/annonce/${m.product_id}`} className="flex items-center gap-1 text-brand font-bold bg-brand/10 px-2 py-1 rounded-full hover:bg-brand hover:text-white transition">
-                                    Répondre <ArrowRight size={10} />
-                                </Link>
-                            </div>
+                            {/* BOUTON RÉPONDRE OU FORMULAIRE */}
+                            {!isReplying ? (
+                                <div className="flex justify-between items-center text-[10px] text-gray-500 mt-2 border-t border-gray-200/50 pt-2">
+                                    <span className="flex items-center gap-1">
+                                        <User size={10} /> 
+                                        {isMe ? `À : ${m.receiver?.full_name}` : `De : ${m.sender?.full_name}`}
+                                    </span>
+                                    <button 
+                                        onClick={() => setReplyingTo(m.id)}
+                                        className="flex items-center gap-1 text-brand font-bold bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition"
+                                    >
+                                        Répondre <ArrowRight size={10} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="mt-3 animate-in fade-in slide-in-from-top-2">
+                                    <textarea 
+                                        autoFocus
+                                        className="w-full bg-white border border-brand/30 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-brand/20 mb-2"
+                                        placeholder="Votre réponse..."
+                                        rows={2}
+                                        value={replyContent}
+                                        onChange={e => setReplyContent(e.target.value)}
+                                    />
+                                    <div className="flex gap-2 justify-end">
+                                        <button onClick={() => setReplyingTo(null)} className="p-2 text-gray-400 hover:text-gray-600"><X size={18} /></button>
+                                        <button 
+                                            onClick={() => handleSendReply(m)}
+                                            disabled={sendingReply}
+                                            className="bg-brand text-white px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1"
+                                        >
+                                            {sendingReply ? <Loader2 size={12} className="animate-spin" /> : <><Send size={12} /> Envoyer</>}
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )
                 })}

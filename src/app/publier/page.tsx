@@ -8,11 +8,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-// Styles utilitaires
 const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
 const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
 
-// Données statiques
 const PHONE_PREFIXES = [
   { code: '+269', label: '🇰🇲 Comores', flag: '🇰🇲' },
   { code: '+262', label: 'YT Mayotte', flag: '🇾🇹' },
@@ -37,7 +35,6 @@ export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // États Utilisateur & Auth
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -60,7 +57,6 @@ export default function PublierPage() {
     city: '' 
   })
   
-  // États Formulaire Annonce
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   
@@ -75,7 +71,6 @@ export default function PublierPage() {
     phone: ''
   })
 
-  // Effet : Mise à jour automatique de la sous-catégorie
   useEffect(() => {
     if (SUB_CATEGORIES[formData.category]) {
         setFormData(prev => ({ ...prev, subCategory: SUB_CATEGORIES[prev.category][0] }))
@@ -84,7 +79,6 @@ export default function PublierPage() {
     }
   }, [formData.category])
 
-  // Effet : Vérification utilisateur
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -108,7 +102,6 @@ export default function PublierPage() {
 
   const maxImages = profile?.is_pro ? 10 : 3
 
-  // --- LOGIQUE AUTH ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -131,7 +124,8 @@ export default function PublierPage() {
         })
         if (error) throw error
         toast.success("Connexion réussie !")
-        window.location.reload()
+        // CORRECTION ICI : Redirection vers Compte
+        router.push('/compte')
       } else {
         const cleanNumber = authData.phone.replace(/^0+/, '')
         const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
@@ -152,7 +146,8 @@ export default function PublierPage() {
 
         if (data.session) {
             toast.success("Compte créé avec succès ! Bienvenue.")
-            window.location.reload()
+            // CORRECTION ICI : Redirection vers Compte
+            router.push('/compte')
         } else {
             toast.info("Compte créé ! Vérifiez votre email pour valider.")
             setIsLogin(true)
@@ -167,7 +162,6 @@ export default function PublierPage() {
     }
   }
 
-  // --- LOGIQUE ANNONCE ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selectedFiles = Array.from(e.target.files)
@@ -198,7 +192,6 @@ export default function PublierPage() {
 
       const { data: cat } = await supabase.from('categories').select('id').ilike('slug', formData.category.toLowerCase().replace(/ /g, '-')).single()
       
-      // On ajoute la sous-catégorie dans la description pour la recherche
       const augmentedDescription = `${formData.description}\n\nType: ${formData.subCategory}`
 
       const { error } = await supabase.from('products').insert({
@@ -228,7 +221,6 @@ export default function PublierPage() {
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
-  // --- VUE LOGIN / SIGNUP ---
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
@@ -351,7 +343,7 @@ export default function PublierPage() {
     )
   }
 
-  // --- VUE PUBLIER (Connecté) ---
+  // VUE PUBLIER (code identique...)
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">
