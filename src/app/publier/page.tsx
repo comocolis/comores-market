@@ -6,12 +6,13 @@ import { useState, useEffect, ChangeEvent } from 'react'
 import { Loader2, Camera, LogIn, Eye, EyeOff, AlertCircle, X, ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
-// 1. IMPORT DU TOAST
 import { toast } from 'sonner'
 
+// Styles utilitaires
 const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
 const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
 
+// Données statiques
 const PHONE_PREFIXES = [
   { code: '+269', label: '🇰🇲 Comores', flag: '🇰🇲' },
   { code: '+262', label: 'YT Mayotte', flag: '🇾🇹' },
@@ -19,10 +20,24 @@ const PHONE_PREFIXES = [
   { code: '+33', label: '🇫🇷 France', flag: '🇫🇷' },
 ]
 
+const SUB_CATEGORIES: { [key: string]: string[] } = {
+  'Véhicules': ['Voitures', 'Motos', 'Pièces', 'Location', 'Camions'],
+  'Immobilier': ['Vente', 'Location', 'Terrains', 'Bureaux', 'Colocation'],
+  'Mode': ['Homme', 'Femme', 'Enfant', 'Chaussures', 'Montres', 'Bijoux', 'Sacs'],
+  'Tech': ['Téléphones', 'Ordinateurs', 'Audio', 'Photo', 'Accessoires', 'Consoles'],
+  'Maison': ['Meubles', 'Décoration', 'Electroménager', 'Bricolage', 'Jardin'],
+  'Loisirs': ['Sport', 'Musique', 'Livres', 'Jeux', 'Voyage'],
+  'Alimentation': ['Fruits & Légumes', 'Plats', 'Épicerie', 'Boissons', 'Desserts'],
+  'Services': ['Cours', 'Réparations', 'Déménagement', 'Événements', 'Nettoyage'],
+  'Beauté': ['Parfums', 'Maquillage', 'Soins', 'Coiffure'],
+  'Emploi': ['Offres', 'Demandes', 'Stages', 'Intérim'],
+}
+
 export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
   
+  // États Utilisateur & Auth
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -32,6 +47,7 @@ export default function PublierPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
   const [authLoading, setAuthLoading] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
   
   const [phonePrefix, setPhonePrefix] = useState('+269')
 
@@ -44,14 +60,31 @@ export default function PublierPage() {
     city: '' 
   })
   
-  const [isForgotPassword, setIsForgotPassword] = useState(false)
-
+  // États Formulaire Annonce
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
+  
   const [formData, setFormData] = useState({
-    title: '', price: '', category: 'Véhicules', island: 'Ngazidja', city: '', description: '', phone: ''
+    title: '', 
+    price: '', 
+    category: 'Véhicules', 
+    subCategory: '', 
+    island: 'Ngazidja', 
+    city: '', 
+    description: '', 
+    phone: ''
   })
 
+  // Effet : Mise à jour automatique de la sous-catégorie
+  useEffect(() => {
+    if (SUB_CATEGORIES[formData.category]) {
+        setFormData(prev => ({ ...prev, subCategory: SUB_CATEGORIES[prev.category][0] }))
+    } else {
+        setFormData(prev => ({ ...prev, subCategory: '' }))
+    }
+  }, [formData.category])
+
+  // Effet : Vérification utilisateur
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -75,6 +108,7 @@ export default function PublierPage() {
 
   const maxImages = profile?.is_pro ? 10 : 3
 
+  // --- LOGIQUE AUTH ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -87,7 +121,6 @@ export default function PublierPage() {
             redirectTo: `${origin}/compte/reset`,
         })
         if (error) throw error
-        // 2. SUCCESS TOAST
         toast.success("Email de réinitialisation envoyé ! Vérifiez vos spams.")
         setIsForgotPassword(false)
       } 
@@ -128,13 +161,13 @@ export default function PublierPage() {
     } catch (error: any) {
       const msg = error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message
       setAuthError(msg)
-      // 3. ERROR TOAST
       toast.error(msg)
     } finally {
       setAuthLoading(false)
     }
   }
 
+  // --- LOGIQUE ANNONCE ---
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selectedFiles = Array.from(e.target.files)
@@ -165,6 +198,9 @@ export default function PublierPage() {
 
       const { data: cat } = await supabase.from('categories').select('id').ilike('slug', formData.category.toLowerCase().replace(/ /g, '-')).single()
       
+      // On ajoute la sous-catégorie dans la description pour la recherche
+      const augmentedDescription = `${formData.description}\n\nType: ${formData.subCategory}`
+
       const { error } = await supabase.from('products').insert({
         user_id: user.id,
         title: formData.title,
@@ -172,7 +208,7 @@ export default function PublierPage() {
         category_id: cat?.id || 1,
         location_island: formData.island,
         location_city: formData.city,
-        description: formData.description,
+        description: augmentedDescription,
         whatsapp_number: formData.phone,
         images: JSON.stringify(imageUrls),
         status: 'active'
@@ -192,6 +228,7 @@ export default function PublierPage() {
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
+  // --- VUE LOGIN / SIGNUP ---
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
@@ -224,15 +261,7 @@ export default function PublierPage() {
               <div className="space-y-4 animate-in slide-in-from-top-2">
                 <div>
                     <label className={labelStyle}>Nom complet</label>
-                    <input 
-                        type="text" 
-                        required 
-                        className={inputStyle} 
-                        placeholder="Ex: Ali Soilihi" 
-                        value={authData.fullName} 
-                        onChange={e => setAuthData({...authData, fullName: e.target.value})}
-                        autoComplete="name"
-                    />
+                    <input type="text" required className={inputStyle} placeholder="Ex: Ali Soilihi" value={authData.fullName} onChange={e => setAuthData({...authData, fullName: e.target.value})} autoComplete="name" />
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
@@ -247,15 +276,7 @@ export default function PublierPage() {
                     </div>
                     <div>
                         <label className={labelStyle}>Ville</label>
-                        <input 
-                            type="text" 
-                            required 
-                            className={inputStyle} 
-                            placeholder="Ex: Moroni" 
-                            value={authData.city} 
-                            onChange={e => setAuthData({...authData, city: e.target.value})}
-                            autoComplete="address-level2"
-                        />
+                        <input type="text" required className={inputStyle} placeholder="Ex: Moroni" value={authData.city} onChange={e => setAuthData({...authData, city: e.target.value})} autoComplete="address-level2" />
                     </div>
                 </div>
 
@@ -263,11 +284,7 @@ export default function PublierPage() {
                     <label className={labelStyle}>Téléphone WhatsApp</label>
                     <div className="flex gap-2">
                         <div className="w-1/3 relative">
-                            <select 
-                                className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} 
-                                value={phonePrefix}
-                                onChange={(e) => setPhonePrefix(e.target.value)}
-                            >
+                            <select className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} value={phonePrefix} onChange={(e) => setPhonePrefix(e.target.value)}>
                                 {PHONE_PREFIXES.map(p => (
                                     <option key={p.label} value={p.code}>
                                         {p.flag} {p.code}
@@ -278,15 +295,7 @@ export default function PublierPage() {
                                 <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                             </div>
                         </div>
-                        <input 
-                            type="tel" 
-                            required 
-                            className={`${inputStyle} w-2/3`} 
-                            placeholder="333 44 55" 
-                            value={authData.phone} 
-                            onChange={e => setAuthData({...authData, phone: e.target.value})}
-                            autoComplete="tel-local"
-                        />
+                        <input type="tel" required className={`${inputStyle} w-2/3`} placeholder="333 44 55" value={authData.phone} onChange={e => setAuthData({...authData, phone: e.target.value})} autoComplete="tel-local" />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1 ml-1">Sélectionnez votre indicatif puis entrez votre numéro.</p>
                 </div>
@@ -295,34 +304,14 @@ export default function PublierPage() {
             
             <div>
               <label className={labelStyle}>Email</label>
-              <input 
-                type="email" 
-                required 
-                className={inputStyle} 
-                placeholder="votre@email.com" 
-                value={authData.email} 
-                onChange={e => setAuthData({...authData, email: e.target.value})}
-                autoComplete="email"
-              />
+              <input type="email" required className={inputStyle} placeholder="votre@email.com" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} autoComplete="email" />
             </div>
 
             {!isForgotPassword && (
                 <div className="relative">
                 <label className={labelStyle}>Mot de passe</label>
-                <input 
-                    type={showPassword ? "text" : "password"} 
-                    required minLength={6} 
-                    className={inputStyle} 
-                    placeholder="••••••••" 
-                    value={authData.password} 
-                    onChange={e => setAuthData({...authData, password: e.target.value})} 
-                    autoComplete={isLogin ? "current-password" : "new-password"} 
-                />
-                <button 
-                    type="button" 
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-9 text-gray-400 hover:text-gray-600"
-                >
+                <input type={showPassword ? "text" : "password"} required minLength={6} className={inputStyle} placeholder="••••••••" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} autoComplete={isLogin ? "current-password" : "new-password"} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-gray-400 hover:text-gray-600">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
                 </div>
@@ -362,6 +351,7 @@ export default function PublierPage() {
     )
   }
 
+  // --- VUE PUBLIER (Connecté) ---
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">
@@ -397,7 +387,21 @@ export default function PublierPage() {
 
         <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
           <div><label className={labelStyle}>Titre</label><input type="text" required className={inputStyle} placeholder="Ex: Toyota Yaris" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
-          <div><label className={labelStyle}>Catégorie</label><select className={inputStyle} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}><option>Véhicules</option><option>Immobilier</option><option>Mode</option><option>Tech</option><option>Maison</option><option>Loisirs</option><option>Alimentation</option><option>Services</option><option>Beauté</option><option>Emploi</option></select></div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+                <label className={labelStyle}>Catégorie</label>
+                <select className={inputStyle} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
+                    {Object.keys(SUB_CATEGORIES).map(cat => <option key={cat}>{cat}</option>)}
+                </select>
+            </div>
+            <div>
+                <label className={labelStyle}>Type</label>
+                <select className={inputStyle} value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})}>
+                    {SUB_CATEGORIES[formData.category]?.map(sub => <option key={sub}>{sub}</option>)}
+                </select>
+            </div>
+          </div>
         </div>
 
         <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
