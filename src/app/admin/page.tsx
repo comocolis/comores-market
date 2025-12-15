@@ -3,21 +3,24 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, Users, ShoppingBag, Shield, CheckCircle, XCircle, Trash2, Search, TrendingUp } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, TrendingUp, Search, Trash2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, LogOut, User } from 'lucide-react'
+import { toast } from 'sonner'
 import Image from 'next/image'
-
-// ⚠️ SÉCURITÉ : Mettez VOTRE email ici
-const ADMIN_EMAIL = "abdesisco1@gmail.com" 
+import Link from 'next/link'
 
 export default function AdminPage() {
   const supabase = createClient()
   const router = useRouter()
-  const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'users' | 'products'>('users')
   
+  // REMPLACEZ CECI PAR VOTRE EMAIL EXACT !
+  const ADMIN_EMAIL = "abdesisco1@gmail.com" 
+
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products'>('dashboard')
+  
+  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0 })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
-  const [stats, setStats] = useState({ totalUsers: 0, totalProducts: 0, totalPro: 0 })
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -26,10 +29,11 @@ export default function AdminPage() {
       
       // Sécurité : Si pas connecté ou pas le bon email -> Dehors !
       if (!user || user.email !== ADMIN_EMAIL) {
+        toast.error("Accès interdit.")
         router.push('/')
         return
       }
-      
+
       await fetchData()
       setLoading(false)
     }
@@ -39,118 +43,151 @@ export default function AdminPage() {
   const fetchData = async () => {
     // Récupérer les profils
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    setUsers(profiles || [])
+    const { data: items } = await supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false })
 
-    // Récupérer les produits
-    const { data: prods } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
-    setProducts(prods || [])
-
-    // Calculer les stats
-    setStats({
-        totalUsers: profiles?.length || 0,
-        totalProducts: prods?.length || 0,
-        totalPro: profiles?.filter((p: any) => p.is_pro).length || 0
-    })
+    if (profiles && items) {
+        setUsers(profiles)
+        setProducts(items)
+        setStats({
+            users: profiles.length,
+            products: items.length,
+            pro: profiles.filter(p => p.is_pro).length
+        })
+    }
   }
 
+  // --- ACTIONS ADMIN ---
+
   const toggleProStatus = async (userId: string, currentStatus: boolean) => {
-    if(!confirm(`Voulez-vous ${currentStatus ? 'retirer' : 'donner'} le statut PRO ?`)) return
-    
     const { error } = await supabase.from('profiles').update({ is_pro: !currentStatus }).eq('id', userId)
-    
-    if (error) alert("Erreur : " + error.message)
+    if (error) toast.error("Erreur")
     else {
-        setUsers(users.map(u => u.id === userId ? { ...u, is_pro: !currentStatus } : u))
+        toast.success(currentStatus ? "Compte rétrogradé Standard" : "Compte passé PRO !")
+        fetchData() // Rafraîchir
     }
   }
 
   const deleteProduct = async (productId: string) => {
-    if(!confirm("Supprimer cette annonce définitivement ?")) return
+    if (!confirm("Voulez-vous vraiment supprimer cette annonce ?")) return
     const { error } = await supabase.from('products').delete().eq('id', productId)
-    if (error) alert("Erreur : " + error.message)
-    else setProducts(products.filter(p => p.id !== productId))
+    if (error) toast.error("Erreur")
+    else {
+        toast.success("Annonce supprimée")
+        fetchData()
+    }
   }
-
-  const filteredUsers = users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) || u.phone_number?.includes(searchTerm))
-  const filteredProducts = products.filter(p => p.title?.toLowerCase().includes(searchTerm.toLowerCase()))
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-      <div className="bg-gray-900 text-white p-6 pt-safe pb-12 rounded-b-4xl shadow-lg">
-        <h1 className="text-2xl font-bold flex items-center gap-2 mb-1"><Shield className="text-brand" /> Back-Office Admin</h1>
-        <p className="text-gray-400 text-sm">Gérez votre business Comores Market.</p>
-        
-        {/* STATS CARDS */}
-        <div className="grid grid-cols-3 gap-4 mt-6">
-            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10 text-center">
-                <div className="text-2xl font-bold text-brand">{stats.totalUsers}</div>
-                <div className="text-[10px] text-gray-400 uppercase font-bold">Utilisateurs</div>
+    <div className="min-h-screen bg-gray-100 font-sans pb-20">
+      
+      {/* HEADER ADMIN */}
+      <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
+        <div className="flex justify-between items-center mb-6">
+            <div>
+                <h1 className="text-2xl font-bold flex items-center gap-2">
+                    <ShieldCheck className="text-brand" /> Admin Panel
+                </h1>
+                <p className="text-gray-400 text-xs mt-1">Gestion Comores Market</p>
             </div>
-            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10 text-center">
-                <div className="text-2xl font-bold text-blue-400">{stats.totalPro}</div>
-                <div className="text-[10px] text-gray-400 uppercase font-bold">Vendeurs Pro</div>
-            </div>
-            <div className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10 text-center">
-                <div className="text-2xl font-bold text-orange-400">{stats.totalProducts}</div>
-                <div className="text-[10px] text-gray-400 uppercase font-bold">Annonces</div>
-            </div>
+            <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition">
+                <LogOut size={20} />
+            </Link>
+        </div>
+
+        {/* MENU NAVIGATION */}
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
+            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
+            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'products' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
         </div>
       </div>
 
-      <div className="px-4 -mt-6">
-        <div className="bg-white p-2 rounded-xl shadow-sm flex mb-6">
-            <button onClick={() => setActiveTab('users')} className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${activeTab === 'users' ? 'bg-gray-100 text-gray-900' : 'text-gray-400'}`}><Users size={16} /> Utilisateurs</button>
-            <button onClick={() => setActiveTab('products')} className={`flex-1 py-2 rounded-lg text-sm font-bold flex items-center justify-center gap-2 transition ${activeTab === 'products' ? 'bg-gray-100 text-gray-900' : 'text-gray-400'}`}><ShoppingBag size={16} /> Annonces</button>
-        </div>
+      <div className="p-4">
+        
+        {/* VUE 1: DASHBOARD */}
+        {activeTab === 'dashboard' && (
+            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div>
+                    <p className="text-2xl font-extrabold text-gray-900">{stats.users}</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                    <div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div>
+                    <p className="text-2xl font-extrabold text-gray-900">{stats.products}</p>
+                    <p className="text-xs text-gray-500 font-bold uppercase">Annonces</p>
+                </div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 col-span-2 flex items-center justify-between">
+                    <div>
+                        <p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p>
+                        <p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p>
+                    </div>
+                    <div className="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={24} /></div>
+                </div>
+            </div>
+        )}
 
-        <div className="relative mb-4">
-            <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-            <input type="text" placeholder="Rechercher..." className="w-full bg-white pl-10 pr-4 py-3 rounded-xl border border-gray-200 outline-none focus:border-brand" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-        </div>
-
-        {activeTab === 'users' ? (
-            <div className="space-y-3">
-                {filteredUsers.map(u => (
-                    <div key={u.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center">
+        {/* VUE 2: UTILISATEURS */}
+        {activeTab === 'users' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                <div className="relative">
+                    <input type="text" placeholder="Chercher un nom..." className="w-full bg-white p-3 rounded-xl shadow-sm pl-10 text-sm outline-none" onChange={e => setSearchTerm(e.target.value)} />
+                    <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
+                </div>
+                {users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())).map(u => (
+                    <div key={u.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center font-bold text-gray-500 overflow-hidden relative">
-                                {u.avatar_url ? <Image src={u.avatar_url} alt="" fill className="object-cover" /> : u.full_name?.charAt(0)}
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                                {u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : <User size={20} />}
                             </div>
                             <div>
-                                <p className="font-bold text-sm text-gray-900">{u.full_name || 'Sans nom'}</p>
-                                <p className="text-xs text-gray-400">{u.phone_number || 'Pas de tél'}</p>
-                                <p className="text-[10px] text-gray-300">{u.city} • {u.island}</p>
+                                <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                                    {u.full_name}
+                                    {u.is_pro && <ShieldCheck size={12} className="text-green-500" />}
+                                </p>
+                                <p className="text-[10px] text-gray-400">{u.email}</p>
                             </div>
                         </div>
                         <button 
                             onClick={() => toggleProStatus(u.id, u.is_pro)}
-                            className={`px-3 py-1.5 rounded-full text-[10px] font-bold border transition ${u.is_pro ? 'bg-yellow-50 text-yellow-700 border-yellow-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${u.is_pro ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
                         >
-                            {u.is_pro ? 'VENDEUR PRO' : 'STANDARD'}
+                            {u.is_pro ? 'Retirer Pro' : 'Passer Pro'}
                         </button>
                     </div>
                 ))}
             </div>
-        ) : (
-            <div className="space-y-3">
-                {filteredProducts.map(p => (
-                    <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
-                        <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative overflow-hidden">
-                             {/* Petit hack pour l'image */}
-                             <Image src={JSON.parse(p.images || '[]')[0] || '/placeholder.png'} alt="" fill className="object-cover" />
+        )}
+
+        {/* VUE 3: ANNONCES */}
+        {activeTab === 'products' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                {products.map(p => {
+                    let img = null; try { img = JSON.parse(p.images)[0] } catch {}
+                    return (
+                        <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative overflow-hidden">
+                                {img && <Image src={img} alt="" fill className="object-cover" />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
+                                <p className="text-xs text-gray-500">{p.profiles?.full_name}</p>
+                                <p className="text-brand font-bold text-xs mt-1">{p.price} KMF</p>
+                            </div>
+                            <button 
+                                onClick={() => deleteProduct(p.id)}
+                                className="bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 self-center"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
-                        <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
-                            <p className="text-xs text-brand font-bold">{p.price} KMF</p>
-                            <p className="text-[10px] text-gray-400 mt-1">Vendeur : {p.profiles?.full_name}</p>
-                        </div>
-                        <button onClick={() => deleteProduct(p.id)} className="bg-red-50 text-red-500 w-8 h-8 rounded-full flex items-center justify-center shrink-0 hover:bg-red-100"><Trash2 size={16} /></button>
-                    </div>
-                ))}
+                    )
+                })}
             </div>
         )}
+
       </div>
     </div>
   )
