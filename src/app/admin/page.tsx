@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, ShieldAlert, CheckCircle, XCircle, LogOut, Ban, Lock, User } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, TrendingUp, Search, Trash2, ShieldCheck, ShieldAlert, CheckCircle, XCircle, LogOut, User } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -12,50 +12,38 @@ export default function AdminPage() {
   const supabase = createClient()
   const router = useRouter()
   
+  // REMPLACEZ CECI PAR VOTRE EMAIL EXACT !
+  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com" 
+
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products'>('dashboard')
   
-  // Infos de l'admin connecté
-  const [myRole, setMyRole] = useState<string>('user')
-
-  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0 })
+  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0 })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
-useEffect(() => {
-    const checkAccess = async () => {
+  useEffect(() => {
+    const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
-      if (!user) {
-        router.push('/publier')
+      // Sécurité : Si pas connecté ou pas le bon email -> Dehors !
+      if (!user || user.email !== ADMIN_EMAIL) {
+        toast.error("Accès interdit.")
+        router.push('/')
         return
       }
 
-      // On interroge la base de données pour connaître le vrai rôle
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single()
-      
-      // Si le rôle n'est pas admin ou moderator -> DEHORS
-      if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
-        toast.error("Accès refusé. Vous n'avez pas les droits.")
-        router.push('/') // Renvoie à l'accueil
-        return
-      }
-
-      setMyRole(profile.role)
       await fetchData()
       setLoading(false)
     }
-    checkAccess()
+    checkAdmin()
   }, [router, supabase])
 
   const fetchData = async () => {
+    // Récupérer les profils
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
+    const { data: items } = await supabase.from('products').select('*, profiles(full_name)').order('created_at', { ascending: false })
 
     if (profiles && items) {
         setUsers(profiles)
@@ -63,51 +51,23 @@ useEffect(() => {
         setStats({
             users: profiles.length,
             products: items.length,
-            pro: profiles.filter(p => p.is_pro).length,
-            banned: profiles.filter(p => p.is_banned).length
+            pro: profiles.filter(p => p.is_pro).length
         })
     }
   }
 
-  // --- ACTIONS ---
+  // --- ACTIONS ADMIN ---
 
   const toggleProStatus = async (userId: string, currentStatus: boolean) => {
-    if (myRole !== 'admin') return toast.error("Seul un Administrateur peut gérer les statuts PRO.")
-    
     const { error } = await supabase.from('profiles').update({ is_pro: !currentStatus }).eq('id', userId)
     if (error) toast.error("Erreur")
     else {
-        toast.success("Statut PRO mis à jour")
-        fetchData()
-    }
-  }
-
-  const toggleBanUser = async (userId: string, currentBan: boolean) => {
-    if (myRole !== 'admin') return toast.error("Seul un Administrateur peut bannir.")
-    
-    if (!confirm(currentBan ? "Débannir cet utilisateur ?" : "BANNIR cet utilisateur ? Il ne pourra plus se connecter.")) return
-
-    const { error } = await supabase.from('profiles').update({ is_banned: !currentBan }).eq('id', userId)
-    if (error) toast.error("Erreur")
-    else {
-        toast.success(currentBan ? "Utilisateur débanni" : "Utilisateur BANNI")
-        fetchData()
-    }
-  }
-
-  const changeUserRole = async (userId: string, newRole: string) => {
-    if (myRole !== 'admin') return toast.error("Action non autorisée.")
-    
-    const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', userId)
-    if (error) toast.error("Erreur mise à jour rôle")
-    else {
-        toast.success(`Rôle changé en : ${newRole}`)
-        fetchData()
+        toast.success(currentStatus ? "Compte rétrogradé Standard" : "Compte passé PRO !")
+        fetchData() // Rafraîchir
     }
   }
 
   const deleteProduct = async (productId: string) => {
-    // Les modérateurs et admins peuvent supprimer des annonces
     if (!confirm("Voulez-vous vraiment supprimer cette annonce ?")) return
     const { error } = await supabase.from('products').delete().eq('id', productId)
     if (error) toast.error("Erreur")
@@ -127,20 +87,16 @@ useEffect(() => {
         <div className="flex justify-between items-center mb-6">
             <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2">
-                    <ShieldCheck className="text-brand" /> Back-Office
+                    <ShieldCheck className="text-brand" /> Admin Panel
                 </h1>
-                <p className="text-gray-400 text-xs mt-1 flex items-center gap-2">
-                    Connecté en tant que : 
-                    <span className={`uppercase font-bold px-2 py-0.5 rounded text-[10px] ${myRole === 'admin' ? 'bg-red-500' : 'bg-blue-500'}`}>
-                        {myRole}
-                    </span>
-                </p>
+                <p className="text-gray-400 text-xs mt-1">Gestion Comores Market</p>
             </div>
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition">
                 <LogOut size={20} />
             </Link>
         </div>
 
+        {/* MENU NAVIGATION */}
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
             <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
@@ -150,7 +106,7 @@ useEffect(() => {
 
       <div className="p-4">
         
-        {/* DASHBOARD */}
+        {/* VUE 1: DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
@@ -163,88 +119,49 @@ useEffect(() => {
                     <p className="text-2xl font-extrabold text-gray-900">{stats.products}</p>
                     <p className="text-xs text-gray-500 font-bold uppercase">Annonces</p>
                 </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 col-span-2 flex items-center justify-between">
                     <div>
                         <p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p>
                         <p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p>
                     </div>
-                    <div className="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={20} /></div>
-                </div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-2xl font-extrabold text-gray-900">{stats.banned}</p>
-                        <p className="text-xs text-gray-500 font-bold uppercase">Bannis</p>
-                    </div>
-                    <div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Ban size={20} /></div>
+                    <div className="bg-yellow-100 w-12 h-12 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={24} /></div>
                 </div>
             </div>
         )}
 
-        {/* UTILISATEURS */}
+        {/* VUE 2: UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <div className="relative">
-                    <input type="text" placeholder="Rechercher (Nom, Email)..." className="w-full bg-white p-3 rounded-xl shadow-sm pl-10 text-sm outline-none" onChange={e => setSearchTerm(e.target.value)} />
+                    <input type="text" placeholder="Chercher un nom..." className="w-full bg-white p-3 rounded-xl shadow-sm pl-10 text-sm outline-none" onChange={e => setSearchTerm(e.target.value)} />
                     <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
                 </div>
-                
-                {users.filter(u => 
-                    (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
-                    (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-                ).map(u => (
-                    <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : 'border-gray-100'}`}>
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-                                    {u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : <User size={20} />}
-                                </div>
-                                <div>
-                                    <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
-                                        {u.full_name}
-                                        {u.role === 'admin' && <ShieldAlert size={12} className="text-red-500" />}
-                                        {u.role === 'moderator' && <ShieldCheck size={12} className="text-blue-500" />}
-                                        {u.is_pro && <CheckCircle size={12} className="text-green-500" />}
-                                    </p>
-                                    <p className="text-[10px] text-gray-400">{u.email}</p>
-                                </div>
+                {users.filter(u => u.full_name?.toLowerCase().includes(searchTerm.toLowerCase())).map(u => (
+                    <div key={u.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                                {u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : <User size={20} />}
                             </div>
-                            {u.is_banned && <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">BANNI</span>}
+                            <div>
+                                <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                                    {u.full_name}
+                                    {u.is_pro && <ShieldCheck size={12} className="text-green-500" />}
+                                </p>
+                                <p className="text-[10px] text-gray-400">{u.email}</p>
+                            </div>
                         </div>
-
-                        {/* ACTIONS ADMIN UNIQUEMENT */}
-                        {myRole === 'admin' && (
-                            <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-                                <button 
-                                    onClick={() => toggleProStatus(u.id, u.is_pro)}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition ${u.is_pro ? 'border-yellow-200 bg-yellow-50 text-yellow-700' : 'border-gray-200 bg-white text-gray-600'}`}
-                                >
-                                    {u.is_pro ? 'Retirer PRO' : 'Passer PRO'}
-                                </button>
-                                
-                                <button 
-                                    onClick={() => toggleBanUser(u.id, u.is_banned)}
-                                    className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold border transition ${u.is_banned ? 'border-green-200 bg-green-50 text-green-700' : 'border-red-200 bg-red-50 text-red-700'}`}
-                                >
-                                    {u.is_banned ? 'Débannir' : 'Bannir'}
-                                </button>
-
-                                <select 
-                                    className="bg-gray-100 text-[10px] font-bold rounded-lg px-2 outline-none border border-gray-200"
-                                    value={u.role}
-                                    onChange={(e) => changeUserRole(u.id, e.target.value)}
-                                >
-                                    <option value="user">User</option>
-                                    <option value="moderator">Modérateur</option>
-                                    <option value="admin">Admin</option>
-                                </select>
-                            </div>
-                        )}
+                        <button 
+                            onClick={() => toggleProStatus(u.id, u.is_pro)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${u.is_pro ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
+                        >
+                            {u.is_pro ? 'Retirer Pro' : 'Passer Pro'}
+                        </button>
                     </div>
                 ))}
             </div>
         )}
 
-        {/* ANNONCES */}
+        {/* VUE 3: ANNONCES */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
@@ -256,13 +173,12 @@ useEffect(() => {
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
-                                <p className="text-xs text-gray-500 truncate">Vendeur: {p.profiles?.full_name} ({p.profiles?.email})</p>
+                                <p className="text-xs text-gray-500">{p.profiles?.full_name}</p>
                                 <p className="text-brand font-bold text-xs mt-1">{p.price} KMF</p>
                             </div>
                             <button 
                                 onClick={() => deleteProduct(p.id)}
                                 className="bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 self-center"
-                                title="Supprimer l'annonce"
                             >
                                 <Trash2 size={18} />
                             </button>
