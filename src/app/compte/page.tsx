@@ -5,17 +5,20 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, ChangeEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Plus } from 'lucide-react'
+import { 
+  Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, 
+  Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Plus 
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // --- CONFIGURATION ---
-  // REMPLACEZ PAR VOTRE EMAIL EXACT
-  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com"
+  // ✅ EMAIL ADMIN MIS À JOUR
+  const ADMIN_EMAIL = "abdesisco1@gmail.com"
 
+  const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -43,9 +46,12 @@ export default function ComptePage() {
     const getProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/publier'); return }
+      
+      setUser(user) 
 
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(data)
+      
       if (data) {
         setFormData({
             full_name: data.full_name || '',
@@ -68,6 +74,7 @@ export default function ComptePage() {
 
   // --- GESTION AVATAR ---
   const handleAvatarClick = () => {
+    if (!isEditingInfo) return;
     fileInputRef.current?.click()
   }
 
@@ -79,17 +86,14 @@ export default function ComptePage() {
 
     try {
         const fileExt = file.name.split('.').pop()
-        const fileName = `${profile.id}-${Date.now()}.${fileExt}`
+        const fileName = `${user.id}-${Date.now()}.${fileExt}`
         
-        // 1. Upload vers Supabase Storage
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
         if (uploadError) throw uploadError
 
-        // 2. Récupérer l'URL publique
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
 
-        // 3. Mettre à jour le profil
-        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id)
+        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         if (updateError) throw updateError
 
         setProfile({ ...profile, avatar_url: publicUrl })
@@ -103,14 +107,14 @@ export default function ComptePage() {
   }
 
   const handleUpdateProfile = async () => {
-    if (!profile) return
+    if (!user) return
     setSaving(true)
     const { error } = await supabase.from('profiles').update({
         full_name: formData.full_name,
         city: formData.city,
         island: formData.island,
         phone_number: formData.phone_number
-    }).eq('id', profile.id)
+    }).eq('id', user.id)
 
     if (error) {
         toast.error("Erreur lors de la mise à jour")
@@ -124,10 +128,10 @@ export default function ComptePage() {
 
   const cancelEditInfo = () => {
     setFormData({
-        full_name: profile.full_name || '',
-        city: profile.city || '',
-        island: profile.island || 'Ngazidja',
-        phone_number: profile.phone_number || ''
+        full_name: profile?.full_name || '',
+        city: profile?.city || '',
+        island: profile?.island || 'Ngazidja',
+        phone_number: profile?.phone_number || ''
     })
     setIsEditingInfo(false)
   }
@@ -155,6 +159,7 @@ export default function ComptePage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* HEADER PROFIL */}
+      {/* CORRECTION : rounded-b-4xl au lieu de [2rem] */}
       <div className="bg-white p-6 pb-8 rounded-b-4xl shadow-sm relative z-10">
         <div className="flex justify-between items-start mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Mon Compte</h1>
@@ -164,10 +169,10 @@ export default function ComptePage() {
         </div>
 
         <div className="flex items-center gap-4">
-            {/* AVATAR + INPUT FILE CACHÉ */}
+            {/* AVATAR */}
             <div 
                 onClick={handleAvatarClick}
-                className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold relative overflow-hidden border-2 border-white shadow-md group cursor-pointer"
+                className={`w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold relative overflow-hidden border-2 border-white shadow-md group ${isEditingInfo ? 'cursor-pointer hover:opacity-90' : ''}`}
             >
                 {avatarUploading ? (
                     <Loader2 className="animate-spin" />
@@ -177,12 +182,12 @@ export default function ComptePage() {
                     profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
                 )}
                 
-                {/* Overlay Appareil Photo */}
-                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                    <Camera size={20} className="text-white" />
-                </div>
+                {isEditingInfo && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in">
+                        <Camera size={24} className="text-white" />
+                    </div>
+                )}
                 
-                {/* Input caché */}
                 <input 
                     type="file" 
                     accept="image/*" 
@@ -193,8 +198,8 @@ export default function ComptePage() {
             </div>
 
             <div>
-                <h2 className="font-bold text-lg text-gray-900">{profile?.full_name}</h2>
-                <p className="text-sm text-gray-500">{profile?.email}</p>
+                <h2 className="font-bold text-lg text-gray-900">{profile?.full_name || user?.email?.split('@')[0]}</h2>
+                <p className="text-sm text-gray-500">{user?.email}</p>
                 {profile?.is_pro ? (
                     <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded mt-1">
                         <ShieldCheck size={10} /> VENDEUR PRO
@@ -211,7 +216,7 @@ export default function ComptePage() {
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
         {/* BOUTON ADMIN */}
-        {profile?.email === ADMIN_EMAIL && (
+        {user?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
                 <div className="flex items-center gap-3">
                     <div className="bg-white/10 p-2 rounded-lg">
