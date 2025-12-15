@@ -213,8 +213,9 @@ export default function MessagesPage() {
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            <div className="bg-brand pt-12 px-6 pb-4 shadow-sm sticky top-0 z-30">
-                <h1 className="text-white font-bold text-xl mt-2">Discussions</h1>
+            {/* Nouveau Header Blanc */}
+            <div className="bg-white pt-12 px-6 pb-4 sticky top-0 z-30 border-b border-gray-100">
+                <h1 className="text-gray-900 font-extrabold text-2xl tracking-tight">Discussions</h1>
             </div>
 
             <div className="px-4 py-4 space-y-3">
@@ -232,9 +233,8 @@ export default function MessagesPage() {
                         <div 
                             key={conv.id} 
                             onClick={() => openConversation(conv)}
-                            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md"
+                            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md relative"
                         >
-                            {/* Avatar Produit */}
                             <div className="w-14 h-14 bg-gray-100 rounded-2xl shrink-0 relative overflow-hidden border border-gray-100">
                                 {conv.productImage ? (
                                     <Image src={conv.productImage} alt="" fill className="object-cover" />
@@ -285,7 +285,7 @@ export default function MessagesPage() {
     )
   }
 
-  // --- VUE CHAT ---
+  // --- VUE CHAT (MODERNE) ---
   return (
     <div className="flex flex-col h-screen bg-[#F2F4F7] font-sans">
         
@@ -295,7 +295,6 @@ export default function MessagesPage() {
                 <ArrowLeft size={22} />
             </button>
             
-            {/* Avatar Interlocuteur */}
             <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden relative border border-gray-200">
                 {activeConv?.counterpartAvatar ? (
                     <Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />
@@ -310,7 +309,6 @@ export default function MessagesPage() {
                     <div className="w-4 h-4 rounded-md overflow-hidden relative bg-gray-200 shrink-0">
                          {activeConv?.productImage && <Image src={activeConv.productImage} alt="" fill className="object-cover" />}
                     </div>
-                    {/* CORRECTION max-w : Utilisation de max-w-40 (standard) au lieu de [150px] */}
                     <p className="text-xs text-gray-500 font-medium truncate max-w-40">
                         {activeConv?.productTitle}
                     </p>
@@ -327,7 +325,6 @@ export default function MessagesPage() {
         <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
             <div className="flex flex-col justify-end min-h-full gap-3">
                 
-                {/* Date separator */}
                 <div className="flex justify-center my-2">
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span>
                 </div>
@@ -361,12 +358,10 @@ export default function MessagesPage() {
 
         {/* Input Zone */}
         <div className="bg-white p-2 pb-safe border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
-            {/* CORRECTION rounded : Utilisation de rounded-3xl (standard) au lieu de [24px] */}
             <div className="flex items-end gap-2 bg-gray-100 p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50">
                     <Plus size={20} />
                 </button>
-                {/* CORRECTION min-h : Utilisation de min-h-11 (44px) au lieu de [44px] */}
                 <textarea 
                     ref={inputRef}
                     className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] max-h-32 min-h-11 py-2.5 px-1 resize-none placeholder:text-gray-400"
