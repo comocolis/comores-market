@@ -23,7 +23,7 @@ export default function AdminPage() {
   const [products, setProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
+useEffect(() => {
     const checkAccess = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
@@ -32,13 +32,17 @@ export default function AdminPage() {
         return
       }
 
-      // On vérifie le rôle dans la DB
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      // On interroge la base de données pour connaître le vrai rôle
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
       
-      // Si pas admin ni modérateur -> Dehors
+      // Si le rôle n'est pas admin ou moderator -> DEHORS
       if (!profile || (profile.role !== 'admin' && profile.role !== 'moderator')) {
-        toast.error("Accès refusé.")
-        router.push('/')
+        toast.error("Accès refusé. Vous n'avez pas les droits.")
+        router.push('/') // Renvoie à l'accueil
         return
       }
 
