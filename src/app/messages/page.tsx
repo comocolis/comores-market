@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Types
+// --- TYPES MIS À JOUR ---
 type Message = {
   id: string
   content: string
@@ -19,6 +19,8 @@ type Message = {
   created_at: string
   is_read: boolean
   pending?: boolean
+  // Ajout du champ pour l'avatar de l'expéditeur directement dans le message
+  sender_avatar?: string | null 
 }
 
 type Conversation = {
@@ -50,7 +52,7 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // --- CHARGEMENT ---
+  // --- CHARGEMENT DES DONNÉES ---
   const fetchAndGroupMessages = async (userId: string) => {
     const { data, error } = await supabase.from('messages')
         .select(`
@@ -69,7 +71,7 @@ export default function MessagesPage() {
 
     const groups: { [key: string]: Conversation } = {}
 
-    data.forEach((msg) => {
+    data.forEach((msg: any) => {
         const isMe = msg.sender_id === userId
         const otherId = isMe ? msg.receiver_id : msg.sender_id
         const otherProfile = isMe ? msg.receiver : msg.sender
@@ -102,7 +104,13 @@ export default function MessagesPage() {
             }
         }
         
-        groups[key].messages.push(msg)
+        // On prépare le message avec l'avatar de son expéditeur
+        const messageWithAvatar: Message = {
+            ...msg,
+            sender_avatar: msg.sender?.avatar_url
+        }
+        
+        groups[key].messages.push(messageWithAvatar)
         groups[key].lastMessage = msg.content
         groups[key].lastDate = msg.created_at
         
@@ -182,6 +190,7 @@ export default function MessagesPage() {
     setReplyContent('') 
     inputRef.current?.focus() 
 
+    // Message optimiste (sans avatar car c'est moi)
     const optimisticMsg: Message = {
         id: tempId,
         content: content,
@@ -209,11 +218,10 @@ export default function MessagesPage() {
     if (error) toast.error("Échec de l'envoi")
   }
 
-  // --- VUE LISTE ---
+  // --- VUE LISTE (Inchangée, elle était bien) ---
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            {/* Nouveau Header Blanc */}
             <div className="bg-white pt-12 px-6 pb-4 sticky top-0 z-30 border-b border-gray-100">
                 <h1 className="text-gray-900 font-extrabold text-2xl tracking-tight">Discussions</h1>
             </div>
@@ -230,77 +238,44 @@ export default function MessagesPage() {
                     </div>
                 ) : (
                     conversations.map(conv => (
-                        <div 
-                            key={conv.id} 
-                            onClick={() => openConversation(conv)}
-                            className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md relative"
-                        >
+                        <div key={conv.id} onClick={() => openConversation(conv)} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md relative">
                             <div className="w-14 h-14 bg-gray-100 rounded-2xl shrink-0 relative overflow-hidden border border-gray-100">
-                                {conv.productImage ? (
-                                    <Image src={conv.productImage} alt="" fill className="object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400"><ShoppingBag size={20} /></div>
-                                )}
+                                {conv.productImage ? (<Image src={conv.productImage} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><ShoppingBag size={20} /></div>)}
                             </div>
-
                             <div className="flex-1 min-w-0">
                                 <div className="flex justify-between items-center mb-1">
-                                    <h3 className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>
-                                        {conv.counterpartName}
-                                    </h3>
-                                    <span className={`text-[10px] whitespace-nowrap ${conv.unreadCount > 0 ? 'text-brand font-bold' : 'text-gray-400'}`}>
-                                        {new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}
-                                    </span>
+                                    <h3 className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>{conv.counterpartName}</h3>
+                                    <span className={`text-[10px] whitespace-nowrap ${conv.unreadCount > 0 ? 'text-brand font-bold' : 'text-gray-400'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <div className="flex flex-col min-w-0 pr-2">
                                         <p className="text-[10px] text-brand font-bold uppercase tracking-wide truncate mb-0.5">{conv.productTitle}</p>
-                                        <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>
-                                            {conv.lastMessage}
-                                        </p>
+                                        <p className={`text-sm truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>{conv.lastMessage}</p>
                                     </div>
-                                    {/* Badge NON LU */}
-                                    {conv.unreadCount > 0 && (
-                                        <div className="w-5 h-5 bg-brand rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm animate-in zoom-in shrink-0">
-                                            {conv.unreadCount}
-                                        </div>
-                                    )}
+                                    {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-full flex items-center justify-center text-[10px] text-white font-bold shadow-sm animate-in zoom-in shrink-0">{conv.unreadCount}</div>)}
                                 </div>
                             </div>
                         </div>
                     ))
                 )}
             </div>
-
-            <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-                <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
-                <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link>
-                <Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link>
-                <div className="flex justify-center relative -top-6"><Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white"><Plus strokeWidth={3} size={28} /></Link></div>
-                <Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link>
-                <Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link>
-                </div>
-            </nav>
+            <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"><div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2"><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link><div className="flex justify-center relative -top-6"><Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white"><Plus strokeWidth={3} size={28} /></Link></div><Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link><Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link></div></nav>
         </div>
     )
   }
 
-  // --- VUE CHAT (MODERNE) ---
+  // --- NOUVELLE VUE CHAT (AVEC AVATARS) ---
   return (
-    <div className="flex flex-col h-screen bg-[#F2F4F7] font-sans">
+    <div className="flex flex-col h-screen bg-[#F7F8FA] font-sans">
         
         {/* Header Chat */}
-        <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40 border-b border-gray-100">
+        <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40 border-b border-gray-50">
             <button onClick={() => { setView('list'); fetchAndGroupMessages(currentUser.id) }} className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition">
                 <ArrowLeft size={22} />
             </button>
             
             <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden relative border border-gray-200">
-                {activeConv?.counterpartAvatar ? (
-                    <Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>
-                )}
+                {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>)}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -309,9 +284,7 @@ export default function MessagesPage() {
                     <div className="w-4 h-4 rounded-md overflow-hidden relative bg-gray-200 shrink-0">
                          {activeConv?.productImage && <Image src={activeConv.productImage} alt="" fill className="object-cover" />}
                     </div>
-                    <p className="text-xs text-gray-500 font-medium truncate max-w-40">
-                        {activeConv?.productTitle}
-                    </p>
+                    <p className="text-xs text-gray-500 font-medium truncate max-w-40">{activeConv?.productTitle}</p>
                 </div>
             </div>
             
@@ -322,8 +295,8 @@ export default function MessagesPage() {
         </div>
 
         {/* Zone Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50">
-            <div className="flex flex-col justify-end min-h-full gap-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex flex-col justify-end min-h-full gap-2">
                 
                 <div className="flex justify-center my-2">
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span>
@@ -331,13 +304,27 @@ export default function MessagesPage() {
 
                 {activeConv?.messages.map((msg, i) => {
                     const isMe = msg.sender_id === currentUser?.id
+                    
                     return (
-                        <div key={msg.id || i} className={`flex ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-300`}>
+                        <div key={msg.id || i} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-200`}>
+                            
+                            {/* AVATAR DE L'AUTRE PERSONNE (à gauche) */}
+                            {!isMe && (
+                                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">
+                                    {msg.sender_avatar ? (
+                                        <Image src={msg.sender_avatar} alt="" fill className="object-cover" />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={14} /></div>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* BULLE DE MESSAGE */}
                             <div 
-                                className={`max-w-[75%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${
+                                className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${
                                     isMe 
-                                    ? 'bg-brand text-white rounded-2xl rounded-tr-sm' 
-                                    : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100'
+                                    ? 'bg-brand text-white rounded-2xl' // Bulle expéditeur (Simple, moderne)
+                                    : 'bg-white text-gray-800 rounded-2xl' // Bulle destinataire
                                 }`}
                             >
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -357,8 +344,8 @@ export default function MessagesPage() {
         </div>
 
         {/* Input Zone */}
-        <div className="bg-white p-2 pb-safe border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
-            <div className="flex items-end gap-2 bg-gray-100 p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
+        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+            <div className="flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50">
                     <Plus size={20} />
                 </button>
@@ -376,11 +363,7 @@ export default function MessagesPage() {
                         }
                     }}
                 />
-                <button 
-                    onClick={handleSend}
-                    disabled={!replyContent.trim()}
-                    className="bg-brand text-white p-2.5 rounded-full shadow-md hover:bg-brand-dark transition disabled:opacity-50 disabled:scale-90 active:scale-95 mb-0.5"
-                >
+                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-2.5 rounded-full shadow-md hover:bg-brand-dark transition disabled:opacity-50 disabled:scale-90 active:scale-95 mb-0.5">
                     <Send size={18} className="ml-0.5" />
                 </button>
             </div>
