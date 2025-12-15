@@ -3,8 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-// CORRECTION ICI : Ajout de 'User' dans la liste
-import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, CheckCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -13,7 +12,7 @@ export default function AdminPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // ✅ VOTRE EMAIL ADMIN
+  // ✅ VOTRE EMAIL (On nettoiera la casse et les espaces lors de la vérification)
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
@@ -28,8 +27,11 @@ export default function AdminPage() {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
-      // Sécurité : Vérification de l'email
-      if (!user || user.email !== ADMIN_EMAIL) {
+      // Sécurité : On compare les emails en minuscules et sans espaces
+      const currentEmail = user?.email?.toLowerCase().trim()
+      const adminEmail = ADMIN_EMAIL.toLowerCase().trim()
+
+      if (!user || currentEmail !== adminEmail) {
         toast.error("Accès réservé à l'administrateur.")
         router.push('/compte') 
         return
@@ -67,6 +69,18 @@ export default function AdminPage() {
     }
   }
 
+  // NOUVEAU : Pouvoir de bannir
+  const toggleBanUser = async (userId: string, currentBan: boolean) => {
+    if (!confirm(currentBan ? "Débannir cet utilisateur ?" : "BANNIR cet utilisateur ? Il ne pourra plus se connecter.")) return
+
+    const { error } = await supabase.from('profiles').update({ is_banned: !currentBan }).eq('id', userId)
+    if (error) toast.error("Erreur")
+    else {
+        toast.success(currentBan ? "Utilisateur débanni" : "Utilisateur BANNI 🚫")
+        fetchData()
+    }
+  }
+
   const deleteProduct = async (productId: string) => {
     if (!confirm("Supprimer cette annonce ?")) return
     const { error } = await supabase.from('products').delete().eq('id', productId)
@@ -89,7 +103,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                     <ShieldCheck className="text-brand" /> Admin
                 </h1>
-                <p className="text-gray-400 text-xs mt-1">Gestion {ADMIN_EMAIL}</p>
+                <p className="text-gray-400 text-xs mt-1">Super Admin : {ADMIN_EMAIL}</p>
             </div>
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition">
                 <LogOut size={20} />
@@ -136,7 +150,7 @@ export default function AdminPage() {
                     <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
                 </div>
                 {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => (
-                    <div key={u.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 flex items-center justify-between">
+                    <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-500 bg-red-50' : 'border-gray-100'} flex flex-col gap-3`}>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                                 {u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : <User size={20} />}
@@ -145,16 +159,27 @@ export default function AdminPage() {
                                 <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
                                     {u.full_name}
                                     {u.is_pro && <ShieldCheck size={12} className="text-green-500" />}
+                                    {u.is_banned && <span className="text-[10px] bg-red-600 text-white px-1.5 rounded">BANNI</span>}
                                 </p>
                                 <p className="text-[10px] text-gray-400">{u.email}</p>
                             </div>
                         </div>
-                        <button 
-                            onClick={() => toggleProStatus(u.id, u.is_pro)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${u.is_pro ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
-                        >
-                            {u.is_pro ? 'Retirer Pro' : 'Passer Pro'}
-                        </button>
+                        
+                        {/* BOUTONS D'ACTION */}
+                        <div className="flex gap-2 pt-2 border-t border-gray-100">
+                            <button 
+                                onClick={() => toggleProStatus(u.id, u.is_pro)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${u.is_pro ? 'bg-gray-100 text-gray-600' : 'bg-green-100 text-green-700'}`}
+                            >
+                                {u.is_pro ? 'Retirer Pro' : 'Passer Pro'}
+                            </button>
+                            <button 
+                                onClick={() => toggleBanUser(u.id, u.is_banned)}
+                                className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${u.is_banned ? 'bg-gray-800 text-white' : 'bg-red-100 text-red-600'}`}
+                            >
+                                {u.is_banned ? 'Débannir' : 'Bannir'}
+                            </button>
+                        </div>
                     </div>
                 ))}
             </div>
@@ -168,7 +193,7 @@ export default function AdminPage() {
                     return (
                         <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
                             <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative overflow-hidden">
-                                {img && <Image src={img} alt="" fill className="object-cover" /> }
+                                {img && <Image src={img} alt="" fill className="object-cover" />}
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
