@@ -2,10 +2,10 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, TouchEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Share2, ShieldAlert, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react'
 import { toast } from 'sonner'
 
 // --- SÉCURITÉ ---
@@ -43,8 +43,13 @@ export default function AnnoncePage() {
 
   // --- GESTION IMAGES & LIGHTBOX ---
   const [images, setImages] = useState<string[]>([])
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0) // L'image affichée dans l'en-tête
-  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null) // L'image affichée en plein écran (null = fermé)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  
+  // --- GESTION DU SWIPE (GLISSEMENT) ---
+  const [touchStart, setTouchStart] = useState(0)
+  const [touchEnd, setTouchEnd] = useState(0)
+  const minSwipeDistance = 50 // Distance minimum pour considérer un swipe
 
   useEffect(() => {
     const getData = async () => {
@@ -128,6 +133,30 @@ export default function AnnoncePage() {
     setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
   }
 
+  // --- LOGIQUE DU SWIPE ---
+  const onTouchStart = (e: TouchEvent) => {
+    setTouchEnd(0) // Reset
+    setTouchStart(e.targetTouches[0].clientX)
+  }
+
+  const onTouchMove = (e: TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX)
+  }
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return
+    const distance = touchStart - touchEnd
+    const isLeftSwipe = distance > minSwipeDistance
+    const isRightSwipe = distance < -minSwipeDistance
+
+    if (isLeftSwipe && images.length > 1) {
+        nextImage()
+    }
+    if (isRightSwipe && images.length > 1) {
+        prevImage()
+    }
+  }
+
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
   if (!product) return <div className="h-screen flex items-center justify-center text-gray-500">Annonce introuvable</div>
 
@@ -137,7 +166,7 @@ export default function AnnoncePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      {/* HEADER IMAGE (Cliquable pour ouvrir Lightbox) */}
+      {/* HEADER IMAGE */}
       <div className="relative w-full h-80 bg-gray-200 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
             src={images[selectedImageIndex] || '/placeholder.png'} 
@@ -145,12 +174,10 @@ export default function AnnoncePage() {
             fill 
             className="object-cover transition duration-300" 
         />
-        {/* Indication visuelle qu'on peut agrandir */}
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
             <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md">Agrandir</span>
         </div>
 
-        {/* Boutons Retour / Favoris */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
             <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto"><ArrowLeft size={20} /></button>
             <div className="flex gap-2 pointer-events-auto">
@@ -160,7 +187,6 @@ export default function AnnoncePage() {
             </div>
         </div>
 
-        {/* Galerie miniature (Navigation rapide) */}
         <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto">
             {images.map((img: string, i: number) => (
                 <button 
@@ -174,19 +200,25 @@ export default function AnnoncePage() {
         </div>
       </div>
 
-      {/* --- LIGHTBOX (PLEIN ÉCRAN) --- */}
+      {/* --- LIGHTBOX (PLEIN ÉCRAN) AVEC SWIPE --- */}
       {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200">
-            {/* Bouton Fermer */}
+        <div 
+            className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
+            // Ajout des gestionnaires d'événements tactiles
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
+            {/* Bouton Fermer (Déplacé à GAUCHE) */}
             <button 
                 onClick={() => setLightboxIndex(null)} 
-                className="absolute top-safe right-4 z-20 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
+                className="absolute top-safe left-4 z-20 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
             >
                 <X size={32} />
             </button>
 
             {/* Image */}
-            <div className="relative w-full h-full max-h-[80vh] aspect-square md:aspect-auto">
+            <div className="relative w-full h-full max-h-[80vh] aspect-square md:aspect-auto pointer-events-none">
                 <Image 
                     src={images[lightboxIndex]} 
                     alt="Plein écran" 
@@ -199,8 +231,8 @@ export default function AnnoncePage() {
             {/* Navigation (Si plus d'1 image) */}
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition"><ChevronLeft size={40} /></button>
-                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition"><ChevronRight size={40} /></button>
+                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-10"><ChevronLeft size={40} /></button>
+                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-10"><ChevronRight size={40} /></button>
                     
                     {/* Compteur */}
                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md">
