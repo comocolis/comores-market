@@ -36,19 +36,30 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const fetchAndGroupMessages = async (userId: string) => {
-    const { data } = await supabase.from('messages')
+    // On récupère les messages avec les infos des expéditeurs et du produit
+    const { data, error } = await supabase.from('messages')
         .select('*, sender:profiles!sender_id(full_name), receiver:profiles!receiver_id(full_name), product:products(title, images)')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true })
 
-    if (!data) return
+    if (error) {
+        console.error("Erreur messages:", error)
+        setLoading(false)
+        return
+    }
+
+    if (!data) {
+        setLoading(false)
+        return
+    }
 
     const groups: { [key: string]: Conversation } = {}
 
     data.forEach((msg) => {
         const isMe = msg.sender_id === userId
         const otherId = isMe ? msg.receiver_id : msg.sender_id
-        const otherName = isMe ? msg.receiver?.full_name : msg.sender?.full_name
+        // Fallback si le nom est introuvable
+        const otherName = (isMe ? msg.receiver?.full_name : msg.sender?.full_name) || 'Utilisateur inconnu'
         
         const key = `${msg.product_id}-${otherId}`
         
@@ -64,10 +75,10 @@ export default function MessagesPage() {
             groups[key] = {
                 id: key,
                 productId: msg.product_id,
-                productTitle: msg.product?.title || 'Annonce supprimée',
+                productTitle: msg.product?.title || 'Produit',
                 productImage: img,
                 counterpartId: otherId,
-                counterpartName: otherName || 'Utilisateur',
+                counterpartName: otherName,
                 lastMessage: '',
                 lastDate: '',
                 messages: []
@@ -86,6 +97,7 @@ export default function MessagesPage() {
     setConversations(sortedConvs)
     setLoading(false)
     
+    // Si on est dans une conversation active, on la met à jour pour voir le nouveau message
     if (activeConv) {
         const updatedActive = sortedConvs.find(c => c.id === activeConv.id)
         if (updatedActive) setActiveConv(updatedActive)
@@ -99,6 +111,7 @@ export default function MessagesPage() {
       setCurrentUser(user)
       await fetchAndGroupMessages(user.id)
 
+      // Abonnement temps réel
       const channel = supabase.channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
@@ -138,7 +151,7 @@ export default function MessagesPage() {
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            {/* CORRECTION HEADER : pt-12 force l'espace sous la barre d'état */}
+            {/* CORRECTION : pt-12 pour éviter la ligne blanche sous le notch */}
             <div className="bg-brand pt-12 px-6 pb-4 shadow-sm sticky top-0 z-30">
                 <h1 className="text-white font-bold text-xl mt-2">Mes Messages</h1>
             </div>
