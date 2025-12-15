@@ -36,19 +36,12 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const fetchAndGroupMessages = async (userId: string) => {
-    // On récupère les messages avec les infos des expéditeurs et du produit
     const { data, error } = await supabase.from('messages')
         .select('*, sender:profiles!sender_id(full_name), receiver:profiles!receiver_id(full_name), product:products(title, images)')
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true })
 
-    if (error) {
-        console.error("Erreur messages:", error)
-        setLoading(false)
-        return
-    }
-
-    if (!data) {
+    if (error || !data) {
         setLoading(false)
         return
     }
@@ -58,8 +51,7 @@ export default function MessagesPage() {
     data.forEach((msg) => {
         const isMe = msg.sender_id === userId
         const otherId = isMe ? msg.receiver_id : msg.sender_id
-        // Fallback si le nom est introuvable
-        const otherName = (isMe ? msg.receiver?.full_name : msg.sender?.full_name) || 'Utilisateur inconnu'
+        const otherName = (isMe ? msg.receiver?.full_name : msg.sender?.full_name) || 'Utilisateur'
         
         const key = `${msg.product_id}-${otherId}`
         
@@ -97,7 +89,6 @@ export default function MessagesPage() {
     setConversations(sortedConvs)
     setLoading(false)
     
-    // Si on est dans une conversation active, on la met à jour pour voir le nouveau message
     if (activeConv) {
         const updatedActive = sortedConvs.find(c => c.id === activeConv.id)
         if (updatedActive) setActiveConv(updatedActive)
@@ -111,7 +102,6 @@ export default function MessagesPage() {
       setCurrentUser(user)
       await fetchAndGroupMessages(user.id)
 
-      // Abonnement temps réel
       const channel = supabase.channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
@@ -147,11 +137,9 @@ export default function MessagesPage() {
     setSending(false)
   }
 
-  // --- VUE : LISTE DES CONVERSATIONS ---
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            {/* CORRECTION : pt-12 pour éviter la ligne blanche sous le notch */}
             <div className="bg-brand pt-12 px-6 pb-4 shadow-sm sticky top-0 z-30">
                 <h1 className="text-white font-bold text-xl mt-2">Mes Messages</h1>
             </div>
@@ -207,10 +195,8 @@ export default function MessagesPage() {
     )
   }
 
-  // --- VUE : CHAT ---
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans">
-        {/* Header Chat - CORRECTION pt-12 */}
         <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40">
             <button onClick={() => setView('list')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                 <ArrowLeft size={20} />
@@ -228,31 +214,32 @@ export default function MessagesPage() {
             )}
         </div>
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#e5ddd5]/10">
-            {activeConv?.messages.map((msg, i) => {
-                const isMe = msg.sender_id === currentUser?.id
-                return (
-                    <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div 
-                            className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm relative ${
-                                isMe 
-                                ? 'bg-brand text-white rounded-br-none' 
-                                : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
-                            }`}
-                        >
-                            <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                            <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
-                                {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </p>
+        {/* MESSAGES : FIX SCROLL BOTTOM */}
+        <div className="flex-1 overflow-y-auto p-4 bg-[#e5ddd5]/10">
+            <div className="flex flex-col justify-end min-h-full space-y-3">
+                {activeConv?.messages.map((msg, i) => {
+                    const isMe = msg.sender_id === currentUser?.id
+                    return (
+                        <div key={i} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            <div 
+                                className={`max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm relative ${
+                                    isMe 
+                                    ? 'bg-brand text-white rounded-br-none' 
+                                    : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
+                                }`}
+                            >
+                                <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                                <p className={`text-[9px] mt-1 text-right ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
+                                    {new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                )
-            })}
-            <div ref={messagesEndRef} />
+                    )
+                })}
+                <div ref={messagesEndRef} />
+            </div>
         </div>
 
-        {/* Zone de saisie */}
         <div className="bg-white p-3 border-t border-gray-200 pb-safe">
             <div className="flex items-end gap-2 bg-gray-100 p-2 rounded-2xl">
                 <textarea 

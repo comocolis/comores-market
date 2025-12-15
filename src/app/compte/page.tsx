@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, ChangeEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Plus } from 'lucide-react'
@@ -12,13 +12,19 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // VOTRE EMAIL ADMIN (C'est la seule sécurité ici)
-  const ADMIN_EMAIL = "abdesisco1@ggmail.com"
+  // --- CONFIGURATION ---
+  // REMPLACEZ PAR VOTRE EMAIL EXACT
+  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com"
 
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
+  // États Avatar
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // États Édition
   const [isEditingInfo, setIsEditingInfo] = useState(false)
   const [isEditingPassword, setIsEditingPassword] = useState(false)
   
@@ -58,6 +64,42 @@ export default function ComptePage() {
     toast.success("Déconnecté avec succès")
     router.push('/')
     router.refresh()
+  }
+
+  // --- GESTION AVATAR ---
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    
+    const file = e.target.files[0]
+    setAvatarUploading(true)
+
+    try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${profile.id}-${Date.now()}.${fileExt}`
+        
+        // 1. Upload vers Supabase Storage
+        const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
+        if (uploadError) throw uploadError
+
+        // 2. Récupérer l'URL publique
+        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+
+        // 3. Mettre à jour le profil
+        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', profile.id)
+        if (updateError) throw updateError
+
+        setProfile({ ...profile, avatar_url: publicUrl })
+        toast.success("Photo de profil mise à jour !")
+
+    } catch (error: any) {
+        toast.error("Erreur upload : " + error.message)
+    } finally {
+        setAvatarUploading(false)
+    }
   }
 
   const handleUpdateProfile = async () => {
@@ -122,16 +164,34 @@ export default function ComptePage() {
         </div>
 
         <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold relative overflow-hidden border-2 border-white shadow-md group">
-                {profile?.avatar_url ? (
+            {/* AVATAR + INPUT FILE CACHÉ */}
+            <div 
+                onClick={handleAvatarClick}
+                className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold relative overflow-hidden border-2 border-white shadow-md group cursor-pointer"
+            >
+                {avatarUploading ? (
+                    <Loader2 className="animate-spin" />
+                ) : profile?.avatar_url ? (
                     <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" />
                 ) : (
                     profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
                 )}
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                
+                {/* Overlay Appareil Photo */}
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                     <Camera size={20} className="text-white" />
                 </div>
+                
+                {/* Input caché */}
+                <input 
+                    type="file" 
+                    accept="image/*" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    onChange={handleAvatarChange}
+                />
             </div>
+
             <div>
                 <h2 className="font-bold text-lg text-gray-900">{profile?.full_name}</h2>
                 <p className="text-sm text-gray-500">{profile?.email}</p>
@@ -150,7 +210,7 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
-        {/* BOUTON ADMIN (Condition simple sur l'email) */}
+        {/* BOUTON ADMIN */}
         {profile?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
                 <div className="flex items-center gap-3">
@@ -173,10 +233,7 @@ export default function ComptePage() {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><User size={18} /> Informations</h3>
                 {!isEditingInfo && (
-                    <button 
-                        onClick={() => setIsEditingInfo(true)} 
-                        className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1"
-                    >
+                    <button onClick={() => setIsEditingInfo(true)} className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1">
                         <PenSquare size={12} /> Modifier
                     </button>
                 )}
@@ -236,10 +293,7 @@ export default function ComptePage() {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
                 {!isEditingPassword && (
-                    <button 
-                        onClick={() => setIsEditingPassword(true)} 
-                        className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1"
-                    >
+                    <button onClick={() => setIsEditingPassword(true)} className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1">
                         <PenSquare size={12} /> Modifier
                     </button>
                 )}
@@ -261,28 +315,16 @@ export default function ComptePage() {
                                 value={newPassword}
                                 onChange={e => setNewPassword(e.target.value)}
                             />
-                            <button 
-                                type="button" 
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
-                            >
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400 hover:text-gray-600">
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                         </div>
                     </div>
                     <div className="flex gap-2">
-                         <button 
-                            type="button"
-                            onClick={() => {setIsEditingPassword(false); setNewPassword('')}} 
-                            className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition"
-                        >
+                         <button type="button" onClick={() => {setIsEditingPassword(false); setNewPassword('')}} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition">
                             Annuler
                         </button>
-                        <button 
-                            type="submit" 
-                            disabled={passwordLoading || !newPassword}
-                            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition disabled:opacity-50"
-                        >
+                        <button type="submit" disabled={passwordLoading || !newPassword} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition disabled:opacity-50">
                             {passwordLoading ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Confirmer"}
                         </button>
                     </div>
