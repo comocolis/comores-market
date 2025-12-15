@@ -145,7 +145,7 @@ export default function MarketplaceHome() {
   return (
     <main className="min-h-screen bg-gray-50 pb-24 font-sans relative">
       
-      {/* --- HEADER (Z-INDEX 40) --- */}
+      {/* --- HEADER (FIXE) --- */}
       <header className="bg-brand sticky top-0 z-40 shadow-md pb-4 pt-safe">
         <div className="max-w-md mx-auto px-4 pt-3">
           <div className="flex items-center justify-between mb-4">
@@ -184,8 +184,9 @@ export default function MarketplaceHome() {
         </div>
       </header>
 
-      {/* --- FILTRES ÎLES (Z-INDEX 30) --- */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-28 z-30 shadow-sm">
+      {/* --- FILTRES ÎLES (DÉFILE AVEC LA PAGE) --- */}
+      {/* CORRECTION : Plus de 'sticky' ni de 'top-xx' */}
+      <div className="bg-white border-b border-gray-100 py-3 shadow-sm">
          <div className="max-w-md mx-auto px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore'].map((ile) => (
               <button 
@@ -268,7 +269,7 @@ export default function MarketplaceHome() {
                     return (
                         <div key={product.id} className="relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
                             
-                            {/* FAVORIS (Z-INDEX 20) */}
+                            {/* FAVORIS */}
                             <button 
                                 onClick={(e) => toggleFavorite(e, product.id)} 
                                 className="absolute top-2 right-2 z-20 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-sm hover:bg-white active:scale-90 transition"
@@ -289,7 +290,7 @@ export default function MarketplaceHome() {
                                     )}
                                 </Link>
 
-                                {/* ZOOM (Z-INDEX 20) */}
+                                {/* ZOOM */}
                                 {imageUrl && (
                                     <button 
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullScreenImage(imageUrl); }} 
@@ -325,7 +326,7 @@ export default function MarketplaceHome() {
         )}
       </div>
 
-      {/* --- MODAL PLEIN ÉCRAN (Z-INDEX 50) --- */}
+      {/* --- MODAL PLEIN ÉCRAN --- */}
       {fullScreenImage && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
             <button onClick={() => setFullScreenImage(null)} className="absolute top-6 right-6 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition z-20 backdrop-blur-md">
@@ -337,7 +338,7 @@ export default function MarketplaceHome() {
         </div>
       )}
 
-      {/* --- NAVIGATION BAS (Z-INDEX 40) --- */}
+      {/* --- NAVIGATION BAS --- */}
       <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
           <NavBtn icon={HomeIcon} label="Accueil" active onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} />
