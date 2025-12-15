@@ -12,9 +12,6 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // VOTRE EMAIL ADMIN (Le bouton ne s'affichera que pour ce compte)
-  const ADMIN_EMAIL = "abdesisco1@gmail.com"
-
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -38,6 +35,7 @@ export default function ComptePage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/publier'); return }
 
+      // On récupère tout le profil, y compris le RÔLE
       const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
       setProfile(data)
       if (data) {
@@ -109,6 +107,9 @@ export default function ComptePage() {
 
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
+  // Vérification si Admin ou Modérateur pour afficher le bouton
+  const isAdminOrMod = profile?.role === 'admin' || profile?.role === 'moderator'
+
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
@@ -135,6 +136,8 @@ export default function ComptePage() {
             <div>
                 <h2 className="font-bold text-lg text-gray-900">{profile?.full_name}</h2>
                 <p className="text-sm text-gray-500">{profile?.email}</p>
+                {/* Badge Rôle Admin */}
+                {profile?.role === 'admin' && <span className="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-0.5 rounded mr-1">ADMIN</span>}
                 {profile?.is_pro ? (
                     <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded mt-1">
                         <ShieldCheck size={10} /> VENDEUR PRO
@@ -150,8 +153,8 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
-        {/* BOUTON ADMIN (Visible uniquement pour vous) */}
-        {profile?.email === ADMIN_EMAIL && (
+        {/* BOUTON ADMIN (Visible si role = admin ou moderator) */}
+        {isAdminOrMod && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
                 <div className="flex items-center gap-3">
                     <div className="bg-white/10 p-2 rounded-lg">
