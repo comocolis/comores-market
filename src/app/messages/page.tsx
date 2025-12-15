@@ -7,11 +7,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Home, Search, MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
-  ShoppingBag, Check, CheckCheck, MoreVertical, Phone 
+  ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// --- TYPES MIS À JOUR ---
+// Types
 type Message = {
   id: string
   content: string
@@ -19,7 +19,6 @@ type Message = {
   created_at: string
   is_read: boolean
   pending?: boolean
-  // Ajout du champ pour l'avatar de l'expéditeur directement dans le message
   sender_avatar?: string | null 
 }
 
@@ -28,6 +27,7 @@ type Conversation = {
   productId: string
   productTitle: string
   productImage: string | null
+  productPhone: string | null
   counterpartId: string
   counterpartName: string
   counterpartAvatar: string | null
@@ -47,19 +47,20 @@ export default function MessagesPage() {
   const [view, setView] = useState<'list' | 'chat'>('list')
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [showMenu, setShowMenu] = useState(false)
   
   const [replyContent, setReplyContent] = useState('')
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
-  // --- CHARGEMENT DES DONNÉES ---
+  // --- CHARGEMENT ---
   const fetchAndGroupMessages = async (userId: string) => {
     const { data, error } = await supabase.from('messages')
         .select(`
             *, 
             sender:profiles!sender_id(full_name, avatar_url), 
             receiver:profiles!receiver_id(full_name, avatar_url), 
-            product:products(title, images)
+            product:products(title, images, whatsapp_number)
         `)
         .or(`sender_id.eq.${userId},receiver_id.eq.${userId}`)
         .order('created_at', { ascending: true })
@@ -94,6 +95,7 @@ export default function MessagesPage() {
                 productId: msg.product_id,
                 productTitle: msg.product?.title || 'Produit',
                 productImage: img,
+                productPhone: msg.product?.whatsapp_number || null,
                 counterpartId: otherId,
                 counterpartName: otherName,
                 counterpartAvatar: otherAvatar,
@@ -104,7 +106,6 @@ export default function MessagesPage() {
             }
         }
         
-        // On prépare le message avec l'avatar de son expéditeur
         const messageWithAvatar: Message = {
             ...msg,
             sender_avatar: msg.sender?.avatar_url
@@ -179,7 +180,38 @@ export default function MessagesPage() {
   const openConversation = (conv: Conversation) => {
     setActiveConv(conv)
     setView('chat')
+    setShowMenu(false)
     markAsRead(conv)
+  }
+
+  // --- ACTIONS ---
+
+  const handleCall = () => {
+    if (!activeConv?.productPhone) {
+        toast.error("Aucun numéro disponible.")
+        return
+    }
+    const cleanNumber = activeConv.productPhone.replace(/\D/g, '')
+    window.open(`https://wa.me/${cleanNumber}`, '_blank')
+  }
+
+  const handleDeleteConversation = async () => {
+    if (!activeConv || !currentUser) return
+    if (!confirm("Supprimer cette conversation ?")) return
+
+    const { error } = await supabase.from('messages')
+        .delete()
+        .eq('product_id', activeConv.productId)
+        .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeConv.counterpartId}),and(sender_id.eq.${activeConv.counterpartId},receiver_id.eq.${currentUser.id})`)
+
+    if (error) {
+        toast.error("Erreur suppression")
+    } else {
+        toast.success("Supprimée")
+        setConversations(conversations.filter(c => c.id !== activeConv.id))
+        setView('list')
+        setActiveConv(null)
+    }
   }
 
   const handleSend = async () => {
@@ -190,7 +222,6 @@ export default function MessagesPage() {
     setReplyContent('') 
     inputRef.current?.focus() 
 
-    // Message optimiste (sans avatar car c'est moi)
     const optimisticMsg: Message = {
         id: tempId,
         content: content,
@@ -215,10 +246,10 @@ export default function MessagesPage() {
         product_id: activeConv.productId
     })
 
-    if (error) toast.error("Échec de l'envoi")
+    if (error) toast.error("Échec envoi")
   }
 
-  // --- VUE LISTE (Inchangée, elle était bien) ---
+  // --- VUE LISTE ---
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
@@ -264,11 +295,11 @@ export default function MessagesPage() {
     )
   }
 
-  // --- NOUVELLE VUE CHAT (AVEC AVATARS) ---
+  // --- VUE CHAT ---
   return (
     <div className="flex flex-col h-screen bg-[#F7F8FA] font-sans">
         
-        {/* Header Chat */}
+        {/* CORRECTION : Suppression de 'relative' ici car 'sticky' est présent */}
         <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40 border-b border-gray-50">
             <button onClick={() => { setView('list'); fetchAndGroupMessages(currentUser.id) }} className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition">
                 <ArrowLeft size={22} />
@@ -288,14 +319,30 @@ export default function MessagesPage() {
                 </div>
             </div>
             
-            <div className="flex gap-1">
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50"><Phone size={20} /></button>
-                <button className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50"><MoreVertical size={20} /></button>
+            {/* Menu options et appel */}
+            <div className="flex gap-1 relative">
+                <button onClick={handleCall} className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition">
+                    <Phone size={20} />
+                </button>
+                
+                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition">
+                    <MoreVertical size={20} />
+                </button>
+
+                {showMenu && (
+                    <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border border-gray-100 w-48 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                        <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
+                            <ExternalLink size={16} /> Voir l'annonce
+                        </Link>
+                        <button onClick={handleDeleteConversation} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition text-left">
+                            <Trash2 size={16} /> Supprimer
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
 
-        {/* Zone Messages */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-2">
                 
                 <div className="flex justify-center my-2">
@@ -304,36 +351,20 @@ export default function MessagesPage() {
 
                 {activeConv?.messages.map((msg, i) => {
                     const isMe = msg.sender_id === currentUser?.id
-                    
                     return (
                         <div key={msg.id || i} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-200`}>
                             
-                            {/* AVATAR DE L'AUTRE PERSONNE (à gauche) */}
                             {!isMe && (
                                 <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">
-                                    {msg.sender_avatar ? (
-                                        <Image src={msg.sender_avatar} alt="" fill className="object-cover" />
-                                    ) : (
-                                        <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={14} /></div>
-                                    )}
+                                    {msg.sender_avatar ? (<Image src={msg.sender_avatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><User size={14} /></div>)}
                                 </div>
                             )}
 
-                            {/* BULLE DE MESSAGE */}
-                            <div 
-                                className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${
-                                    isMe 
-                                    ? 'bg-brand text-white rounded-2xl' // Bulle expéditeur (Simple, moderne)
-                                    : 'bg-white text-gray-800 rounded-2xl' // Bulle destinataire
-                                }`}
-                            >
+                            <div className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${isMe ? 'bg-brand text-white rounded-2xl' : 'bg-white text-gray-800 rounded-2xl'}`}>
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                 <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
                                     <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                    {isMe && (
-                                        msg.pending ? <Loader2 size={10} className="animate-spin" /> : 
-                                        (msg.is_read ? <CheckCheck size={12} strokeWidth={2} /> : <Check size={12} strokeWidth={2} />)
-                                    )}
+                                    {isMe && (msg.pending ? <Loader2 size={10} className="animate-spin" /> : (msg.is_read ? <CheckCheck size={12} strokeWidth={2} /> : <Check size={12} strokeWidth={2} />))}
                                 </div>
                             </div>
                         </div>
@@ -343,7 +374,6 @@ export default function MessagesPage() {
             </div>
         </div>
 
-        {/* Input Zone */}
         <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
             <div className="flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50">
