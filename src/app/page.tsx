@@ -75,7 +75,6 @@ export default function MarketplaceHome() {
       setUserId(user?.id || null)
 
       // 2. Récupérer les produits (Annonces)
-      // On charge TOUT sans profiles pour éviter les bugs de liaison
       const { data: productsData, error } = await supabase
         .from('products')
         .select('*') 
@@ -101,7 +100,7 @@ export default function MarketplaceHome() {
   // --- LOGIQUE FAVORIS ---
   const toggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault()
-    e.stopPropagation() // Empêche le clic de traverser vers le lien (au cas où)
+    e.stopPropagation() 
     if (!userId) return alert("Connectez-vous pour ajouter aux favoris !")
     
     const newFavs = new Set(favorites)
@@ -146,8 +145,8 @@ export default function MarketplaceHome() {
   return (
     <main className="min-h-screen bg-gray-50 pb-24 font-sans relative">
       
-      {/* --- HEADER --- */}
-      <header className="bg-brand sticky top-0 z-50 shadow-md pb-4 pt-safe">
+      {/* --- HEADER (Z-INDEX 40) --- */}
+      <header className="bg-brand sticky top-0 z-40 shadow-md pb-4 pt-safe">
         <div className="max-w-md mx-auto px-4 pt-3">
           <div className="flex items-center justify-between mb-4">
             <h1 
@@ -185,8 +184,8 @@ export default function MarketplaceHome() {
         </div>
       </header>
 
-      {/* --- FILTRES ÎLES --- */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-28 z-40 shadow-sm">
+      {/* --- FILTRES ÎLES (Z-INDEX 30) --- */}
+      <div className="bg-white border-b border-gray-100 py-3 sticky top-28 z-30 shadow-sm">
          <div className="max-w-md mx-auto px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore'].map((ile) => (
               <button 
@@ -269,7 +268,7 @@ export default function MarketplaceHome() {
                     return (
                         <div key={product.id} className="relative bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition-shadow group">
                             
-                            {/* FAVORIS (BOUTON SÉPARÉ, PAS DANS LE LIEN) */}
+                            {/* FAVORIS (Z-INDEX 20) */}
                             <button 
                                 onClick={(e) => toggleFavorite(e, product.id)} 
                                 className="absolute top-2 right-2 z-20 bg-white/90 backdrop-blur-sm p-1.5 rounded-full shadow-sm hover:bg-white active:scale-90 transition"
@@ -277,7 +276,7 @@ export default function MarketplaceHome() {
                                 <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : "text-gray-400"} />
                             </button>
                             
-                            {/* IMAGE (LIEN 1) */}
+                            {/* IMAGE */}
                             <div className="relative w-full aspect-square bg-gray-100">
                                 <Link href={`/annonce/${product.id}`} className="block w-full h-full">
                                     {imageUrl ? (
@@ -290,7 +289,7 @@ export default function MarketplaceHome() {
                                     )}
                                 </Link>
 
-                                {/* ZOOM (BOUTON SÉPARÉ) */}
+                                {/* ZOOM (Z-INDEX 20) */}
                                 {imageUrl && (
                                     <button 
                                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullScreenImage(imageUrl); }} 
@@ -305,7 +304,7 @@ export default function MarketplaceHome() {
                                 </div>
                             </div>
 
-                            {/* INFOS (LIEN 2) */}
+                            {/* INFOS */}
                             <Link href={`/annonce/${product.id}`} className="p-3 flex flex-col flex-1">
                                 <h2 className="text-sm font-semibold text-gray-800 line-clamp-2 leading-snug mb-1 h-10">{product.title}</h2>
                                 <p className="text-brand font-extrabold text-sm mb-2">{formatPrice(product.price)}</p>
@@ -326,7 +325,7 @@ export default function MarketplaceHome() {
         )}
       </div>
 
-      {/* --- MODAL PLEIN ÉCRAN --- */}
+      {/* --- MODAL PLEIN ÉCRAN (Z-INDEX 50) --- */}
       {fullScreenImage && (
         <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
             <button onClick={() => setFullScreenImage(null)} className="absolute top-6 right-6 text-white bg-white/10 p-3 rounded-full hover:bg-white/20 transition z-20 backdrop-blur-md">
@@ -338,8 +337,8 @@ export default function MarketplaceHome() {
         </div>
       )}
 
-      {/* --- NAVIGATION BAS --- */}
-      <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      {/* --- NAVIGATION BAS (Z-INDEX 40) --- */}
+      <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
           <NavBtn icon={HomeIcon} label="Accueil" active onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} />
           <NavBtn icon={Search} label="Recherche" onClick={() => document.querySelector('input')?.focus()} />
