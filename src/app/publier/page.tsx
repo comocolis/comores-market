@@ -117,17 +117,18 @@ export default function PublierPage() {
     
     try {
       if (isForgotPassword) {
-        // CORRECTION IMPORTANTE : Utilisation de la route de callback
-        const origin = window.location.origin // ex: https://comores-market.com
+        const origin = window.location.origin
+        // C'EST ICI LA CLÉ : On passe le paramètre "?next=/compte/reset"
         const redirectUrl = `${origin}/auth/callback?next=/compte/reset`
 
         const { error } = await supabase.auth.resetPasswordForEmail(authData.email, {
             redirectTo: redirectUrl,
         })
+        
         if (error) throw error
-        toast.success("Email de réinitialisation envoyé ! Vérifiez vos spams.")
+        toast.success("Email envoyé ! Le lien vous mènera à la page de modification.")
         setIsForgotPassword(false)
-      } 
+      }
       else if (isLogin) {
         // Connexion
         const { error } = await supabase.auth.signInWithPassword({
