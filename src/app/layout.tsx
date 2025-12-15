@@ -2,7 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
-import BottomNav from '@/components/BottomNav'; // <--- 1. IMPORT DU COMPOSANT
+import BottomNav from '@/components/BottomNav';
+import { Suspense } from "react"; // <--- 1. IMPORT IMPORTANT
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,17 +44,18 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
-        {/* Conteneur Mobile Centré */}
         <div className="w-full max-w-125 min-h-screen bg-white shadow-2xl relative">
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu de la page */}
           <main className="min-h-screen">
             {children}
           </main>
 
-          {/* 2. BARRE DE NAVIGATION (S'affiche par-dessus le bas du contenu) */}
-          <BottomNav />
+          {/* 2. ENVELOPPER LA NAVIGATION DANS SUSPENSE */}
+          {/* Cela empêche l'erreur de build sur la page 404 statique */}
+          <Suspense fallback={null}>
+            <BottomNav />
+          </Suspense>
         </div>
       </body>
     </html>
