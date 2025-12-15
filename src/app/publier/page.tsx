@@ -8,7 +8,6 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { toast } from 'sonner'
 
-// --- STYLES & CONSTANTES ---
 const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
 const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
 
@@ -36,13 +35,11 @@ export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // États Utilisateur
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   
-  // États Auth
   const [isLogin, setIsLogin] = useState(true)
   const [showPassword, setShowPassword] = useState(false)
   const [authError, setAuthError] = useState<string | null>(null)
@@ -60,7 +57,6 @@ export default function PublierPage() {
     city: '' 
   })
   
-  // États Formulaire Annonce
   const [files, setFiles] = useState<File[]>([])
   const [previews, setPreviews] = useState<string[]>([])
   
@@ -75,7 +71,6 @@ export default function PublierPage() {
     phone: ''
   })
 
-  // 1. Mise à jour automatique de la sous-catégorie par défaut
   useEffect(() => {
     if (SUB_CATEGORIES[formData.category]) {
         setFormData(prev => ({ ...prev, subCategory: SUB_CATEGORIES[prev.category][0] }))
@@ -84,7 +79,6 @@ export default function PublierPage() {
     }
   }, [formData.category])
 
-  // 2. Vérification Session
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -92,7 +86,6 @@ export default function PublierPage() {
       if (user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
         setProfile(profile)
-        // Pré-remplissage
         if (profile) {
             setFormData(prev => ({
                 ...prev, 
@@ -109,7 +102,6 @@ export default function PublierPage() {
 
   const maxImages = profile?.is_pro ? 10 : 3
 
-  // --- LOGIQUE AUTHENTIFICATION ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -118,28 +110,24 @@ export default function PublierPage() {
     try {
       if (isForgotPassword) {
         const origin = window.location.origin
-        // C'EST ICI LA CLÉ : On passe le paramètre "?next=/compte/reset"
         const redirectUrl = `${origin}/auth/callback?next=/compte/reset`
 
         const { error } = await supabase.auth.resetPasswordForEmail(authData.email, {
             redirectTo: redirectUrl,
         })
-        
         if (error) throw error
         toast.success("Email envoyé ! Le lien vous mènera à la page de modification.")
         setIsForgotPassword(false)
-      }
+      } 
       else if (isLogin) {
-        // Connexion
         const { error } = await supabase.auth.signInWithPassword({
           email: authData.email,
           password: authData.password,
         })
         if (error) throw error
         toast.success("Connexion réussie !")
-        router.push('/compte') // Redirection vers Compte
+        router.push('/') // MODIFICATION 2 : Redirection vers Accueil
       } else {
-        // Inscription
         const cleanNumber = authData.phone.replace(/^0+/, '')
         const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
 
@@ -159,7 +147,7 @@ export default function PublierPage() {
 
         if (data.session) {
             toast.success("Compte créé avec succès ! Bienvenue.")
-            router.push('/compte') // Redirection directe
+            router.push('/') // MODIFICATION 2 : Redirection vers Accueil
         } else {
             toast.info("Compte créé ! Vérifiez votre email pour valider.")
             setIsLogin(true)
@@ -174,7 +162,10 @@ export default function PublierPage() {
     }
   }
 
-  // --- LOGIQUE ANNONCE ---
+  // ... (Le reste du code reste identique, gestion images etc)
+  // Pour éviter de copier trop de texte inutile, je reprends juste la fin de la fonction handleImageChange et la suite.
+  // Assurez-vous de garder tout le reste du fichier comme avant.
+  
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selectedFiles = Array.from(e.target.files)
@@ -193,7 +184,6 @@ export default function PublierPage() {
     setUploading(true)
 
     try {
-      // 1. Upload Images
       let imageUrls = []
       for (const file of files) {
         const fileExt = file.name.split('.').pop()
@@ -204,13 +194,10 @@ export default function PublierPage() {
         imageUrls.push(publicUrl)
       }
 
-      // 2. Récupérer Catégorie ID
       const { data: cat } = await supabase.from('categories').select('id').ilike('slug', formData.category.toLowerCase().replace(/ /g, '-')).single()
       
-      // 3. ASTUCE FILTRE : Ajouter la sous-catégorie dans la description
       const augmentedDescription = `${formData.description}\n\nType: ${formData.subCategory}`
 
-      // 4. Création Annonce
       const { error } = await supabase.from('products').insert({
         user_id: user.id,
         title: formData.title,
@@ -238,7 +225,6 @@ export default function PublierPage() {
 
   if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
-  // --- VUE LOGIN / SIGNUP ---
   if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
@@ -278,7 +264,10 @@ export default function PublierPage() {
                     <div>
                         <label className={labelStyle}>Île</label>
                         <select className={inputStyle} value={authData.island} onChange={e => setAuthData({...authData, island: e.target.value})}>
-                            <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option>
+                            <option>Ngazidja</option>
+                            <option>Ndzouani</option>
+                            <option>Mwali</option>
+                            <option>Maore</option>
                         </select>
                     </div>
                     <div>
@@ -292,7 +281,11 @@ export default function PublierPage() {
                     <div className="flex gap-2">
                         <div className="w-1/3 relative">
                             <select className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} value={phonePrefix} onChange={(e) => setPhonePrefix(e.target.value)}>
-                                {PHONE_PREFIXES.map(p => (<option key={p.label} value={p.code}>{p.flag} {p.code}</option>))}
+                                {PHONE_PREFIXES.map(p => (
+                                    <option key={p.label} value={p.code}>
+                                        {p.flag} {p.code}
+                                    </option>
+                                ))}
                             </select>
                             <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
                                 <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
@@ -353,7 +346,7 @@ export default function PublierPage() {
     )
   }
 
-  // --- VUE PUBLIER (Connecté) ---
+  // VUE PUBLIER (code identique...)
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">

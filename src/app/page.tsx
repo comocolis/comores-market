@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react'
 import { 
   MapPin, Search, Home as HomeIcon, MessageCircle, User, Plus, 
   Car, Home, Shirt, Smartphone, Armchair, Gamepad2, Loader2, X,
-  Utensils, Briefcase, Heart, UserCheck, Maximize2, Filter 
+  Utensils, Briefcase, Heart, UserCheck, Maximize2, Filter, LogIn
 } from 'lucide-react'
 
 const formatPrice = (amount: number) => new Intl.NumberFormat('fr-KM', { style: 'currency', currency: 'KMF', maximumFractionDigits: 0 }).format(amount)
@@ -19,7 +19,6 @@ const CATEGORIES = [
   { label: 'Alimentation', icon: Utensils, id: 7 }, { label: 'Services', icon: Briefcase, id: 8 }, { label: 'Beauté', icon: Heart, id: 9 }, { label: 'Emploi', icon: UserCheck, id: 10 },
 ]
 
-// LISTE DES SOUS-FILTRES (Nouveau)
 const SUB_CATEGORIES: { [key: string]: string[] } = {
   'Véhicules': ['Voitures', 'Motos', 'Pièces', 'Location', 'Camions'],
   'Immobilier': ['Vente', 'Location', 'Terrains', 'Bureaux', 'Colocation'],
@@ -44,7 +43,6 @@ export default function MarketplaceHome() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedIsland, setSelectedIsland] = useState('Tout')
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
-  // NOUVEAU : État pour le sous-filtre
   const [selectedSub, setSelectedSub] = useState<string | null>(null)
 
   const [fullScreenImage, setFullScreenImage] = useState<string | null>(null)
@@ -73,23 +71,14 @@ export default function MarketplaceHome() {
     setFavorites(newFavs)
   }
 
-  // LOGIQUE DE FILTRAGE AVANCÉE
   const displayProducts = products.filter(p => {
-    // 1. Recherche texte (Titre ou Description)
     const matchSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) || p.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    
-    // 2. Filtre Île
     const matchIsland = selectedIsland === 'Tout' || p.location_island === selectedIsland
-    
-    // 3. Filtre Catégorie Principale
     const matchCat = selectedCategory ? p.category_id === CATEGORIES.find(c => c.label === selectedCategory)?.id : true
     
-    // 4. Filtre Sous-Catégorie (Astuce : Recherche mot-clé dans le contenu)
-    // Si "Voitures" est sélectionné, on vérifie si le mot "voiture" est dans le titre/desc ou si c'est implicite
     let matchSub = true
     if (selectedSub) {
         const content = (p.title + " " + p.description).toLowerCase()
-        // On enlève le "s" final pour la recherche (ex: Voitures -> voiture) pour être plus large
         const keyword = selectedSub.toLowerCase().slice(0, -1) 
         matchSub = content.includes(keyword) || content.includes(selectedSub.toLowerCase())
     }
@@ -97,14 +86,13 @@ export default function MarketplaceHome() {
     return matchSearch && matchIsland && matchCat && matchSub
   })
 
-  // Réinitialiser la sous-catégorie quand on change de catégorie principale
   const handleCategoryChange = (catLabel: string | null) => {
     if (selectedCategory === catLabel) {
-        setSelectedCategory(null) // Désélectionner
+        setSelectedCategory(null)
     } else {
         setSelectedCategory(catLabel)
     }
-    setSelectedSub(null) // Reset sous-filtre
+    setSelectedSub(null)
   }
 
   return (
@@ -113,7 +101,18 @@ export default function MarketplaceHome() {
         <div className="max-w-md mx-auto px-4 pt-3">
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-2xl font-extrabold text-white tracking-tight cursor-pointer" onClick={() => {handleCategoryChange(null); setSelectedIsland('Tout'); setSearchTerm('')}}>Comores<span className="text-yellow-300">Market</span></h1>
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm"><span className="text-white font-bold text-xs">KM</span></div>
+            
+            {/* MODIFICATION 3 : Indicateur de connexion */}
+            {userId ? (
+                <Link href="/compte" className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm hover:bg-white/30 transition">
+                    <User className="text-white w-5 h-5" />
+                </Link>
+            ) : (
+                <Link href="/publier" className="flex items-center gap-1 bg-white/20 px-3 py-1.5 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold">
+                    <LogIn size={14} /> Connexion
+                </Link>
+            )}
+
           </div>
           <div className="relative group">
             <input type="text" placeholder="Rechercher..." className="w-full bg-white text-gray-800 rounded-xl py-3.5 pl-11 pr-4 shadow-sm outline-none font-medium" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
@@ -131,7 +130,7 @@ export default function MarketplaceHome() {
          </div>
       </div>
 
-      {/* CATÉGORIES PRINCIPALES */}
+      {/* CATÉGORIES */}
       <div className="max-w-md mx-auto px-4 py-4">
         <div className="flex justify-between gap-2 overflow-x-auto pb-2 scrollbar-hide">
             {CATEGORIES.map((cat) => (
@@ -142,25 +141,13 @@ export default function MarketplaceHome() {
             ))}
         </div>
 
-        {/* NOUVEAU : SOUS-CATÉGORIES (Apparaît si une catégorie est choisie) */}
         {selectedCategory && (
             <div className="mt-2 pt-3 border-t border-gray-100 animate-in slide-in-from-top-2 fade-in duration-200">
                 <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide items-center">
                     <span className="text-xs font-bold text-gray-400 uppercase mr-1 flex items-center gap-1"><Filter size={10} /> Filtres:</span>
-                    <button 
-                        onClick={() => setSelectedSub(null)} 
-                        className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${!selectedSub ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                    >
-                        Tout
-                    </button>
+                    <button onClick={() => setSelectedSub(null)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${!selectedSub ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>Tout</button>
                     {SUB_CATEGORIES[selectedCategory]?.map((sub) => (
-                        <button 
-                            key={sub} 
-                            onClick={() => setSelectedSub(selectedSub === sub ? null : sub)} 
-                            className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${selectedSub === sub ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
-                        >
-                            {sub}
-                        </button>
+                        <button key={sub} onClick={() => setSelectedSub(selectedSub === sub ? null : sub)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${selectedSub === sub ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}>{sub}</button>
                     ))}
                 </div>
             </div>
@@ -187,16 +174,7 @@ export default function MarketplaceHome() {
                         {imageUrl ? (
                             <>
                                 <Image src={imageUrl} alt={product.title} fill className="object-cover" sizes="50vw" />
-                                <button 
-                                    onClick={(e) => {
-                                        e.preventDefault(); 
-                                        e.stopPropagation();
-                                        setFullScreenImage(imageUrl);
-                                    }}
-                                    className="absolute bottom-2 left-2 z-20 bg-black/30 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/50"
-                                >
-                                    <Maximize2 size={14} />
-                                </button>
+                                <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setFullScreenImage(imageUrl); }} className="absolute bottom-2 left-2 z-20 bg-black/30 backdrop-blur-md p-1.5 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/50"><Maximize2 size={14} /></button>
                             </>
                         ) : (
                             <div className="flex items-center justify-center h-full text-gray-300 text-xs">Pas d'image</div>
@@ -219,9 +197,7 @@ export default function MarketplaceHome() {
 
       {fullScreenImage && (
         <div className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200" onClick={() => setFullScreenImage(null)}>
-            <button onClick={() => setFullScreenImage(null)} className="absolute top-6 right-6 text-white bg-white/10 p-3 rounded-full hover:bg-white/30 transition z-20">
-                <X size={24} />
-            </button>
+            <button onClick={() => setFullScreenImage(null)} className="absolute top-6 right-6 text-white bg-white/10 p-3 rounded-full hover:bg-white/30 transition z-20"><X size={24} /></button>
             <div className="relative w-full h-full max-h-[90vh] p-4">
                 <Image src={fullScreenImage} alt="Plein écran" fill className="object-contain" priority />
             </div>

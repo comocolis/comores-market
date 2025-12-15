@@ -16,15 +16,15 @@ export default function ComptePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // Mode Édition (Verrouillage)
-  const [isEditing, setIsEditing] = useState(false)
+  // Modes Édition (Verrouillage)
+  const [isEditingInfo, setIsEditingInfo] = useState(false)
+  const [isEditingPassword, setIsEditingPassword] = useState(false) // Nouveau verrou
   
   // États Changement Mot de Passe
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
   
-  // Formulaire
   const [formData, setFormData] = useState({
     full_name: '',
     city: '',
@@ -54,7 +54,8 @@ export default function ComptePage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    router.push('/publier')
+    toast.success("Déconnecté avec succès")
+    router.push('/') // MODIFICATION 2 : Redirection vers l'accueil
     router.refresh()
   }
 
@@ -72,22 +73,20 @@ export default function ComptePage() {
         toast.error("Erreur lors de la mise à jour")
     } else {
         toast.success("Profil mis à jour !")
-        setIsEditing(false) // On reverrouille après sauvegarde
-        // On met à jour l'affichage local
+        setIsEditingInfo(false)
         setProfile({ ...profile, ...formData })
     }
     setSaving(false)
   }
 
-  const cancelEdit = () => {
-    // On annule les changements en remettant les infos originales
+  const cancelEditInfo = () => {
     setFormData({
         full_name: profile.full_name || '',
         city: profile.city || '',
         island: profile.island || 'Ngazidja',
         phone_number: profile.phone_number || ''
     })
-    setIsEditing(false)
+    setIsEditingInfo(false)
   }
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -102,6 +101,7 @@ export default function ComptePage() {
     else {
         toast.success("Mot de passe modifié avec succès !")
         setNewPassword('')
+        setIsEditingPassword(false) // On reverrouille après succès
     }
     setPasswordLoading(false)
   }
@@ -127,7 +127,6 @@ export default function ComptePage() {
                 ) : (
                     profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
                 )}
-                {/* Icône photo visible uniquement si on pouvait upload l'avatar (option future) */}
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
                     <Camera size={20} className="text-white" />
                 </div>
@@ -150,13 +149,13 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
-        {/* BLOC INFORMATIONS (Verrouillé/Déverrouillé) */}
+        {/* BLOC INFORMATIONS */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><User size={18} /> Informations</h3>
-                {!isEditing && (
+                {!isEditingInfo && (
                     <button 
-                        onClick={() => setIsEditing(true)} 
+                        onClick={() => setIsEditingInfo(true)} 
                         className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1"
                     >
                         <PenSquare size={12} /> Modifier
@@ -165,21 +164,19 @@ export default function ComptePage() {
             </div>
             
             <div className="space-y-4">
-                {/* Nom Complet */}
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase ml-1">Nom complet</label>
-                    {isEditing ? (
+                    {isEditingInfo ? (
                         <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
                         <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50">{profile?.full_name}</p>
                     )}
                 </div>
 
-                {/* Localisation */}
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-xs font-bold text-gray-400 uppercase ml-1">Île</label>
-                        {isEditing ? (
+                        {isEditingInfo ? (
                             <select className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
                                 <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option>
                             </select>
@@ -189,7 +186,7 @@ export default function ComptePage() {
                     </div>
                     <div>
                         <label className="text-xs font-bold text-gray-400 uppercase ml-1">Ville</label>
-                        {isEditing ? (
+                        {isEditingInfo ? (
                             <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
                         ) : (
                             <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50">{profile?.city}</p>
@@ -197,10 +194,9 @@ export default function ComptePage() {
                     </div>
                 </div>
 
-                {/* Téléphone */}
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase ml-1">WhatsApp</label>
-                    {isEditing ? (
+                    {isEditingInfo ? (
                         <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
                     ) : (
                         <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50 tracking-wide">{profile?.phone_number || <span className="text-gray-400 italic">Non renseigné</span>}</p>
@@ -208,58 +204,71 @@ export default function ComptePage() {
                 </div>
             </div>
 
-            {/* Boutons d'action (visibles seulement en édition) */}
-            {isEditing && (
+            {isEditingInfo && (
                 <div className="flex gap-2 pt-2 animate-in fade-in slide-in-from-top-2">
-                    <button 
-                        onClick={cancelEdit} 
-                        className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2"
-                    >
-                        <X size={16} /> Annuler
-                    </button>
-                    <button 
-                        onClick={handleUpdateProfile} 
-                        disabled={saving}
-                        className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand/20"
-                    >
-                        {saving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Enregistrer</>}
-                    </button>
+                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2"><X size={16} /> Annuler</button>
+                    <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand/20">{saving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Enregistrer</>}</button>
                 </div>
             )}
         </div>
 
-        {/* BLOC SÉCURITÉ */}
+        {/* BLOC SÉCURITÉ (Maintenant verrouillé) */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <h3 className="font-bold text-gray-900 flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
+            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
+                <h3 className="font-bold text-gray-900 flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
+                {!isEditingPassword && (
+                    <button 
+                        onClick={() => setIsEditingPassword(true)} 
+                        className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1"
+                    >
+                        <PenSquare size={12} /> Modifier
+                    </button>
+                )}
+            </div>
             
-            <form onSubmit={handleUpdatePassword} className="space-y-3">
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1">Changer le mot de passe</label>
-                    <div className="relative">
-                        <input 
-                            type={showPassword ? "text" : "password"} 
-                            placeholder="Nouveau mot de passe"
-                            className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition pr-10 border border-gray-200"
-                            value={newPassword}
-                            onChange={e => setNewPassword(e.target.value)}
-                        />
-                        <button 
-                            type="button" 
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+            {!isEditingPassword ? (
+                <div className="p-3 text-gray-500 text-sm italic border-b border-gray-50">
+                    Mot de passe masqué ••••••••
+                </div>
+            ) : (
+                <form onSubmit={handleUpdatePassword} className="space-y-3 animate-in fade-in slide-in-from-top-2">
+                    <div>
+                        <label className="text-xs font-bold text-gray-400 uppercase ml-1">Nouveau mot de passe</label>
+                        <div className="relative">
+                            <input 
+                                type={showPassword ? "text" : "password"} 
+                                placeholder="Minimum 6 caractères"
+                                className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition pr-10 border border-gray-200"
+                                value={newPassword}
+                                onChange={e => setNewPassword(e.target.value)}
+                            />
+                            <button 
+                                type="button" 
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                            >
+                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex gap-2">
+                         <button 
+                            type="button"
+                            onClick={() => {setIsEditingPassword(false); setNewPassword('')}} 
+                            className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition"
                         >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            Annuler
+                        </button>
+                        <button 
+                            type="submit" 
+                            disabled={passwordLoading || !newPassword}
+                            className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition disabled:opacity-50"
+                        >
+                            {passwordLoading ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Confirmer"}
                         </button>
                     </div>
-                </div>
-                <button 
-                    type="submit" 
-                    disabled={passwordLoading || !newPassword}
-                    className="w-full bg-white border-2 border-brand text-brand font-bold py-3 rounded-xl text-sm hover:bg-brand hover:text-white transition disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-brand"
-                >
-                    {passwordLoading ? "Modification..." : "Mettre à jour le mot de passe"}
-                </button>
-            </form>
+                </form>
+            )}
         </div>
 
         {/* Accès Admin */}
