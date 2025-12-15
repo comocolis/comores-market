@@ -31,14 +31,41 @@ type Conversation = {
   counterpartId: string
   counterpartName: string
   counterpartAvatar: string | null
-  counterpartIsPro: boolean // Pour gérer l'icône téléphone
+  counterpartIsPro: boolean
   lastMessage: string
   lastDate: string
   unreadCount: number
   messages: Message[]
 }
 
-// Composant principal (Wrapper pour Suspense)
+// --- UTILITAIRES DE SÉCURITÉ ---
+
+// Convertit les mots en chiffres pour détecter "zéro six"
+const textToDigits = (text: string) => {
+    const map: { [key: string]: string } = {
+        'zero': '0', 'zéro': '0', 'un': '1', 'deux': '2', 'trois': '3', 
+        'quatre': '4', 'cinq': '5', 'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9'
+    }
+    return text.toLowerCase().split(/\s+/).map(word => map[word] || word).join('')
+}
+
+// Fonction de détection puissante
+const containsPhoneNumber = (text: string) => {
+    // 1. On nettoie tout ce qui n'est pas un chiffre ou un '+'
+    const cleanNumber = text.replace(/[^0-9+]/g, "");
+    
+    // 2. On cherche les séquences longues (Comores ou France/International)
+    // Ex: +2693334455, 0611223344, 3311223344
+    const patterns = [
+        /(?:\+|00)269\d{7}/, // Format Comores international
+        /^3[234]\d{5,}/,     // Format Comores local court (32, 33, 34...)
+        /0[67]\d{8}/,        // Format France mobile
+        /^\d{9,15}$/         // Toute suite de plus de 9 chiffres
+    ];
+
+    return patterns.some(regex => regex.test(cleanNumber));
+}
+
 export default function MessagesPage() {
   return (
     <Suspense fallback={<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" /></div>}>
@@ -50,7 +77,7 @@ export default function MessagesPage() {
 function MessagesContent() {
   const supabase = createClient()
   const router = useRouter()
-  const searchParams = useSearchParams() // Pour lire l'URL
+  const searchParams = useSearchParams()
   
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
@@ -64,9 +91,9 @@ function MessagesContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const activeConvRef = useRef<Conversation | null>(null) // Référence pour le temps réel
+  const activeConvIdRef = useRef<string | null>(null)
+  const activeConvRef = useRef<Conversation | null>(null)
 
-  // Synchroniser la ref avec le state
   useEffect(() => {
     activeConvRef.current = activeConv
   }, [activeConv])
@@ -115,7 +142,7 @@ function MessagesContent() {
                 counterpartId: otherId,
                 counterpartName: otherProfile?.full_name || 'Utilisateur',
                 counterpartAvatar: otherProfile?.avatar_url,
-                counterpartIsPro: otherProfile?.is_pro || false, // Vérification PRO
+                counterpartIsPro: otherProfile?.is_pro || false,
                 lastMessage: '',
                 lastDate: '',
                 unreadCount: 0,
@@ -144,8 +171,6 @@ function MessagesContent() {
     setConversations(sortedConvs)
     setLoading(false)
     
-    // LOGIQUE DE PERSISTANCE (REFRESH)
-    // On regarde si une ID est dans l'URL ou si on a déjà une conv active
     const urlConvId = searchParams.get('id')
     const currentActiveId = activeConvRef.current?.id || urlConvId
 
@@ -154,7 +179,6 @@ function MessagesContent() {
         if (found) {
             setActiveConv(found)
             setView('chat')
-            // Petit délai pour scroller en bas au chargement
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100)
         }
     }
@@ -184,16 +208,11 @@ function MessagesContent() {
       setCurrentUser(user)
       await fetchAndGroupMessages(user.id)
 
-      // --- ABONNEMENT TEMPS RÉEL (FLUIDITÉ) ---
       const channel = supabase.channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
             const newMsg = payload.new as any
-            
-            // Si le message me concerne
             if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
-                
-                // 1. MISE À JOUR INSTANTANÉE SI CONV OUVERTE
                 const currentConv = activeConvRef.current
                 if (currentConv) {
                     const isRelevant = 
@@ -201,7 +220,6 @@ function MessagesContent() {
                         (newMsg.sender_id === currentConv.counterpartId || newMsg.receiver_id === currentConv.counterpartId)
 
                     if (isRelevant) {
-                        // On injecte directement le message reçu pour l'affichage immédiat
                         const msgToAdd: Message = {
                             ...newMsg,
                             sender_avatar: newMsg.sender_id === user.id ? null : currentConv.counterpartAvatar
@@ -209,9 +227,7 @@ function MessagesContent() {
                         
                         setActiveConv(prev => {
                             if (!prev) return null
-                            // Évite les doublons si l'UI optimiste a déjà ajouté le message
                             if (prev.messages.some(m => m.id === newMsg.id)) return prev
-                            
                             return {
                                 ...prev,
                                 messages: [...prev.messages, msgToAdd],
@@ -219,12 +235,9 @@ function MessagesContent() {
                                 lastDate: newMsg.created_at
                             }
                         })
-                        // Scroll auto
                         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
                     }
                 }
-
-                // 2. RECHARGEMENT GLOBAL (Pour mettre à jour la liste et les compteurs)
                 fetchAndGroupMessages(user.id)
             }
         })
@@ -233,7 +246,7 @@ function MessagesContent() {
       return () => { supabase.removeChannel(channel) }
     }
     init()
-  }, [router, supabase, searchParams]) // Ajout de searchParams aux dépendances
+  }, [router, supabase, searchParams])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -241,17 +254,17 @@ function MessagesContent() {
 
   const openConversation = (conv: Conversation) => {
     setActiveConv(conv)
+    activeConvIdRef.current = conv.id
     setView('chat')
     setShowMenu(false)
     markAsRead(conv)
-    // Mise à jour de l'URL sans recharger
     window.history.pushState(null, '', `?id=${conv.id}`)
   }
 
   const closeConversation = () => {
     setView('list')
     setActiveConv(null)
-    // Nettoyage de l'URL
+    activeConvIdRef.current = null
     window.history.pushState(null, '', `/messages`)
     if (currentUser) fetchAndGroupMessages(currentUser.id)
   }
@@ -263,7 +276,6 @@ function MessagesContent() {
         toast.error("Aucun numéro disponible.")
         return
     }
-    // Appel normal (tel:) au lieu de WhatsApp
     const cleanNumber = activeConv.productPhone.replace(/\D/g, '')
     window.open(`tel:${cleanNumber}`, '_self')
   }
@@ -281,15 +293,40 @@ function MessagesContent() {
         toast.error("Erreur suppression")
     } else {
         toast.success("Supprimée")
-        const updatedList = conversations.filter(c => c.id !== activeConv.id)
-        setConversations(updatedList)
         closeConversation()
     }
   }
 
+  // --- ENVOI SÉCURISÉ ---
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     
+    // 🛡️ SÉCURITÉ RENFORCÉE 🛡️
+    
+    // 1. Analyse Sémantique (Zéro six...)
+    // On convertit "zéro six" en "06" pour le test
+    const contentToCheck = textToDigits(replyContent);
+
+    // 2. Analyse Contextuelle (Historique)
+    // On récupère les 3 derniers messages envoyés par MOI pour voir si je découpe le numéro
+    const myLastMessages = activeConv.messages
+        .filter(m => m.sender_id === currentUser.id)
+        .slice(-3)
+        .map(m => m.content)
+        .join(" "); // On colle tout : "Mon tel est" + "06" + "11"
+    
+    // On combine l'historique + le message actuel normalisé
+    const fullContext = textToDigits(myLastMessages + " " + replyContent);
+
+    // 3. Vérification Finale
+    if (containsPhoneNumber(fullContext)) {
+        toast.error("⚠️ Sécurité : L'échange de coordonnées est bloqué. Veuillez utiliser les outils de la plateforme.", {
+            duration: 4000,
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
+        });
+        return; // STOP
+    }
+
     const tempId = Date.now().toString()
     const content = replyContent
     setReplyContent('') 
@@ -304,7 +341,6 @@ function MessagesContent() {
         pending: true
     }
 
-    // Mise à jour immédiate
     setActiveConv(prev => {
         if(!prev) return null
         return {
@@ -324,10 +360,7 @@ function MessagesContent() {
         product_id: activeConv.productId
     })
 
-    if (error) {
-        toast.error("Échec envoi")
-        // On pourrait retirer le message ici en cas d'erreur
-    }
+    if (error) toast.error("Échec envoi")
   }
 
   // --- VUE LISTE ---
@@ -371,7 +404,7 @@ function MessagesContent() {
                     ))
                 )}
             </div>
-            <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"><div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2"><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link><div className="flex justify-center relative -top-6"><Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white"><Plus strokeWidth={3} size={28} /></Link></div><Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link><Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link></div></nav>
+            <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"><div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2"><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Home size={24} /><span className="text-[9px] font-bold">Accueil</span></Link><Link href="/" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><Search size={24} /><span className="text-[9px] font-bold">Recherche</span></Link><div className="flex justify-center relative -top-6"><Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white"><Plus strokeWidth={3} size={28} /></Link></div><Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full text-brand"><MessageCircle size={24} /><span className="text-[9px] font-bold">Messages</span></Link><Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full text-gray-400 hover:text-brand"><User size={24} /><span className="text-[9px] font-bold">Compte</span></Link></div></nav>
         </div>
     )
   }
@@ -380,7 +413,7 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-screen bg-[#F7F8FA] font-sans">
         
-        {/* HEADER VERT */}
+        {/* HEADER VERT (BRAND) */}
         <div className="bg-brand px-4 pb-3 pt-12 shadow-md flex items-center gap-3 sticky top-0 z-40 text-white">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition">
                 <ArrowLeft size={22} />
@@ -401,7 +434,6 @@ function MessagesContent() {
             </div>
             
             <div className="flex gap-1 relative">
-                {/* Icône Téléphone : Visible seulement si l'autre est PRO */}
                 {activeConv?.counterpartIsPro && (
                     <button onClick={handleCall} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition" title="Appeler">
                         <Phone size={20} />
@@ -412,7 +444,6 @@ function MessagesContent() {
                     <MoreVertical size={20} />
                 </button>
 
-                {/* MENU DÉROULANT */}
                 {showMenu && (
                     <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border border-gray-100 w-48 py-2 z-50 animate-in fade-in slide-in-from-top-2">
                         <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
