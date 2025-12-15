@@ -38,9 +38,7 @@ type Conversation = {
   messages: Message[]
 }
 
-// --- UTILITAIRES DE SÉCURITÉ ---
-
-// Convertit les mots en chiffres pour détecter "zéro six"
+// Fonction utilitaire de sécurité
 const textToDigits = (text: string) => {
     const map: { [key: string]: string } = {
         'zero': '0', 'zéro': '0', 'un': '1', 'deux': '2', 'trois': '3', 
@@ -49,20 +47,14 @@ const textToDigits = (text: string) => {
     return text.toLowerCase().split(/\s+/).map(word => map[word] || word).join('')
 }
 
-// Fonction de détection puissante
 const containsPhoneNumber = (text: string) => {
-    // 1. On nettoie tout ce qui n'est pas un chiffre ou un '+'
     const cleanNumber = text.replace(/[^0-9+]/g, "");
-    
-    // 2. On cherche les séquences longues (Comores ou France/International)
-    // Ex: +2693334455, 0611223344, 3311223344
     const patterns = [
-        /(?:\+|00)269\d{7}/, // Format Comores international
-        /^3[234]\d{5,}/,     // Format Comores local court (32, 33, 34...)
-        /0[67]\d{8}/,        // Format France mobile
-        /^\d{9,15}$/         // Toute suite de plus de 9 chiffres
+        /(?:\+|00)269\d{7}/, 
+        /^3[234]\d{5,}/,     
+        /0[67]\d{8}/,        
+        /^\d{9,15}$/         
     ];
-
     return patterns.some(regex => regex.test(cleanNumber));
 }
 
@@ -91,7 +83,6 @@ function MessagesContent() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const activeConvIdRef = useRef<string | null>(null)
   const activeConvRef = useRef<Conversation | null>(null)
 
   useEffect(() => {
@@ -171,16 +162,19 @@ function MessagesContent() {
     setConversations(sortedConvs)
     setLoading(false)
     
+    // PERSISTANCE : On vérifie l'URL
     const urlConvId = searchParams.get('id')
-    const currentActiveId = activeConvRef.current?.id || urlConvId
-
-    if (currentActiveId) {
-        const found = sortedConvs.find(c => c.id === currentActiveId)
+    // Si on a une ID dans l'URL, on ouvre le chat
+    if (urlConvId) {
+        const found = sortedConvs.find(c => c.id === urlConvId)
         if (found) {
             setActiveConv(found)
             setView('chat')
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100)
         }
+    } else {
+        // Sinon on s'assure d'être en mode liste
+        setView('list')
     }
   }
 
@@ -213,6 +207,7 @@ function MessagesContent() {
         (payload) => {
             const newMsg = payload.new as any
             if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
+                
                 const currentConv = activeConvRef.current
                 if (currentConv) {
                     const isRelevant = 
@@ -254,7 +249,6 @@ function MessagesContent() {
 
   const openConversation = (conv: Conversation) => {
     setActiveConv(conv)
-    activeConvIdRef.current = conv.id
     setView('chat')
     setShowMenu(false)
     markAsRead(conv)
@@ -264,7 +258,6 @@ function MessagesContent() {
   const closeConversation = () => {
     setView('list')
     setActiveConv(null)
-    activeConvIdRef.current = null
     window.history.pushState(null, '', `/messages`)
     if (currentUser) fetchAndGroupMessages(currentUser.id)
   }
@@ -297,34 +290,21 @@ function MessagesContent() {
     }
   }
 
-  // --- ENVOI SÉCURISÉ ---
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     
-    // 🛡️ SÉCURITÉ RENFORCÉE 🛡️
-    
-    // 1. Analyse Sémantique (Zéro six...)
-    // On convertit "zéro six" en "06" pour le test
+    // 🛡️ SÉCURITÉ ANTI-NUMÉRO
     const contentToCheck = textToDigits(replyContent);
-
-    // 2. Analyse Contextuelle (Historique)
-    // On récupère les 3 derniers messages envoyés par MOI pour voir si je découpe le numéro
     const myLastMessages = activeConv.messages
         .filter(m => m.sender_id === currentUser.id)
         .slice(-3)
         .map(m => m.content)
-        .join(" "); // On colle tout : "Mon tel est" + "06" + "11"
-    
-    // On combine l'historique + le message actuel normalisé
+        .join(" ");
     const fullContext = textToDigits(myLastMessages + " " + replyContent);
 
-    // 3. Vérification Finale
     if (containsPhoneNumber(fullContext)) {
-        toast.error("⚠️ Sécurité : L'échange de coordonnées est bloqué. Veuillez utiliser les outils de la plateforme.", {
-            duration: 4000,
-            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
-        });
-        return; // STOP
+        toast.error("Interdit : L'échange de coordonnées est bloqué par sécurité.")
+        return;
     }
 
     const tempId = Date.now().toString()
@@ -366,6 +346,7 @@ function MessagesContent() {
   // --- VUE LISTE ---
   if (view === 'list') {
     return (
+        // Padding bottom pour la BottomNav (pb-24)
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
             <div className="bg-brand pt-12 px-6 pb-4 sticky top-0 z-30 shadow-md">
                 <h1 className="text-white font-extrabold text-2xl tracking-tight">Discussions</h1>
@@ -404,19 +385,18 @@ function MessagesContent() {
                     ))
                 )}
             </div>
-            
-
-            
+            {/* Pas de <nav> ici, c'est le layout qui gère ! */}
         </div>
     )
   }
 
   // --- VUE CHAT ---
   return (
-    <div className="flex flex-col h-screen bg-[#F7F8FA] font-sans">
+    // Hauteur fixée pour mobile (h-[100dvh]) et pas de padding bottom car BottomNav est caché
+    <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
         {/* HEADER VERT (BRAND) */}
-        <div className="bg-brand px-4 pb-3 pt-12 shadow-md flex items-center gap-3 sticky top-0 z-40 text-white">
+        <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 sticky top-0 z-40 text-white min-h-20">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition">
                 <ArrowLeft size={22} />
             </button>
@@ -461,7 +441,7 @@ function MessagesContent() {
 
         {/* Zone Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
-            <div className="flex flex-col justify-end min-h-full gap-2">
+            <div className="flex flex-col justify-end min-h-full gap-2 pb-20"> {/* pb-20 pour que le dernier message ne soit pas caché par l'input */}
                 <div className="flex justify-center my-2">
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span>
                 </div>
@@ -490,8 +470,8 @@ function MessagesContent() {
         </div>
 
         {/* Input Zone */}
-        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
-            <div className="flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
+        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50">
+            <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50"><Plus size={20} /></button>
                 <textarea 
                     ref={inputRef}

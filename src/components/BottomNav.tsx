@@ -2,17 +2,21 @@
 
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Home, Search, MessageCircle, User, Plus } from 'lucide-react'
 
 export default function BottomNav() {
   const supabase = createClient()
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // 1. Charger l'utilisateur et le compteur initial
+  // DÉTECTION INTELLIGENTE : Est-on dans une conversation active ?
+  // Si on est sur /messages ET qu'il y a un ?id=... dans l'URL, c'est qu'on chatte.
+  const isChatOpen = pathname === '/messages' && searchParams.get('id');
+
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -24,7 +28,6 @@ export default function BottomNav() {
     init()
   }, [])
 
-  // 2. Fonction pour compter les messages non lus
   const updateUnreadCount = async (uid: string) => {
     const { count } = await supabase
       .from('messages')
@@ -35,37 +38,25 @@ export default function BottomNav() {
     setUnreadCount(count || 0)
   }
 
-  // 3. Temps Réel : Mettre à jour le badge si un nouveau message arrive
   useEffect(() => {
     if (!userId) return
-
     const channel = supabase.channel('nav-badge')
-      .on(
-        'postgres_changes',
-        { 
-          event: '*', 
-          schema: 'public', 
-          table: 'messages',
-          filter: `receiver_id=eq.${userId}` 
-        },
-        () => {
-          // Si on reçoit un message ou qu'on en lit un, on recompte
-          updateUnreadCount(userId)
-        }
-      )
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, 
+      () => updateUnreadCount(userId))
       .subscribe()
-
     return () => { supabase.removeChannel(channel) }
   }, [userId])
 
-  // Masquer la nav sur la page de connexion si nécessaire (optionnel)
-  // if (pathname === '/publier' && !userId) return null 
+  // 🚀 SI LE CHAT EST OUVERT, ON CACHE LA BARRE DE NAVIGATION
+  if (isChatOpen) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
-        <NavBtn href="/" icon={Search} label="Recherche" active={pathname === '/recherche'} />
+        
+        {/* LIEN CORRECT VERS LA PAGE RECHERCHE */}
+        <NavBtn href="/recherche" icon={Search} label="Recherche" active={pathname === '/recherche'} />
         
         <div className="flex justify-center relative -top-6">
           <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
@@ -73,7 +64,6 @@ export default function BottomNav() {
           </Link>
         </div>
 
-        {/* Bouton Messages avec Badge */}
         <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
