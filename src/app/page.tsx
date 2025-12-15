@@ -74,10 +74,10 @@ export default function MarketplaceHome() {
       const { data: { user } } = await supabase.auth.getUser()
       setUserId(user?.id || null)
 
-      // 2. TEST : On enlève la relation profiles pour voir si les annonces reviennent
+      // 2. Récupérer les produits (Annonces)
       const { data: productsData, error } = await supabase
         .from('products')
-        .select('*') // On charge juste les produits bruts
+        .select('*, profiles(*)')
         .eq('status', 'active') 
         .order('created_at', { ascending: false })
 
