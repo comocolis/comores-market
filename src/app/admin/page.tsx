@@ -3,6 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+// CORRECTION ICI : Ajout de 'User' dans la liste
 import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -12,8 +13,8 @@ export default function AdminPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // --- CONFIGURATION ---
-  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com" 
+  // ✅ VOTRE EMAIL ADMIN
+  const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products'>('dashboard')
@@ -27,10 +28,10 @@ export default function AdminPage() {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
-      // Sécurité simple : Si ce n'est pas votre email, on éjecte
+      // Sécurité : Vérification de l'email
       if (!user || user.email !== ADMIN_EMAIL) {
         toast.error("Accès réservé à l'administrateur.")
-        router.push('/')
+        router.push('/compte') 
         return
       }
 
@@ -55,7 +56,7 @@ export default function AdminPage() {
     }
   }
 
-  // --- ACTIONS SIMPLES ---
+  // --- ACTIONS ---
 
   const toggleProStatus = async (userId: string, currentStatus: boolean) => {
     const { error } = await supabase.from('profiles').update({ is_pro: !currentStatus }).eq('id', userId)
@@ -88,7 +89,7 @@ export default function AdminPage() {
                 <h1 className="text-2xl font-bold flex items-center gap-2">
                     <ShieldCheck className="text-brand" /> Admin
                 </h1>
-                <p className="text-gray-400 text-xs mt-1">Version Simple</p>
+                <p className="text-gray-400 text-xs mt-1">Gestion {ADMIN_EMAIL}</p>
             </div>
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition">
                 <LogOut size={20} />
@@ -167,7 +168,7 @@ export default function AdminPage() {
                     return (
                         <div key={p.id} className="bg-white p-3 rounded-xl shadow-sm border border-gray-100 flex gap-3">
                             <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative overflow-hidden">
-                                {img && <Image src={img} alt="" fill className="object-cover" />}
+                                {img && <Image src={img} alt="" fill className="object-cover" /> }
                             </div>
                             <div className="flex-1 min-w-0">
                                 <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
