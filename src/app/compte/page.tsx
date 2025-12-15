@@ -12,8 +12,8 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // VOTRE EMAIL ADMIN (Le bouton ne s'affichera que pour ce compte)
-  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com"
+  // VOTRE EMAIL ADMIN (C'est la seule sécurité ici)
+  const ADMIN_EMAIL = "abdesisco1@ggmail.com"
 
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -150,7 +150,7 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
-        {/* BOUTON ADMIN (Visible uniquement pour vous) */}
+        {/* BOUTON ADMIN (Condition simple sur l'email) */}
         {profile?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
                 <div className="flex items-center gap-3">
