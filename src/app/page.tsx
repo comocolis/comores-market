@@ -339,25 +339,9 @@ export default function MarketplaceHome() {
       )}
 
       {/* --- NAVIGATION BAS --- */}
-      <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-40 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-        <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
-          <NavBtn icon={HomeIcon} label="Accueil" active onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})} />
-          <NavBtn icon={Search} label="Recherche" onClick={() => document.querySelector('input')?.focus()} />
-          <div className="flex justify-center relative -top-6">
-            <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 hover:scale-105 transition-transform active:scale-95 border-4 border-white">
-                <Plus strokeWidth={3} size={28} />
-            </Link>
-          </div>
-          <Link href="/messages" className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-400 hover:text-gray-600 transition">
-            <MessageCircle size={24} strokeWidth={2} />
-            <span className="text-[9px] font-bold">Messages</span>
-          </Link>
-          <Link href="/compte" className="flex flex-col items-center justify-center gap-1 h-full w-full text-gray-400 hover:text-gray-600 transition">
-            <User size={24} strokeWidth={2} />
-            <span className="text-[9px] font-bold">Compte</span>
-          </Link>
-        </div>
-      </nav>
+     
+
+     
     </main>
   )
 }
