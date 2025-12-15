@@ -5,22 +5,23 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Home, Search, MessageCircle, User, LogOut, Settings, Camera, Save, Lock, Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, Plus } from 'lucide-react'
+import { Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
+  // VOTRE EMAIL ADMIN (Le bouton ne s'affichera que pour ce compte)
+  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com"
+
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // Modes Édition (Verrouillage)
   const [isEditingInfo, setIsEditingInfo] = useState(false)
-  const [isEditingPassword, setIsEditingPassword] = useState(false) // Nouveau verrou
+  const [isEditingPassword, setIsEditingPassword] = useState(false)
   
-  // États Changement Mot de Passe
   const [newPassword, setNewPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [passwordLoading, setPasswordLoading] = useState(false)
@@ -55,7 +56,7 @@ export default function ComptePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     toast.success("Déconnecté avec succès")
-    router.push('/') // MODIFICATION 2 : Redirection vers l'accueil
+    router.push('/')
     router.refresh()
   }
 
@@ -101,7 +102,7 @@ export default function ComptePage() {
     else {
         toast.success("Mot de passe modifié avec succès !")
         setNewPassword('')
-        setIsEditingPassword(false) // On reverrouille après succès
+        setIsEditingPassword(false)
     }
     setPasswordLoading(false)
   }
@@ -149,6 +150,24 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
+        {/* BOUTON ADMIN (Visible uniquement pour vous) */}
+        {profile?.email === ADMIN_EMAIL && (
+             <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
+                <div className="flex items-center gap-3">
+                    <div className="bg-white/10 p-2 rounded-lg">
+                        <LayoutDashboard size={24} className="text-brand" />
+                    </div>
+                    <div>
+                        <p className="font-bold text-lg leading-none">Administration</p>
+                        <p className="text-xs text-gray-400 mt-1">Gérer les utilisateurs et annonces</p>
+                    </div>
+                </div>
+                <div className="bg-white/10 p-2 rounded-full">
+                    <ArrowRightIcon />
+                </div>
+             </Link>
+        )}
+
         {/* BLOC INFORMATIONS */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
@@ -212,7 +231,7 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* BLOC SÉCURITÉ (Maintenant verrouillé) */}
+        {/* BLOC SÉCURITÉ */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
@@ -271,13 +290,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* Accès Admin */}
-        {profile?.email === "votre-email-admin@gmail.com" && (
-             <Link href="/admin" className="block bg-gray-800 text-white p-4 rounded-xl text-center font-bold shadow-lg transform active:scale-95 transition">
-                Accéder au Back-Office Admin
-             </Link>
-        )}
-
         <div className="pt-4 pb-8 text-center">
             <Link href="/cgu" className="text-xs text-gray-400 hover:text-gray-600 underline">Mentions légales & CGU</Link>
         </div>
@@ -297,4 +309,10 @@ export default function ComptePage() {
       </nav>
     </div>
   )
+}
+
+function ArrowRightIcon() {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+    )
 }
