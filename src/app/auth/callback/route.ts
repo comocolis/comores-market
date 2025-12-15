@@ -1,26 +1,47 @@
-import { createClient } from '@/utils/supabase/server'
-import { NextResponse } from 'next/server'
+import { type EmailOtpType } from '@supabase/supabase-js'
+import { type NextRequest, NextResponse } from 'next/server'
+import { createServerClient } from '@supabase/ssr'
 
-export async function GET(request: Request) {
-  // On analyse l'URL reçue (ex: comores-market.com/auth/callback?code=123&next=/compte/reset)
-  const { searchParams, origin } = new URL(request.url)
-  
-  const code = searchParams.get('code')
-  // On regarde s'il y a une destination précise (next), sinon on va à l'accueil
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
   const next = searchParams.get('next') ?? '/'
 
-  if (code) {
-    const supabase = await createClient()
-    
-    // On échange le code temporaire contre une vraie session connectée
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    
+  if (token_hash && type) {
+    const cookieStore = request.cookies
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value)
+            })
+          },
+        },
+      }
+    )
+
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash,
+    })
+
     if (!error) {
-      // ✅ SUCCÈS : On redirige vers la page de reset (/compte/reset)
-      return NextResponse.redirect(`${origin}${next}`)
+      // Si tout est bon, on redirige l'utilisateur vers la page prévue (ex: /compte/reset)
+      // On nettoie l'URL en supprimant le token pour la sécurité
+      const nextUrl = new URL(next, request.url)
+      nextUrl.searchParams.delete('token_hash')
+      nextUrl.searchParams.delete('type')
+      return NextResponse.redirect(nextUrl)
     }
   }
 
-  // Si le code est faux ou expiré, on renvoie à l'accueil avec une erreur
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+  // Si erreur ou lien invalide, on renvoie vers une page d'erreur (ou l'accueil)
+  return NextResponse.redirect(new URL('/auth/auth-code-error', request.url))
 }
