@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, ChangeEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+// CORRECTION : Ajout de 'Plus' dans la liste des imports
 import { 
   Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, 
-  Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Plus 
+  Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Pencil, Plus 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -15,7 +16,7 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // ✅ EMAIL ADMIN MIS À JOUR
+  // ✅ VOTRE EMAIL ADMIN
   const ADMIN_EMAIL = "abdesisco1@gmail.com"
 
   const [user, setUser] = useState<any>(null)
@@ -74,7 +75,10 @@ export default function ComptePage() {
 
   // --- GESTION AVATAR ---
   const handleAvatarClick = () => {
-    if (!isEditingInfo) return;
+    if (!isEditingInfo) {
+        toast.info("Cliquez sur le bouton 'Modifier' pour changer votre photo.")
+        return
+    }
     fileInputRef.current?.click()
   }
 
@@ -159,7 +163,6 @@ export default function ComptePage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* HEADER PROFIL */}
-      {/* CORRECTION : rounded-b-4xl au lieu de [2rem] */}
       <div className="bg-white p-6 pb-8 rounded-b-4xl shadow-sm relative z-10">
         <div className="flex justify-between items-start mb-6">
             <h1 className="text-2xl font-bold text-gray-900">Mon Compte</h1>
@@ -169,25 +172,29 @@ export default function ComptePage() {
         </div>
 
         <div className="flex items-center gap-4">
-            {/* AVATAR */}
-            <div 
-                onClick={handleAvatarClick}
-                className={`w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold relative overflow-hidden border-2 border-white shadow-md group ${isEditingInfo ? 'cursor-pointer hover:opacity-90' : ''}`}
-            >
-                {avatarUploading ? (
-                    <Loader2 className="animate-spin" />
-                ) : profile?.avatar_url ? (
-                    <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" />
-                ) : (
-                    profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
-                )}
-                
-                {isEditingInfo && (
-                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center animate-in fade-in">
-                        <Camera size={24} className="text-white" />
-                    </div>
-                )}
-                
+            
+            {/* --- AVATAR AVEC CRAYON --- */}
+            <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
+                <div className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold overflow-hidden border-2 border-white shadow-md relative">
+                    {avatarUploading ? (
+                        <Loader2 className="animate-spin" />
+                    ) : profile?.avatar_url ? (
+                        <Image src={profile.avatar_url} alt="Avatar" fill className="object-cover" />
+                    ) : (
+                        profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
+                    )}
+                    
+                    {isEditingInfo && (
+                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center animate-in fade-in">
+                            <Camera size={24} className="text-white opacity-80" />
+                        </div>
+                    )}
+                </div>
+
+                <div className={`absolute bottom-0 right-0 p-1.5 rounded-full border-2 border-white shadow-sm transition-colors ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
+                    <Pencil size={12} fill={isEditingInfo ? "white" : "none"} />
+                </div>
+
                 <input 
                     type="file" 
                     accept="image/*" 
