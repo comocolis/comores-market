@@ -71,6 +71,7 @@ export default function PublierPage() {
     phone: ''
   })
 
+  // Mise à jour de la sous-catégorie par défaut
   useEffect(() => {
     if (SUB_CATEGORIES[formData.category]) {
         setFormData(prev => ({ ...prev, subCategory: SUB_CATEGORIES[prev.category][0] }))
@@ -102,6 +103,7 @@ export default function PublierPage() {
 
   const maxImages = profile?.is_pro ? 10 : 3
 
+  // --- FONCTION HANDLE AUTH INSÉRÉE ICI ---
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthLoading(true)
@@ -110,6 +112,7 @@ export default function PublierPage() {
     try {
       if (isForgotPassword) {
         const origin = window.location.origin
+        // Utilisation de la route de callback pour gérer la session et la redirection
         const redirectUrl = `${origin}/auth/callback?next=/compte/reset`
 
         const { error } = await supabase.auth.resetPasswordForEmail(authData.email, {
@@ -126,8 +129,9 @@ export default function PublierPage() {
         })
         if (error) throw error
         toast.success("Connexion réussie !")
-        router.push('/') // MODIFICATION 2 : Redirection vers Accueil
+        router.push('/') // Redirection vers Accueil
       } else {
+        // Nettoyage du numéro de téléphone
         const cleanNumber = authData.phone.replace(/^0+/, '')
         const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
 
@@ -147,7 +151,7 @@ export default function PublierPage() {
 
         if (data.session) {
             toast.success("Compte créé avec succès ! Bienvenue.")
-            router.push('/') // MODIFICATION 2 : Redirection vers Accueil
+            router.push('/') // Redirection vers Accueil
         } else {
             toast.info("Compte créé ! Vérifiez votre email pour valider.")
             setIsLogin(true)
@@ -162,10 +166,6 @@ export default function PublierPage() {
     }
   }
 
-  // ... (Le reste du code reste identique, gestion images etc)
-  // Pour éviter de copier trop de texte inutile, je reprends juste la fin de la fonction handleImageChange et la suite.
-  // Assurez-vous de garder tout le reste du fichier comme avant.
-  
   const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const selectedFiles = Array.from(e.target.files)
@@ -196,6 +196,7 @@ export default function PublierPage() {
 
       const { data: cat } = await supabase.from('categories').select('id').ilike('slug', formData.category.toLowerCase().replace(/ /g, '-')).single()
       
+      // Ajout de la sous-catégorie dans la description pour le filtrage
       const augmentedDescription = `${formData.description}\n\nType: ${formData.subCategory}`
 
       const { error } = await supabase.from('products').insert({
@@ -346,7 +347,6 @@ export default function PublierPage() {
     )
   }
 
-  // VUE PUBLIER (code identique...)
   return (
     <div className="min-h-screen bg-gray-50 pb-20 font-sans">
       <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">
