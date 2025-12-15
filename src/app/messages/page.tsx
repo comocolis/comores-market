@@ -50,8 +50,11 @@ export default function MessagesPage() {
   const [showMenu, setShowMenu] = useState(false)
   
   const [replyContent, setReplyContent] = useState('')
+  
+  // Refs pour gérer l'état sans re-render intempestif
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const activeConvIdRef = useRef<string | null>(null) // ASTUCE: Garde l'ID actif en mémoire pour le temps réel
 
   // --- CHARGEMENT ---
   const fetchAndGroupMessages = async (userId: string) => {
@@ -127,10 +130,15 @@ export default function MessagesPage() {
     setConversations(sortedConvs)
     setLoading(false)
     
-    if (activeConv) {
-        const updated = sortedConvs.find(c => c.id === activeConv.id)
-        if (updated && updated.messages.length > activeConv.messages.length) {
-            setActiveConv(updated)
+    // MISE À JOUR LIVE DE LA CONVERSATION ACTIVE
+    // On utilise la Ref pour savoir quelle conv est ouverte sans dépendre du state
+    const currentOpenId = activeConvIdRef.current
+    if (currentOpenId) {
+        const updatedActive = sortedConvs.find(c => c.id === currentOpenId)
+        if (updatedActive) {
+            setActiveConv(updatedActive)
+            // Scroll vers le bas si un nouveau message arrive
+            setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
         }
     }
   }
@@ -158,11 +166,14 @@ export default function MessagesPage() {
       setCurrentUser(user)
       await fetchAndGroupMessages(user.id)
 
+      // Abonnement Temps Réel
       const channel = supabase.channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
             const m = payload.new as any
+            // Si le message me concerne (envoyé ou reçu)
             if (m.sender_id === user.id || m.receiver_id === user.id) {
+                // On recharge les messages, ce qui mettra à jour l'interface grâce à activeConvIdRef
                 fetchAndGroupMessages(user.id)
             }
         })
@@ -173,15 +184,24 @@ export default function MessagesPage() {
     init()
   }, [router, supabase])
 
+  // Scroll initial
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [activeConv?.messages, view])
+    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' })
+  }, [view])
 
   const openConversation = (conv: Conversation) => {
     setActiveConv(conv)
+    activeConvIdRef.current = conv.id // On mémorise l'ID actif
     setView('chat')
     setShowMenu(false)
     markAsRead(conv)
+  }
+
+  const closeConversation = () => {
+    setView('list')
+    setActiveConv(null)
+    activeConvIdRef.current = null // On oublie l'ID
+    fetchAndGroupMessages(currentUser.id) // Rafraîchir la liste
   }
 
   // --- ACTIONS ---
@@ -208,9 +228,7 @@ export default function MessagesPage() {
         toast.error("Erreur suppression")
     } else {
         toast.success("Supprimée")
-        setConversations(conversations.filter(c => c.id !== activeConv.id))
-        setView('list')
-        setActiveConv(null)
+        closeConversation()
     }
   }
 
@@ -231,6 +249,7 @@ export default function MessagesPage() {
         pending: true
     }
 
+    // Mise à jour immédiate locale
     const updatedConv = {
         ...activeConv,
         messages: [...activeConv.messages, optimisticMsg],
@@ -238,6 +257,8 @@ export default function MessagesPage() {
         lastDate: new Date().toISOString()
     }
     setActiveConv(updatedConv)
+    // Scroll forcé
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
 
     const { error } = await supabase.from('messages').insert({
         content: content,
@@ -253,8 +274,9 @@ export default function MessagesPage() {
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            <div className="bg-white pt-12 px-6 pb-4 sticky top-0 z-30 border-b border-gray-100">
-                <h1 className="text-gray-900 font-extrabold text-2xl tracking-tight">Discussions</h1>
+            {/* HEADER VERT (IDENTITÉ) */}
+            <div className="bg-brand pt-12 px-6 pb-4 sticky top-0 z-30 shadow-md">
+                <h1 className="text-white font-extrabold text-2xl tracking-tight">Discussions</h1>
             </div>
 
             <div className="px-4 py-4 space-y-3">
@@ -299,36 +321,37 @@ export default function MessagesPage() {
   return (
     <div className="flex flex-col h-screen bg-[#F7F8FA] font-sans">
         
-        {/* CORRECTION : Suppression de 'relative' ici car 'sticky' est présent */}
-        <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40 border-b border-gray-50">
-            <button onClick={() => { setView('list'); fetchAndGroupMessages(currentUser.id) }} className="p-2 -ml-2 text-gray-600 hover:bg-gray-50 rounded-full transition">
+        {/* HEADER VERT (IDENTITÉ) */}
+        <div className="bg-brand px-4 pb-3 pt-12 shadow-md flex items-center gap-3 sticky top-0 z-40 text-white">
+            <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition">
                 <ArrowLeft size={22} />
             </button>
             
-            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden relative border border-gray-200">
-                {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>)}
+            <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden relative border border-white/30">
+                {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-white"><User size={20} /></div>)}
             </div>
 
             <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-gray-900 truncate text-sm">{activeConv?.counterpartName}</h2>
-                <div className="flex items-center gap-1.5 opacity-80">
-                    <div className="w-4 h-4 rounded-md overflow-hidden relative bg-gray-200 shrink-0">
+                <h2 className="font-bold text-white truncate text-sm">{activeConv?.counterpartName}</h2>
+                <div className="flex items-center gap-1.5 opacity-90">
+                    <div className="w-4 h-4 rounded-md overflow-hidden relative bg-white/20 shrink-0">
                          {activeConv?.productImage && <Image src={activeConv.productImage} alt="" fill className="object-cover" />}
                     </div>
-                    <p className="text-xs text-gray-500 font-medium truncate max-w-40">{activeConv?.productTitle}</p>
+                    <p className="text-xs text-white/80 font-medium truncate max-w-40">{activeConv?.productTitle}</p>
                 </div>
             </div>
             
-            {/* Menu options et appel */}
+            {/* Boutons actions */}
             <div className="flex gap-1 relative">
-                <button onClick={handleCall} className="p-2 text-gray-400 hover:text-green-600 rounded-full hover:bg-green-50 transition">
+                <button onClick={handleCall} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition" title="WhatsApp">
                     <Phone size={20} />
                 </button>
                 
-                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-50 transition">
+                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition">
                     <MoreVertical size={20} />
                 </button>
 
+                {/* Menu Déroulant (Texte noir car sur fond blanc) */}
                 {showMenu && (
                     <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border border-gray-100 w-48 py-2 z-50 animate-in fade-in slide-in-from-top-2">
                         <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition">
@@ -342,6 +365,7 @@ export default function MessagesPage() {
             </div>
         </div>
 
+        {/* Zone Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-2">
                 
@@ -360,7 +384,13 @@ export default function MessagesPage() {
                                 </div>
                             )}
 
-                            <div className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${isMe ? 'bg-brand text-white rounded-2xl' : 'bg-white text-gray-800 rounded-2xl'}`}>
+                            <div 
+                                className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${
+                                    isMe 
+                                    ? 'bg-brand text-white rounded-2xl' // Vert Brand pour moi
+                                    : 'bg-white text-gray-800 rounded-2xl' // Blanc pour l'autre
+                                }`}
+                            >
                                 <p className="whitespace-pre-wrap">{msg.content}</p>
                                 <div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70' : 'text-gray-400'}`}>
                                     <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -374,7 +404,8 @@ export default function MessagesPage() {
             </div>
         </div>
 
-        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+        {/* Input Zone */}
+        <div className="bg-white p-2 pb-safe border-t border-gray-100 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
             <div className="flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50">
                     <Plus size={20} />
