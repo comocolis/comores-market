@@ -13,7 +13,7 @@ export default function ComptePage() {
   const router = useRouter()
   
   // VOTRE EMAIL ADMIN (Le bouton ne s'affichera que pour ce compte)
-  const ADMIN_EMAIL = "contact.comoresmarket@gmail.com"
+  const ADMIN_EMAIL = "abdesisco1@gmail.com"
 
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
