@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Home, Search, MessageCircle, User, Plus } from 'lucide-react'
+import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react' // CHANGEMENT ICI: Heart au lieu de Search
 
 export default function BottomNav() {
   const supabase = createClient()
@@ -13,8 +13,6 @@ export default function BottomNav() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // DÉTECTION INTELLIGENTE : Est-on dans une conversation active ?
-  // Si on est sur /messages ET qu'il y a un ?id=... dans l'URL, c'est qu'on chatte.
   const isChatOpen = pathname === '/messages' && searchParams.get('id');
 
   useEffect(() => {
@@ -47,7 +45,6 @@ export default function BottomNav() {
     return () => { supabase.removeChannel(channel) }
   }, [userId])
 
-  // 🚀 SI LE CHAT EST OUVERT, ON CACHE LA BARRE DE NAVIGATION
   if (isChatOpen) return null;
 
   return (
@@ -55,8 +52,8 @@ export default function BottomNav() {
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
         
-        {/* LIEN CORRECT VERS LA PAGE RECHERCHE */}
-        <NavBtn href="/recherche" icon={Search} label="Recherche" active={pathname === '/recherche'} />
+        {/* REMPLACEMENT RECHERCHE PAR FAVORIS */}
+        <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
         <div className="flex justify-center relative -top-6">
           <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
@@ -76,7 +73,7 @@ export default function BottomNav() {
             <span className="text-[9px] font-bold">Messages</span>
         </Link>
 
-        <NavBtn href="/compte" icon={User} label="Compte" active={pathname === '/compte' || pathname === '/admin'} />
+        <NavBtn href="/compte" icon={User} label="Compte" active={pathname === '/compte' || pathname === '/admin' || pathname === '/mes-annonces'} />
       </div>
     </nav>
   )
@@ -85,7 +82,7 @@ export default function BottomNav() {
 function NavBtn({ href, icon: Icon, label, active }: any) {
   return (
     <Link href={href} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition ${active ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
-        <Icon size={24} strokeWidth={active ? 2.5 : 2} />
+        <Icon size={24} strokeWidth={active ? 2.5 : 2} className={active ? "fill-brand text-brand" : ""} />
         <span className="text-[9px] font-bold">{label}</span>
     </Link>
   )

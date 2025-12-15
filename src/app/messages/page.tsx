@@ -38,22 +38,22 @@ type Conversation = {
   messages: Message[]
 }
 
-// Fonction utilitaire de sécurité
+// 🛡️ FONCTIONS DE SÉCURITÉ 🛡️
 const textToDigits = (text: string) => {
     const map: { [key: string]: string } = {
         'zero': '0', 'zéro': '0', 'un': '1', 'deux': '2', 'trois': '3', 
         'quatre': '4', 'cinq': '5', 'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9'
     }
-    return text.toLowerCase().split(/\s+/).map(word => map[word] || word).join('')
+    return text.toLowerCase().split(/[\s,.-]+/).map(word => map[word] || word).join('')
 }
 
 const containsPhoneNumber = (text: string) => {
-    const cleanNumber = text.replace(/[^0-9+]/g, "");
+    const cleanNumber = text.replace(/[^0-9]/g, "");
     const patterns = [
-        /(?:\+|00)269\d{7}/, 
-        /^3[234]\d{5,}/,     
-        /0[67]\d{8}/,        
-        /^\d{9,15}$/         
+        /3[234]\d{5,}/,     // Comores local
+        /269\d{7}/,         // Comores international
+        /0[67]\d{8}/,       // France
+        /\d{9,}/            // Tout numéro long
     ];
     return patterns.some(regex => regex.test(cleanNumber));
 }
@@ -162,18 +162,17 @@ function MessagesContent() {
     setConversations(sortedConvs)
     setLoading(false)
     
-    // PERSISTANCE : On vérifie l'URL
     const urlConvId = searchParams.get('id')
-    // Si on a une ID dans l'URL, on ouvre le chat
-    if (urlConvId) {
-        const found = sortedConvs.find(c => c.id === urlConvId)
+    const currentActiveId = activeConvRef.current?.id || urlConvId
+
+    if (currentActiveId) {
+        const found = sortedConvs.find(c => c.id === currentActiveId)
         if (found) {
             setActiveConv(found)
             setView('chat')
             setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100)
         }
     } else {
-        // Sinon on s'assure d'être en mode liste
         setView('list')
     }
   }
@@ -207,7 +206,6 @@ function MessagesContent() {
         (payload) => {
             const newMsg = payload.new as any
             if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
-                
                 const currentConv = activeConvRef.current
                 if (currentConv) {
                     const isRelevant = 
@@ -293,17 +291,21 @@ function MessagesContent() {
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     
-    // 🛡️ SÉCURITÉ ANTI-NUMÉRO
-    const contentToCheck = textToDigits(replyContent);
-    const myLastMessages = activeConv.messages
+    // 🛡️ CHECK SÉCURITÉ
+    const normalizedContent = textToDigits(replyContent)
+    
+    const myHistory = activeConv.messages
         .filter(m => m.sender_id === currentUser.id)
         .slice(-3)
-        .map(m => m.content)
-        .join(" ");
-    const fullContext = textToDigits(myLastMessages + " " + replyContent);
+        .map(m => textToDigits(m.content))
+        .join("")
+    
+    const fullContext = myHistory + normalizedContent
 
     if (containsPhoneNumber(fullContext)) {
-        toast.error("Interdit : L'échange de coordonnées est bloqué par sécurité.")
+        toast.error("Interdit : L'échange de coordonnées est bloqué.", {
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
+        })
         return;
     }
 
@@ -346,7 +348,6 @@ function MessagesContent() {
   // --- VUE LISTE ---
   if (view === 'list') {
     return (
-        // Padding bottom pour la BottomNav (pb-24)
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
             <div className="bg-brand pt-12 px-6 pb-4 sticky top-0 z-30 shadow-md">
                 <h1 className="text-white font-extrabold text-2xl tracking-tight">Discussions</h1>
@@ -385,17 +386,17 @@ function MessagesContent() {
                     ))
                 )}
             </div>
-            {/* Pas de <nav> ici, c'est le layout qui gère ! */}
         </div>
     )
   }
 
   // --- VUE CHAT ---
   return (
-    // Hauteur fixée pour mobile (h-[100dvh]) et pas de padding bottom car BottomNav est caché
+    // CORRECTION : h-dvh (standard) au lieu de h-[100dvh]
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
         {/* HEADER VERT (BRAND) */}
+        {/* CORRECTION : min-h-20 (standard) au lieu de min-h-[80px] */}
         <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 sticky top-0 z-40 text-white min-h-20">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition">
                 <ArrowLeft size={22} />
@@ -441,7 +442,7 @@ function MessagesContent() {
 
         {/* Zone Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
-            <div className="flex flex-col justify-end min-h-full gap-2 pb-20"> {/* pb-20 pour que le dernier message ne soit pas caché par l'input */}
+            <div className="flex flex-col justify-end min-h-full gap-2 pb-20">
                 <div className="flex justify-center my-2">
                     <span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span>
                 </div>
