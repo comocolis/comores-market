@@ -5,64 +5,25 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Share2, ShieldAlert, Loader2, CheckCircle, User, ArrowRight } from 'lucide-react'
+import { MapPin, Phone, ArrowLeft, Send, Heart, Share2, ShieldAlert, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { toast } from 'sonner'
 
-// --- ALGORITHME DE SÉCURITÉ AVANCÉ ---
-
-// 1. Dictionnaire des chiffres en lettres
+// --- SÉCURITÉ ---
 const NUMBER_WORDS: { [key: string]: string } = {
-  'zero': '0', 'zéro': '0',
-  'un': '1', 'une': '1',
-  'deux': '2',
-  'trois': '3',
-  'quatre': '4',
-  'cinq': '5',
-  'six': '6',
-  'sept': '7',
-  'huit': '8',
-  'neuf': '9',
-  'dix': '10',
-  'vingt': '20',
-  'trente': '30',
-  'quarante': '40',
-  'cinquante': '50',
-  'soixante': '60',
-  'soixante-dix': '70',
-  'quatre-vingt': '80',
-  ' quatre-vingt-dix': '90'
+  'zero': '0', 'zéro': '0', 'un': '1', 'une': '1', 'deux': '2', 'trois': '3', 'quatre': '4',
+  'cinq': '5', 'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9', 'dix': '10', 'vingt': '20',
+  'trente': '30', 'quarante': '40', 'cinquante': '50', 'soixante': '60', 'soixante-dix': '70',
+  'quatre-vingt': '80', ' quatre-vingt-dix': '90'
 }
 
-const detectForbiddenContent = (currentMessage: string, history: string) => {
-  // A. On combine l'historique récent avec le message actuel pour contrer le découpage
-  // Ex: History="06", Msg="39" -> Full="06 39"
-  const fullText = (history + " " + currentMessage).toLowerCase()
-
-  // B. Nettoyage des accents pour attraper "zéro" comme "zero"
-  const normalizedText = fullText.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-
-  // C. Remplacement des mots par des chiffres
-  let textWithDigits = normalizedText
+const detectForbiddenContent = (text: string) => {
+  let normalized = text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
   Object.keys(NUMBER_WORDS).forEach(word => {
-     const regex = new RegExp(`\\b${word}\\b`, 'gi')
-     textWithDigits = textWithDigits.replace(regex, NUMBER_WORDS[word])
+     normalized = normalized.replace(new RegExp(`\\b${word}\\b`, 'gi'), NUMBER_WORDS[word])
   })
-
-  // D. Suppression de tout ce qui n'est pas un chiffre pour voir la suite pure
-  // Ex: "Appelle le 33. 44 .55" devient "334455"
-  const digitsOnly = textWithDigits.replace(/\D/g, '')
-
-  // E. DÉTECTION FINALE
-  
-  // 1. Suite de 5 chiffres ou plus (attrape les bouts de numéros comme 33344)
-  // On est strict : aux Comores/France, un bout de numéro fait souvent 5+ chiffres
+  const digitsOnly = normalized.replace(/\D/g, '')
   const hasLongNumber = digitsOnly.length >= 6
-
-  // 2. Mots clés "Leetspeak" (écritures bizarres)
-  // Attrape: whatsapp, watsap, whtsp, tél, phone, call me...
-  const keywordPattern = /(wh?ats?app?|wht?sp|t[ée]l|phone|appel|joindre|contact|06|07|\+269|269)/i
-  const hasKeyword = keywordPattern.test(normalizedText)
-
+  const hasKeyword = /(wh?ats?app?|t[ée]l|phone|appel|joindre|contact|06|07|\+269|269)/i.test(normalized)
   return hasLongNumber || hasKeyword
 }
 
@@ -80,10 +41,10 @@ export default function AnnoncePage() {
   const [sending, setSending] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
-  // NOUVEAU : Mémoire locale pour l'anti-fragmentation
-  const [sessionHistory, setSessionHistory] = useState('')
-
-  const [selectedImage, setSelectedImage] = useState<string | null>(null)
+  // --- GESTION IMAGES & LIGHTBOX ---
+  const [images, setImages] = useState<string[]>([])
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0) // L'image affichée dans l'en-tête
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null) // L'image affichée en plein écran (null = fermé)
 
   useEffect(() => {
     const getData = async () => {
@@ -93,18 +54,21 @@ export default function AnnoncePage() {
       if (user) {
          const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
          setUserProfile(profile)
-
          const { data: favs } = await supabase.from('favorites').select('product_id').eq('user_id', user.id)
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
-      const { data: productData } = await supabase
-        .from('products')
-        .select('*, profiles(*)')
-        .eq('id', params.id)
-        .single()
+      const { data: productData } = await supabase.from('products').select('*, profiles(*)').eq('id', params.id).single()
       
-      setProduct(productData)
+      if (productData) {
+          setProduct(productData)
+          try {
+            const imgs = JSON.parse(productData.images)
+            setImages(Array.isArray(imgs) ? imgs : [productData.images])
+          } catch {
+            setImages([productData.images])
+          }
+      }
       setLoading(false)
     }
     getData()
@@ -115,28 +79,19 @@ export default function AnnoncePage() {
     if (!currentUser) return router.push('/publier')
     if (!message.trim()) return
 
-    // 🔒 SÉCURITÉ INTELLIGENTE
-    if (!userProfile?.is_pro) {
-        // On vérifie le message actuel combiné à ce qu'il a écrit juste avant
-        if (detectForbiddenContent(message, sessionHistory)) {
-            toast.error("ACTION BLOQUÉE : Le partage de numéro (chiffres ou lettres) est réservé aux Vendeurs PRO.")
-            return
-        }
+    if (!userProfile?.is_pro && detectForbiddenContent(message)) {
+        toast.error("ACTION BLOQUÉE : Partage de coordonnées interdit.")
+        return
     }
 
     setSending(true)
     const { error } = await supabase.from('messages').insert({
-        content: message,
-        sender_id: currentUser.id,
-        receiver_id: product.user_id,
-        product_id: product.id
+        content: message, sender_id: currentUser.id, receiver_id: product.user_id, product_id: product.id
     })
 
     if (error) toast.error("Erreur : " + error.message)
     else {
-        toast.success("Message envoyé avec succès !")
-        // On ajoute le message envoyé à l'historique de session pour surveiller le prochain
-        setSessionHistory(prev => prev + " " + message)
+        toast.success("Message envoyé !")
         setMessage('')
     }
     setSending(false)
@@ -159,50 +114,105 @@ export default function AnnoncePage() {
   const handleWhatsAppClick = () => {
     if (!product.profiles.is_pro) return;
     const phone = product.whatsapp_number.replace(/\D/g, '')
-    const text = encodeURIComponent(`Bonjour, je suis intéressé par votre annonce "${product.title}" vue sur Comores Market.`)
+    const text = encodeURIComponent(`Bonjour, pour votre annonce "${product.title}"...`)
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank')
+  }
+
+  // Navigation Lightbox
+  const nextImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setLightboxIndex((prev) => (prev !== null ? (prev + 1) % images.length : 0))
+  }
+  const prevImage = (e?: React.MouseEvent) => {
+    e?.stopPropagation()
+    setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
   }
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
   if (!product) return <div className="h-screen flex items-center justify-center text-gray-500">Annonce introuvable</div>
 
-  const images = JSON.parse(product.images || '[]')
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      <div className="relative w-full h-80 bg-gray-200">
+      {/* HEADER IMAGE (Cliquable pour ouvrir Lightbox) */}
+      <div className="relative w-full h-80 bg-gray-200 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
-            src={selectedImage || images[0]} 
+            src={images[selectedImageIndex] || '/placeholder.png'} 
             alt={product.title} 
             fill 
-            className="object-cover" 
-            onClick={() => setSelectedImage(selectedImage ? null : images[0])} 
+            className="object-cover transition duration-300" 
         />
-        <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent">
-            <button onClick={() => router.back()} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition"><ArrowLeft size={20} /></button>
-            <div className="flex gap-2">
-                <button onClick={toggleFavorite} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
+        {/* Indication visuelle qu'on peut agrandir */}
+        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
+            <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md">Agrandir</span>
+        </div>
+
+        {/* Boutons Retour / Favoris */}
+        <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
+            <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto"><ArrowLeft size={20} /></button>
+            <div className="flex gap-2 pointer-events-auto">
+                <button onClick={(e) => {e.stopPropagation(); toggleFavorite()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
-                </button>
-                <button className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
-                    <Share2 size={20} />
                 </button>
             </div>
         </div>
-        <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+
+        {/* Galerie miniature (Navigation rapide) */}
+        <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto">
             {images.map((img: string, i: number) => (
-                <button key={i} onClick={() => setSelectedImage(img)} className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 ${selectedImage === img ? 'border-brand' : 'border-white'}`}>
+                <button 
+                    key={i} 
+                    onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
+                    className={`w-14 h-14 rounded-lg overflow-hidden border-2 shrink-0 transition ${selectedImageIndex === i ? 'border-brand scale-105' : 'border-white/50'}`}
+                >
                     <Image src={img} alt="" width={56} height={56} className="object-cover w-full h-full" />
                 </button>
             ))}
         </div>
       </div>
 
+      {/* --- LIGHTBOX (PLEIN ÉCRAN) --- */}
+      {lightboxIndex !== null && (
+        <div className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200">
+            {/* Bouton Fermer */}
+            <button 
+                onClick={() => setLightboxIndex(null)} 
+                className="absolute top-safe right-4 z-20 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
+            >
+                <X size={32} />
+            </button>
+
+            {/* Image */}
+            <div className="relative w-full h-full max-h-[80vh] aspect-square md:aspect-auto">
+                <Image 
+                    src={images[lightboxIndex]} 
+                    alt="Plein écran" 
+                    fill 
+                    className="object-contain" 
+                    priority
+                />
+            </div>
+
+            {/* Navigation (Si plus d'1 image) */}
+            {images.length > 1 && (
+                <>
+                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition"><ChevronLeft size={40} /></button>
+                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition"><ChevronRight size={40} /></button>
+                    
+                    {/* Compteur */}
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md">
+                        {lightboxIndex + 1} / {images.length}
+                    </div>
+                </>
+            )}
+        </div>
+      )}
+
+      {/* --- INFOS PRODUIT --- */}
       <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[50vh]">
-        
         <div className="flex justify-between items-start mb-4">
             <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{product.title}</h1>
@@ -239,9 +249,9 @@ export default function AnnoncePage() {
             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
         </div>
 
+        {/* --- ZONE CONTACT --- */}
         {!isOwner && (
             <div className="space-y-3 pb-8">
-                
                 {product.profiles?.is_pro ? (
                     <button 
                         onClick={handleWhatsAppClick}
