@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, ChangeEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-// CORRECTION : Ajout de 'Plus' dans la liste des imports
+// Importation de toutes les icônes nécessaires
 import { 
   Home, Search, MessageCircle, User, LogOut, Camera, Save, Lock, 
   Eye, EyeOff, Loader2, ShieldCheck, PenSquare, X, LayoutDashboard, Pencil, Plus 
@@ -16,7 +16,7 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  // ✅ VOTRE EMAIL ADMIN
+  // ✅ EMAIL ADMIN
   const ADMIN_EMAIL = "abdesisco1@gmail.com"
 
   const [user, setUser] = useState<any>(null)
@@ -75,10 +75,12 @@ export default function ComptePage() {
 
   // --- GESTION AVATAR ---
   const handleAvatarClick = () => {
+    // 🔒 SÉCURITÉ : On empêche le clic si on n'est pas en mode "Modifier"
     if (!isEditingInfo) {
-        toast.info("Cliquez sur le bouton 'Modifier' pour changer votre photo.")
+        toast.info("Cliquez sur le bouton 'Modifier' (à droite) pour changer votre photo.")
         return
     }
+    // Si on est en mode édition, on ouvre le sélecteur de fichiers
     fileInputRef.current?.click()
   }
 
@@ -92,19 +94,24 @@ export default function ComptePage() {
         const fileExt = file.name.split('.').pop()
         const fileName = `${user.id}-${Date.now()}.${fileExt}`
         
+        // 1. Upload vers le bucket 'avatars'
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
         if (uploadError) throw uploadError
 
+        // 2. Récupération de l'URL publique
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
 
+        // 3. Mise à jour du profil dans la base de données
         const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         if (updateError) throw updateError
 
+        // 4. Mise à jour locale
         setProfile({ ...profile, avatar_url: publicUrl })
         toast.success("Photo de profil mise à jour !")
 
     } catch (error: any) {
-        toast.error("Erreur upload : " + error.message)
+        console.error("Erreur upload:", error)
+        toast.error("Erreur : Impossible de modifier la photo. Vérifiez votre connexion.")
     } finally {
         setAvatarUploading(false)
     }
@@ -131,6 +138,7 @@ export default function ComptePage() {
   }
 
   const cancelEditInfo = () => {
+    // Annuler : on remet les anciennes valeurs
     setFormData({
         full_name: profile?.full_name || '',
         city: profile?.city || '',
@@ -173,9 +181,10 @@ export default function ComptePage() {
 
         <div className="flex items-center gap-4">
             
-            {/* --- AVATAR AVEC CRAYON --- */}
+            {/* --- AVATAR INTERACTIF --- */}
             <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                <div className="w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold overflow-hidden border-2 border-white shadow-md relative">
+                {/* Cercle de l'image */}
+                <div className={`w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold overflow-hidden border-2 shadow-md relative transition-all ${isEditingInfo ? 'border-brand' : 'border-white'}`}>
                     {avatarUploading ? (
                         <Loader2 className="animate-spin" />
                     ) : profile?.avatar_url ? (
@@ -184,17 +193,20 @@ export default function ComptePage() {
                         profile?.full_name?.[0]?.toUpperCase() || <User size={32} />
                     )}
                     
+                    {/* Overlay sombre (visible uniquement en mode édition) */}
                     {isEditingInfo && (
-                        <div className="absolute inset-0 bg-black/20 flex items-center justify-center animate-in fade-in">
-                            <Camera size={24} className="text-white opacity-80" />
+                        <div className="absolute inset-0 bg-black/30 flex items-center justify-center animate-in fade-in">
+                            <Camera size={24} className="text-white drop-shadow-md" />
                         </div>
                     )}
                 </div>
 
-                <div className={`absolute bottom-0 right-0 p-1.5 rounded-full border-2 border-white shadow-sm transition-colors ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-100 text-gray-500'}`}>
-                    <Pencil size={12} fill={isEditingInfo ? "white" : "none"} />
+                {/* Badge Crayon (Indicateur visuel) */}
+                <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white shadow-sm transition-colors ${isEditingInfo ? 'bg-brand text-white scale-110' : 'bg-gray-100 text-gray-400'}`}>
+                    <Pencil size={12} strokeWidth={isEditingInfo ? 3 : 2} />
                 </div>
 
+                {/* Input file caché (nécessaire pour l'upload) */}
                 <input 
                     type="file" 
                     accept="image/*" 
@@ -204,6 +216,7 @@ export default function ComptePage() {
                 />
             </div>
 
+            {/* Infos Texte à droite de l'avatar */}
             <div>
                 <h2 className="font-bold text-lg text-gray-900">{profile?.full_name || user?.email?.split('@')[0]}</h2>
                 <p className="text-sm text-gray-500">{user?.email}</p>
@@ -222,7 +235,7 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-6 pt-8">
         
-        {/* BOUTON ADMIN */}
+        {/* BOUTON ADMIN (Visible uniquement pour votre email) */}
         {user?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition mb-6 border border-gray-700">
                 <div className="flex items-center gap-3">
@@ -235,7 +248,8 @@ export default function ComptePage() {
                     </div>
                 </div>
                 <div className="bg-white/10 p-2 rounded-full">
-                    <ArrowRightIcon />
+                    {/* Flèche simple SVG */}
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                 </div>
              </Link>
         )}
@@ -245,7 +259,10 @@ export default function ComptePage() {
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><User size={18} /> Informations</h3>
                 {!isEditingInfo && (
-                    <button onClick={() => setIsEditingInfo(true)} className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1">
+                    <button 
+                        onClick={() => setIsEditingInfo(true)} 
+                        className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full hover:bg-brand hover:text-white transition flex items-center gap-1"
+                    >
                         <PenSquare size={12} /> Modifier
                     </button>
                 )}
@@ -363,10 +380,4 @@ export default function ComptePage() {
       </nav>
     </div>
   )
-}
-
-function ArrowRightIcon() {
-    return (
-        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-    )
 }
