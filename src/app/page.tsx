@@ -75,7 +75,6 @@ export default function MarketplaceHome() {
       setUserId(user?.id || null)
 
       // 2. Récupérer les produits (Annonces)
-      // IMPORTANT : On ne charge QUE les produits (pas de profiles) pour éviter les blocages
       const { data: productsData, error } = await supabase
         .from('products')
         .select('*') 
@@ -150,7 +149,7 @@ export default function MarketplaceHome() {
   return (
     <main className="min-h-screen bg-gray-50 pb-24 font-sans relative">
       
-      {/* --- HEADER --- */}
+      {/* --- HEADER (Reste fixé en haut) --- */}
       <header className="bg-brand sticky top-0 z-50 shadow-md pb-4 pt-safe">
         <div className="max-w-md mx-auto px-4 pt-3">
           <div className="flex items-center justify-between mb-4">
@@ -189,8 +188,9 @@ export default function MarketplaceHome() {
         </div>
       </header>
 
-      {/* --- FILTRES ÎLES --- */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-28 z-40 shadow-sm">
+      {/* --- FILTRES ÎLES (Ne reste PLUS fixé) --- */}
+      {/* CORRECTION : Suppression de 'sticky top-30 z-40' */}
+      <div className="bg-white border-b border-gray-100 py-3">
          <div className="max-w-md mx-auto px-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             {['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore'].map((ile) => (
               <button 
@@ -276,7 +276,6 @@ export default function MarketplaceHome() {
                                 <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : "text-gray-400"} />
                             </button>
                             
-                            {/* Image avec Aspect Ratio Standard */}
                             <div className="relative w-full aspect-square bg-gray-100">
                                 {imageUrl ? (
                                     <>
