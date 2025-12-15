@@ -204,15 +204,14 @@ export default function AnnoncePage() {
       {lightboxIndex !== null && (
         <div 
             className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
-            // Ajout des gestionnaires d'événements tactiles
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
-            {/* Bouton Fermer (Déplacé à GAUCHE) */}
+            {/* Bouton Fermer (REMIS À DROITE et z-index augmenté) */}
             <button 
                 onClick={() => setLightboxIndex(null)} 
-                className="absolute top-safe left-4 z-20 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
+                className="absolute top-safe right-4 z-30 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
             >
                 <X size={32} />
             </button>
@@ -231,11 +230,11 @@ export default function AnnoncePage() {
             {/* Navigation (Si plus d'1 image) */}
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-10"><ChevronLeft size={40} /></button>
-                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-10"><ChevronRight size={40} /></button>
+                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-20"><ChevronLeft size={40} /></button>
+                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-20"><ChevronRight size={40} /></button>
                     
                     {/* Compteur */}
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md">
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md z-20">
                         {lightboxIndex + 1} / {images.length}
                     </div>
                 </>
