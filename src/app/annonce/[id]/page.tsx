@@ -46,10 +46,10 @@ export default function AnnoncePage() {
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   
-  // --- GESTION DU SWIPE (GLISSEMENT) ---
+  // --- GESTION DU SWIPE ---
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
-  const minSwipeDistance = 50 // Distance minimum pour considérer un swipe
+  const minSwipeDistance = 50 
 
   useEffect(() => {
     const getData = async () => {
@@ -123,7 +123,6 @@ export default function AnnoncePage() {
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank')
   }
 
-  // Navigation Lightbox
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation()
     setLightboxIndex((prev) => (prev !== null ? (prev + 1) % images.length : 0))
@@ -133,9 +132,8 @@ export default function AnnoncePage() {
     setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
   }
 
-  // --- LOGIQUE DU SWIPE ---
   const onTouchStart = (e: TouchEvent) => {
-    setTouchEnd(0) // Reset
+    setTouchEnd(0)
     setTouchStart(e.targetTouches[0].clientX)
   }
 
@@ -149,12 +147,8 @@ export default function AnnoncePage() {
     const isLeftSwipe = distance > minSwipeDistance
     const isRightSwipe = distance < -minSwipeDistance
 
-    if (isLeftSwipe && images.length > 1) {
-        nextImage()
-    }
-    if (isRightSwipe && images.length > 1) {
-        prevImage()
-    }
+    if (isLeftSwipe && images.length > 1) nextImage()
+    if (isRightSwipe && images.length > 1) prevImage()
   }
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
@@ -200,24 +194,25 @@ export default function AnnoncePage() {
         </div>
       </div>
 
-      {/* --- LIGHTBOX (PLEIN ÉCRAN) AVEC SWIPE --- */}
+      {/* --- LIGHTBOX (PLEIN ÉCRAN) --- */}
       {lightboxIndex !== null && (
         <div 
-            className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
+            // CORRECTION LINTER : z-50 au lieu de z-[100]
+            className="fixed inset-0 z-50 bg-black flex items-center justify-center animate-in fade-in duration-200"
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
         >
-            {/* Bouton Fermer (REMIS À DROITE et z-index augmenté) */}
+            {/* BOUTON FERMER (En haut à droite) */}
             <button 
                 onClick={() => setLightboxIndex(null)} 
-                className="absolute top-safe right-4 z-30 text-white/80 hover:text-white p-2 bg-black/20 rounded-full"
+                className="absolute top-4 right-4 z-50 text-white p-3 bg-black/50 rounded-full hover:bg-black/70 backdrop-blur-md transition shadow-lg"
             >
-                <X size={32} />
+                <X size={28} />
             </button>
 
             {/* Image */}
-            <div className="relative w-full h-full max-h-[80vh] aspect-square md:aspect-auto pointer-events-none">
+            <div className="relative w-full h-full max-h-[85vh] aspect-square md:aspect-auto pointer-events-none p-4">
                 <Image 
                     src={images[lightboxIndex]} 
                     alt="Plein écran" 
@@ -230,10 +225,9 @@ export default function AnnoncePage() {
             {/* Navigation (Si plus d'1 image) */}
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-20"><ChevronLeft size={40} /></button>
-                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition z-20"><ChevronRight size={40} /></button>
+                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-4 text-white hover:text-gray-300 hover:bg-white/10 rounded-full transition z-20"><ChevronLeft size={48} /></button>
+                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-4 text-white hover:text-gray-300 hover:bg-white/10 rounded-full transition z-20"><ChevronRight size={48} /></button>
                     
-                    {/* Compteur */}
                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md z-20">
                         {lightboxIndex + 1} / {images.length}
                     </div>
@@ -280,7 +274,6 @@ export default function AnnoncePage() {
             <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
         </div>
 
-        {/* --- ZONE CONTACT --- */}
         {!isOwner && (
             <div className="space-y-3 pb-8">
                 {product.profiles?.is_pro ? (
