@@ -8,7 +8,6 @@ import Image from 'next/image'
 import { Home, Search, MessageCircle, User, Loader2, Plus, ArrowLeft, Send, ShoppingBag } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Type pour une conversation groupée
 type Conversation = {
   id: string
   productId: string
@@ -28,12 +27,10 @@ export default function MessagesPage() {
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
-  // Vue : 'list' ou 'chat'
   const [view, setView] = useState<'list' | 'chat'>('list')
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   
-  // Pour le chat
   const [replyContent, setReplyContent] = useState('')
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -57,7 +54,6 @@ export default function MessagesPage() {
         
         let img = null
         try { 
-            // Sécurité pour parser l'image
             if (msg.product?.images) {
                 const parsed = JSON.parse(msg.product.images)
                 if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0]
@@ -142,8 +138,9 @@ export default function MessagesPage() {
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
-            <div className="bg-brand pt-safe px-6 pb-4 shadow-sm sticky top-0 z-30">
-                <h1 className="text-white font-bold text-xl mt-3">Mes Messages</h1>
+            {/* CORRECTION HEADER : pt-12 force l'espace sous la barre d'état */}
+            <div className="bg-brand pt-12 px-6 pb-4 shadow-sm sticky top-0 z-30">
+                <h1 className="text-white font-bold text-xl mt-2">Mes Messages</h1>
             </div>
 
             <div className="px-4 py-4 space-y-2">
@@ -200,8 +197,8 @@ export default function MessagesPage() {
   // --- VUE : CHAT ---
   return (
     <div className="flex flex-col h-screen bg-gray-50 font-sans">
-        {/* Header Chat */}
-        <div className="bg-white px-4 py-3 shadow-sm flex items-center gap-3 pt-safe sticky top-0 z-40">
+        {/* Header Chat - CORRECTION pt-12 */}
+        <div className="bg-white px-4 pb-3 pt-12 shadow-sm flex items-center gap-3 sticky top-0 z-40">
             <button onClick={() => setView('list')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
                 <ArrowLeft size={20} />
             </button>
