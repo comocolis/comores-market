@@ -19,7 +19,7 @@ export default function ComptePage() {
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true) // Commence à true
+  const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -40,51 +40,40 @@ export default function ComptePage() {
   })
 
   useEffect(() => {
-    const initPage = async () => {
-      try {
-        // 1. Vérification de la session
-        const { data: { session } } = await supabase.auth.getSession()
-        
-        // 🚨 SI PAS CONNECTÉ : On redirige et ON NE FAIT RIEN D'AUTRE
-        if (!session) {
-            router.replace('/auth') // .replace est mieux que .push pour les redirections
-            return // On sort de la fonction, le loading reste à true
-        }
-        
-        // 2. Si connecté, on charge les infos
-        const currentUser = session.user
-        setUser(currentUser)
+    const getProfile = async () => {
+      // Pas besoin de vérifier la session ici, le Middleware l'a déjà fait !
+      const { data: { user } } = await supabase.auth.getUser()
+      
+      // Si par miracle on arrive ici sans user (latence), on ne fait rien
+      if (!user) return 
+      
+      setUser(user) 
 
-        const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single()
-        setProfile(data)
-        
-        if (data) {
-            setFormData({
-                full_name: data.full_name || '',
-                city: data.city || '',
-                island: data.island || 'Ngazidja',
-                phone_number: data.phone_number || ''
-            })
-        }
-        
-        // 3. Tout est chargé, on affiche la page
-        setLoading(false)
-
-      } catch (error) {
-        console.error("Erreur chargement:", error)
-        setLoading(false)
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
+      setProfile(data)
+      
+      if (data) {
+        setFormData({
+            full_name: data.full_name || '',
+            city: data.city || '',
+            island: data.island || 'Ngazidja',
+            phone_number: data.phone_number || ''
+        })
       }
+      setLoading(false)
     }
-
-    initPage()
+    getProfile()
   }, [router, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    toast.success("Déconnecté avec succès")
-    router.replace('/auth')
+    // Le middleware redirigera automatiquement vers /auth si on essaie de revenir
+    router.push('/auth')
     router.refresh()
   }
+
+  // ... (LE RESTE DU CODE EST IDENTIQUE : handleAvatarClick, handleUpdateProfile, etc.)
+  // Je remets les fonctions pour que le fichier soit complet et copiable
 
   const handleAvatarClick = () => {
     if (!isEditingInfo) {
@@ -153,13 +142,11 @@ export default function ComptePage() {
     setPasswordLoading(false)
   }
 
-  // Calcul jours restants PRO
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0
   const isProActive = profile?.is_pro && daysRemaining > 0
 
-  // TANT QUE C'EST LOADING (ou redirection en cours), on affiche le spinner
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
@@ -204,7 +191,6 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-5 pt-8">
         
-        {/* BOUTON ADMIN */}
         {user?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition border border-gray-700">
                 <div className="flex items-center gap-3">
@@ -215,7 +201,6 @@ export default function ComptePage() {
              </Link>
         )}
 
-        {/* MENU NAVIGATION PERSONNEL */}
         <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
             <Link href="/mes-annonces" className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition group">
                 <div className="flex items-center gap-4">
@@ -234,7 +219,6 @@ export default function ComptePage() {
             </Link>
         </div>
 
-        {/* BLOC INFORMATIONS */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><User size={18} /> Informations</h3>
@@ -283,7 +267,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* BLOC SÉCURITÉ */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
                 <h3 className="font-bold text-gray-900 flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
