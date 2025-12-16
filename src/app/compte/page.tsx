@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef, ChangeEvent } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-// CORRECTION : Ajout de 'Save' dans la liste
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
-  PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save 
+  PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save, Clock, Calendar 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -137,6 +136,13 @@ export default function ComptePage() {
     setPasswordLoading(false)
   }
 
+  // --- CALCUL DES JOURS RESTANTS ---
+  const daysRemaining = profile?.subscription_end_date 
+    ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+    : 0
+  
+  const isProActive = profile?.is_pro && daysRemaining > 0
+
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
@@ -160,11 +166,21 @@ export default function ComptePage() {
                 </div>
                 <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} />
             </div>
-            <div>
-                <h2 className="font-bold text-lg text-gray-900">{profile?.full_name || "Utilisateur"}</h2>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-                {profile?.is_pro ? <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-[10px] font-bold px-2 py-0.5 rounded mt-1"><ShieldCheck size={10} /> VENDEUR PRO</span> : 
-                <Link href="/pro" className="inline-flex items-center gap-1 bg-gray-900 text-white text-[10px] font-bold px-3 py-1 rounded-full mt-1 hover:bg-brand transition shadow-sm animate-pulse">DEVENIR PRO</Link>}
+            
+            <div className="flex-1 min-w-0">
+                <h2 className="font-bold text-lg text-gray-900 truncate">{profile?.full_name || "Utilisateur"}</h2>
+                <p className="text-sm text-gray-500 truncate mb-1">{user?.email}</p>
+                
+                {isProActive ? (
+                    <div className="inline-flex flex-col items-start bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
+                        <span className="flex items-center gap-1 text-green-700 text-[10px] font-bold uppercase"><ShieldCheck size={10} /> Vendeur PRO</span>
+                        <span className="text-[10px] text-green-600 font-medium mt-0.5">Expire dans {daysRemaining} jours</span>
+                    </div>
+                ) : (
+                    <Link href="/pro" className="inline-flex items-center gap-1 bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm animate-pulse">
+                        DEVENIR PRO
+                    </Link>
+                )}
             </div>
         </div>
       </div>
@@ -228,14 +244,7 @@ export default function ComptePage() {
                     {isEditingInfo ? <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} /> : <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50 tracking-wide">{profile?.phone_number || <span className="text-gray-400 italic">Non renseigné</span>}</p>}
                 </div>
             </div>
-            {isEditingInfo && (
-                <div className="flex gap-2 pt-2 animate-in fade-in">
-                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2"><X size={16} /> Annuler</button>
-                    <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand/20">
-                        {saving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Enregistrer</>}
-                    </button>
-                </div>
-            )}
+            {isEditingInfo && <div className="flex gap-2 pt-2 animate-in fade-in"><button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm hover:bg-gray-200 transition flex items-center justify-center gap-2"><X size={16} /> Annuler</button><button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm hover:bg-brand-dark transition flex items-center justify-center gap-2 shadow-lg shadow-brand/20">{saving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Enregistrer</>}</button></div>}
         </div>
 
         {/* BLOC SÉCURITÉ */}
