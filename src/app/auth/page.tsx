@@ -9,10 +9,10 @@ import { toast } from 'sonner'
 import Link from 'next/link'
 
 const ALLOWED_COUNTRIES = [
-  { label: '🇰🇲 Comores', code: '+269', placeholder: '332 00 00' },
-  { label: '🇾🇹 Mayotte', code: '+262', placeholder: '639 00 00 00' },
-  { label: '🇷🇪 La Réunion', code: '+262', placeholder: '692 00 00 00' },
-  { label: '🇫🇷 France', code: '+33', placeholder: '6 12 34 56 78' },
+  { label: '🇰🇲 Comores', code: '+269', placeholder: '332 00 00', regex: /^(3[234]\d{5})$/ },
+  { label: '🇾🇹 Mayotte', code: '+262', placeholder: '639 00 00 00', regex: /^(639\d{6})$/ },
+  { label: '🇷🇪 La Réunion', code: '+262', placeholder: '692 00 00 00', regex: /^(69[23]\d{6})$/ },
+  { label: '🇫🇷 France', code: '+33', placeholder: '6 12 34 56 78', regex: /^[67]\d{8}$/ }, // 06 ou 07 sans le 0
 ]
 
 export default function AuthPage() {
@@ -21,9 +21,8 @@ export default function AuthPage() {
   
   const [view, setView] = useState<'login' | 'register' | 'forgot'>('login')
   const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false) // État pour l'œil du mot de passe
+  const [showPassword, setShowPassword] = useState(false)
   
-  // États pour l'avatar
   const [avatarFile, setAvatarFile] = useState<File | null>(null)
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -39,23 +38,21 @@ export default function AuthPage() {
   
   const [selectedCountry, setSelectedCountry] = useState(ALLOWED_COUNTRIES[0])
 
-  // Gestion de la sélection d'image
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
-        // Vérification basique de taille (ex: max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             toast.error("L'image est trop volumineuse (Max 5MB)")
             return
         }
         setAvatarFile(file)
-        // Créer une URL locale pour la prévisualisation
         setAvatarPreview(URL.createObjectURL(file))
     }
   }
 
   const removeAvatar = (e: React.MouseEvent) => {
-    e.stopPropagation()
+    e.stopPropagation() // Empêche d'ouvrir le sélecteur de fichier
+    e.preventDefault()
     setAvatarFile(null)
     setAvatarPreview(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
@@ -67,28 +64,33 @@ export default function AuthPage() {
 
     try {
       if (view === 'register') {
-        // 1. Validations
-        if (!formData.phoneBody.trim()) throw new Error("Le numéro de téléphone est obligatoire.")
+        // 1. Validation Stricte du Numéro
+        const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '') // Enlève espaces et premier 0
+        
+        if (!cleanBody) throw new Error("Le numéro de téléphone est obligatoire.")
         if (!formData.city.trim()) throw new Error("La ville est obligatoire.")
         
-        const cleanBody = formData.phoneBody.replace(/^0/, '').replace(/\D/g, '')
+        // Vérification Regex par rapport au pays choisi
+        if (!selectedCountry.regex.test(cleanBody)) {
+            throw new Error(`Numéro invalide pour ${selectedCountry.label.split(' ')[1]}. Vérifiez le format.`)
+        }
+
         const fullPhone = `${selectedCountry.code}${cleanBody}`
         let publicAvatarUrl = ''
 
-        // 2. Upload de l'avatar (si une image est sélectionnée)
+        // 2. Upload Avatar (Si présent)
         if (avatarFile) {
             const fileExt = avatarFile.name.split('.').pop()
-            // On utilise un timestamp pour le nom temporaire car on n'a pas encore l'ID user
-            const fileName = `signup-${Date.now()}.${fileExt}`
+            const fileName = `signup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
             
             const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, avatarFile)
-            if (uploadError) throw new Error("Erreur lors de l'upload de l'image")
+            if (uploadError) throw new Error("Erreur upload image : " + uploadError.message)
 
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName)
             publicAvatarUrl = urlData.publicUrl
         }
 
-        // 3. Inscription avec toutes les données
+        // 3. Inscription
         const { error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
@@ -99,14 +101,13 @@ export default function AuthPage() {
                 country_origin: selectedCountry.label,
                 island: formData.island,
                 city: formData.city,
-                avatar_url: publicAvatarUrl // L'URL est envoyée ici
+                avatar_url: publicAvatarUrl || null
             }
           }
         })
         if (error) throw error
         toast.success("Compte créé ! Vérifiez vos emails.")
         setView('login')
-        // Reset du formulaire
         setAvatarFile(null)
         setAvatarPreview(null)
       } 
@@ -156,33 +157,35 @@ export default function AuthPage() {
 
         <form onSubmit={handleAuth} className="space-y-4">
             
-            {/* --- CHAMPS INSCRIPTION --- */}
             {view === 'register' && (
                 <div className="space-y-4 animate-in fade-in">
-                    {/* Avatar Upload */}
-                    <div className="flex justify-center mb-6">
-                        <div 
-                            onClick={() => fileInputRef.current?.click()}
-                            className={`relative w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-brand transition ${avatarPreview ? 'border-solid border-brand' : 'border-gray-300'}`}
-                        >
-                            {avatarPreview ? (
-                                <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" />
-                            ) : (
-                                <Camera className="text-gray-400 group-hover:text-brand transition" size={32} />
-                            )}
+                    
+                    {/* AVATAR UPLOAD CORRIGÉ */}
+                    <div className="flex justify-center mb-6 relative">
+                        <div className="relative">
+                            <div 
+                                onClick={() => fileInputRef.current?.click()}
+                                className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-brand transition ${avatarPreview ? 'border-solid border-brand' : 'border-gray-300'}`}
+                            >
+                                {avatarPreview ? (
+                                    <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" />
+                                ) : (
+                                    <Camera className="text-gray-400 group-hover:text-brand transition" size={32} />
+                                )}
+                            </div>
                             
-                            {/* Bouton supprimer l'avatar */}
+                            {/* CROIX DE SUPPRESSION (Sortie du container overflow-hidden) */}
                             {avatarPreview && (
                                 <button 
                                     type="button"
                                     onClick={removeAvatar}
-                                    className="absolute top-0 right-0 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition z-10"
+                                    className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"
                                 >
                                     <X size={14} />
                                 </button>
                             )}
-                            <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
                         </div>
+                        <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
                     </div>
 
                     {/* Nom Complet */}
@@ -204,7 +207,7 @@ export default function AuthPage() {
                         </div>
                     </div>
 
-                    {/* Localisation (Île + Ville) */}
+                    {/* Localisation */}
                     <div className="flex gap-2">
                         <div className="w-1/2 relative group">
                             <select className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 text-sm font-medium outline-none focus:border-brand appearance-none cursor-pointer" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
@@ -224,7 +227,7 @@ export default function AuthPage() {
                 </div>
             )}
 
-            {/* --- CHAMPS COMMUNS (Email + Mdp) --- */}
+            {/* Email */}
             <div className="relative group">
                 <Mail className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-brand transition" size={20} />
                 <input type="email" placeholder="Adresse email" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-brand font-medium" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
@@ -233,23 +236,8 @@ export default function AuthPage() {
             {view !== 'forgot' && (
                 <div className="relative group">
                     <Lock className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-brand transition" size={20} />
-                    {/* Champ mot de passe avec type dynamique */}
-                    <input 
-                        type={showPassword ? "text" : "password"} 
-                        placeholder="Mot de passe" 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-brand font-medium" 
-                        value={formData.password} 
-                        onChange={e => setFormData({...formData, password: e.target.value})} 
-                        required 
-                    />
-                    {/* Bouton Œil */}
-                    <button 
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition focus:outline-none"
-                    >
-                        {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                    </button>
+                    <input type={showPassword ? "text" : "password"} placeholder="Mot de passe" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-brand font-medium" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
+                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition focus:outline-none">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
                 </div>
             )}
 

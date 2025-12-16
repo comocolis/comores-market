@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, TouchEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ShieldAlert, ChevronRight as ChevronRightIcon } from 'lucide-react'
+import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AnnoncePage() {
@@ -65,7 +65,7 @@ export default function AnnoncePage() {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!currentUser) return router.push('/publier')
+    if (!currentUser) return router.push('/auth')
     if (!message.trim()) return
 
     setSending(true)
@@ -85,7 +85,7 @@ export default function AnnoncePage() {
   }
 
   const toggleFavorite = async () => {
-    if (!currentUser) return router.push('/publier')
+    if (!currentUser) return router.push('/auth')
     const id = product.id
     if (favorites.has(id)) {
         await supabase.from('favorites').delete().match({ user_id: currentUser.id, product_id: id })
@@ -151,6 +151,7 @@ export default function AnnoncePage() {
             <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md">Agrandir</span>
         </div>
 
+        {/* CORRECTION ICI : bg-linear-to-b */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
             <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto"><ArrowLeft size={20} /></button>
             <div className="flex gap-2 pointer-events-auto">
@@ -237,36 +238,47 @@ export default function AnnoncePage() {
         </div>
 
         {/* Actions Contact */}
-        {!isOwner && (
-            <div className="space-y-3 pb-8">
-                <button 
-                    onClick={handleWhatsAppClick}
-                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95"
-                >
-                    <Phone size={20} /> Discuter sur WhatsApp
-                </button>
+        {!isOwner ? (
+            currentUser ? (
+                // CAS 1 : CONNECTÉ
+                <div className="space-y-3 pb-8">
+                    <button 
+                        onClick={handleWhatsAppClick}
+                        className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95"
+                    >
+                        <Phone size={20} /> Discuter sur WhatsApp
+                    </button>
 
-                <div className="border-t border-gray-100 pt-4 mt-4">
-                    <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm"><Send size={14} className="text-brand" /> Message privé</h4>
-                    <form onSubmit={handleSendMessage} className="relative">
-                        <textarea 
-                            className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none pr-12 transition-all min-h-12.5"
-                            rows={1}
-                            placeholder="Votre message..."
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={sending || !message.trim()}
-                            className="absolute right-2 bottom-2 bg-brand text-white p-2 rounded-lg hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                        >
-                            {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
-                        </button>
-                    </form>
+                    <div className="border-t border-gray-100 pt-4 mt-4">
+                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm"><Send size={14} className="text-brand" /> Message privé</h4>
+                        <form onSubmit={handleSendMessage} className="relative">
+                            <textarea 
+                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none pr-12 transition-all min-h-12.5"
+                                rows={1}
+                                placeholder="Votre message..."
+                                value={message}
+                                onChange={(e) => setMessage(e.target.value)}
+                            />
+                            <button 
+                                type="submit" 
+                                disabled={sending || !message.trim()}
+                                className="absolute right-2 bottom-2 bg-brand text-white p-2 rounded-lg hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                            >
+                                {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
+                            </button>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        )}
+            ) : (
+                // CAS 2 : NON CONNECTÉ
+                <div className="p-6 bg-gray-50 rounded-2xl text-center border border-gray-100 mb-8">
+                    <p className="text-gray-600 text-sm mb-4">Connectez-vous pour voir le numéro et contacter le vendeur.</p>
+                    <Link href="/auth" className="inline-block bg-brand text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark transition transform active:scale-95">
+                        Se connecter
+                    </Link>
+                </div>
+            )
+        ) : null}
       </div>
     </div>
   )
