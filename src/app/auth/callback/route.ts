@@ -1,15 +1,18 @@
-import { type EmailOtpType } from '@supabase/supabase-js'
-import { type NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const token_hash = searchParams.get('token_hash')
-  const type = searchParams.get('type') as EmailOtpType | null
+export async function GET(request: Request) {
+  const { searchParams, origin } = new URL(request.url)
+  
+  // 1. Récupération du code
+  const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
 
-  if (token_hash && type) {
-    const cookieStore = request.cookies
+  if (code) {
+    // CORRECTION ICI : on ajoute 'await' car cookies() est asynchrone dans Next.js 15
+    const cookieStore = await cookies()
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -19,29 +22,27 @@ export async function GET(request: NextRequest) {
             return cookieStore.getAll()
           },
           setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value)
-            })
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // Parfois appelé depuis un Server Component, on ignore l'erreur
+            }
           },
         },
       }
     )
 
-    const { error } = await supabase.auth.verifyOtp({
-      type,
-      token_hash,
-    })
+    // 2. Échange du code contre la session
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error) {
-      // Si tout est bon, on redirige l'utilisateur vers la page prévue (ex: /compte/reset)
-      // On nettoie l'URL en supprimant le token pour la sécurité
-      const nextUrl = new URL(next, request.url)
-      nextUrl.searchParams.delete('token_hash')
-      nextUrl.searchParams.delete('type')
-      return NextResponse.redirect(nextUrl)
+      // 3. Redirection si succès
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // Si erreur ou lien invalide, on renvoie vers une page d'erreur (ou l'accueil)
-  return NextResponse.redirect(new URL('/auth/auth-code-error', request.url))
+  // 4. Redirection si erreur
+  return NextResponse.redirect(`${origin}/auth?error=auth_code_error`)
 }
