@@ -64,34 +64,27 @@ export default function AuthPage() {
 
     try {
       if (view === 'register') {
-        // 1. Validation Stricte du Numéro
-        const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '') // Enlève espaces et premier 0
-        
+        // ... (Validations et Upload Avatar restent identiques) ...
+        const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '')
         if (!cleanBody) throw new Error("Le numéro de téléphone est obligatoire.")
         if (!formData.city.trim()) throw new Error("La ville est obligatoire.")
-        
-        // Vérification Regex par rapport au pays choisi
-        if (!selectedCountry.regex.test(cleanBody)) {
-            throw new Error(`Numéro invalide pour ${selectedCountry.label.split(' ')[1]}. Vérifiez le format.`)
-        }
+        if (!selectedCountry.regex.test(cleanBody)) throw new Error(`Numéro invalide pour ${selectedCountry.label.split(' ')[1]}.`)
 
         const fullPhone = `${selectedCountry.code}${cleanBody}`
         let publicAvatarUrl = ''
 
-        // 2. Upload Avatar (Si présent)
         if (avatarFile) {
+            // ... (Code upload avatar identique) ...
             const fileExt = avatarFile.name.split('.').pop()
             const fileName = `signup-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${fileExt}`
-            
             const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, avatarFile)
-            if (uploadError) throw new Error("Erreur upload image : " + uploadError.message)
-
+            if (uploadError) throw new Error("Erreur upload image")
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(fileName)
             publicAvatarUrl = urlData.publicUrl
         }
 
-        // 3. Inscription
-        const { error } = await supabase.auth.signUp({
+        // 3. Inscription & Connexion Auto
+        const { data, error } = await supabase.auth.signUp({
           email: formData.email,
           password: formData.password,
           options: {
@@ -105,12 +98,25 @@ export default function AuthPage() {
             }
           }
         })
+        
         if (error) throw error
-        toast.success("Compte créé ! Vérifiez vos emails.")
-        setView('login')
+
+        // LOGIQUE DE REDIRECTION INTELLIGENTE
+        if (data.session) {
+            // Cas 1 : Email confirm est désactivé -> Connexion directe
+            toast.success("Bienvenue ! Compte créé avec succès.")
+            router.push('/compte')
+            router.refresh()
+        } else {
+            // Cas 2 : Email confirm est activé -> On demande de vérifier
+            toast.success("Compte créé ! Veuillez cliquer sur le lien reçu par email.")
+            setView('login')
+        }
+        
+        // Nettoyage
         setAvatarFile(null)
         setAvatarPreview(null)
-      } 
+      }
       
       else if (view === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
