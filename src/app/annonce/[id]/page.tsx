@@ -4,7 +4,8 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, TouchEvent } from 'react'
 import Image from 'next/image'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react'
+import Link from 'next/link'
+import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ShieldAlert, ChevronRight as ChevronRightIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AnnoncePage() {
@@ -40,7 +41,6 @@ export default function AnnoncePage() {
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
-      // On récupère le produit ET le profil du vendeur
       const { data: productData, error } = await supabase
         .from('products')
         .select('*, profiles(*)')
@@ -212,8 +212,8 @@ export default function AnnoncePage() {
             </div>
         </div>
 
-        {/* Vendeur */}
-        <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6">
+        {/* Vendeur (Lien cliquable) */}
+        <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6 active:scale-[0.98] transition hover:bg-gray-100 cursor-pointer">
             <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden relative border border-white shadow-sm">
                     {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={20} />}
@@ -226,8 +226,10 @@ export default function AnnoncePage() {
                     <p className="text-xs text-gray-400">{isPro ? 'Vendeur PRO' : 'Particulier'}</p>
                 </div>
             </div>
-            {isPro && <span className="bg-green-100 text-green-700 text-[10px] font-bold px-2 py-1 rounded border border-green-200">VERIFIÉ</span>}
-        </div>
+            <div className="bg-white p-2 rounded-full text-gray-400 shadow-sm">
+                <ChevronRightIcon size={16} />
+            </div>
+        </Link>
 
         <div className="mb-8">
             <h3 className="font-bold text-gray-900 mb-2 text-sm uppercase tracking-wide">Description</h3>
