@@ -2,416 +2,308 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect, ChangeEvent } from 'react'
-import { Loader2, Camera, LogIn, Eye, EyeOff, AlertCircle, X, ArrowLeft } from 'lucide-react'
-import Image from 'next/image'
-import Link from 'next/link'
+import { useState, useRef, useEffect } from 'react'
+// On s'assure que Image est bien importé depuis next/image pour éviter le conflit
+import Image from 'next/image' 
+import { Camera, Loader2, DollarSign, MapPin, Tag, Type, X, ChevronLeft, Lock, Crown } from 'lucide-react'
 import { toast } from 'sonner'
-
-const inputStyle = "w-full p-3 bg-white rounded-lg border border-gray-300 text-gray-900 focus:ring-2 focus:ring-brand/50 focus:border-brand outline-none transition-colors"
-const labelStyle = "block text-sm font-bold text-gray-700 mb-1"
-
-const PHONE_PREFIXES = [
-  { code: '+269', label: '🇰🇲 Comores', flag: '🇰🇲' },
-  { code: '+262', label: 'YT Mayotte', flag: '🇾🇹' },
-  { code: '+262', label: 'RE Réunion', flag: '🇷🇪' },
-  { code: '+33', label: '🇫🇷 France', flag: '🇫🇷' },
-]
-
-const SUB_CATEGORIES: { [key: string]: string[] } = {
-  'Véhicules': ['Voitures', 'Motos', 'Pièces', 'Location', 'Camions'],
-  'Immobilier': ['Vente', 'Location', 'Terrains', 'Bureaux', 'Colocation'],
-  'Mode': ['Homme', 'Femme', 'Enfant', 'Chaussures', 'Montres', 'Bijoux', 'Sacs'],
-  'Tech': ['Téléphones', 'Ordinateurs', 'Audio', 'Photo', 'Accessoires', 'Consoles'],
-  'Maison': ['Meubles', 'Décoration', 'Electroménager', 'Bricolage', 'Jardin'],
-  'Loisirs': ['Sport', 'Musique', 'Livres', 'Jeux', 'Voyage'],
-  'Alimentation': ['Fruits & Légumes', 'Plats', 'Épicerie', 'Boissons', 'Desserts'],
-  'Services': ['Cours', 'Réparations', 'Déménagement', 'Événements', 'Nettoyage'],
-  'Beauté': ['Parfums', 'Maquillage', 'Soins', 'Coiffure'],
-  'Emploi': ['Offres', 'Demandes', 'Stages', 'Intérim'],
-}
+import Link from 'next/link'
 
 export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  const [user, setUser] = useState<any>(null)
-  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
+  const [images, setImages] = useState<string[]>([])
   
-  const [isLogin, setIsLogin] = useState(true)
-  const [showPassword, setShowPassword] = useState(false)
-  const [authError, setAuthError] = useState<string | null>(null)
-  const [authLoading, setAuthLoading] = useState(false)
-  const [isForgotPassword, setIsForgotPassword] = useState(false)
+  // États Limite & Pro
+  const [isPro, setIsPro] = useState(false)
+  const [adsCount, setAdsCount] = useState(0)
   
-  const [phonePrefix, setPhonePrefix] = useState('+269')
+  // --- LIMITES ---
+  const FREE_ADS_LIMIT = 3
+  const FREE_PHOTOS_LIMIT = 3
+  
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const [authData, setAuthData] = useState({ 
-    email: '', 
-    password: '', 
-    fullName: '', 
-    phone: '', 
-    island: 'Ngazidja', 
-    city: '' 
-  })
-  
-  const [files, setFiles] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
-  
   const [formData, setFormData] = useState({
-    title: '', 
-    price: '', 
-    category: 'Véhicules', 
-    subCategory: '', 
-    island: 'Ngazidja', 
-    city: '', 
-    description: '', 
-    phone: ''
+    title: '',
+    price: '',
+    description: '',
+    category_id: '1',
+    location_island: 'Ngazidja',
+    location_city: '',
+    whatsapp_number: ''
   })
-
-  useEffect(() => {
-    if (SUB_CATEGORIES[formData.category]) {
-        setFormData(prev => ({ ...prev, subCategory: SUB_CATEGORIES[prev.category][0] }))
-    } else {
-        setFormData(prev => ({ ...prev, subCategory: '' }))
-    }
-  }, [formData.category])
 
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-        setProfile(profile)
-        if (profile) {
-            setFormData(prev => ({
-                ...prev, 
-                phone: profile.phone_number || '',
-                island: profile.island || 'Ngazidja',
-                city: profile.city || ''
-            }))
-        }
+      if (!user) {
+        router.push('/auth') 
+        return
       }
+
+      // 1. Vérifier le profil (PRO ?)
+      const { data: profile } = await supabase.from('profiles').select('is_pro, phone_number').eq('id', user.id).single()
+      setIsPro(profile?.is_pro || false)
+      
+      if (profile?.phone_number) {
+        setFormData(prev => ({ ...prev, whatsapp_number: profile.phone_number }))
+      }
+
+      // 2. Compter les annonces existantes
+      const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
+      setAdsCount(count || 0)
+      
       setLoading(false)
     }
     checkUser()
-  }, [supabase])
+  }, [router, supabase])
 
-  const maxImages = profile?.is_pro ? 10 : 3
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setAuthLoading(true)
-    setAuthError(null)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
     
-    try {
-      if (isForgotPassword) {
-        const origin = window.location.origin
-        const redirectUrl = `${origin}/auth/callback?next=/compte/reset`
-
-        const { error } = await supabase.auth.resetPasswordForEmail(authData.email, {
-            redirectTo: redirectUrl,
+    // 🔒 VÉRIFICATION LIMITATION PHOTOS
+    if (!isPro && images.length >= FREE_PHOTOS_LIMIT) {
+        toast.error(`Limite atteinte : Les comptes gratuits sont limités à ${FREE_PHOTOS_LIMIT} photos. Passez PRO pour en ajouter plus !`, {
+            icon: <Lock size={16} />,
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
         })
-        if (error) throw error
-        toast.success("Email envoyé ! Le lien vous mènera à la page de modification.")
-        setIsForgotPassword(false)
-      } 
-      else if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authData.email,
-          password: authData.password,
-        })
-        if (error) throw error
-        toast.success("Connexion réussie !")
-        router.push('/')
-      } else {
-        const cleanNumber = authData.phone.replace(/^0+/, '')
-        const fullPhoneNumber = `${phonePrefix}${cleanNumber}`
-
-        const { data, error } = await supabase.auth.signUp({
-          email: authData.email,
-          password: authData.password,
-          options: { 
-            data: { 
-                full_name: authData.fullName,
-                phone: fullPhoneNumber,
-                island: authData.island,
-                city: authData.city
-            } 
-          }
-        })
-        if (error) throw error
-
-        if (data.session) {
-            toast.success("Compte créé avec succès ! Bienvenue.")
-            router.push('/')
-        } else {
-            toast.info("Compte créé ! Vérifiez votre email pour valider.")
-            setIsLogin(true)
-        }
-      }
-    } catch (error: any) {
-      const msg = error.message === "Invalid login credentials" ? "Email ou mot de passe incorrect." : error.message
-      setAuthError(msg)
-      toast.error(msg)
-    } finally {
-      setAuthLoading(false)
-    }
-  }
-
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    const selectedFiles = Array.from(e.target.files)
-    if (files.length + selectedFiles.length > maxImages) {
-        toast.error(`Limite atteinte : ${maxImages} images maximum.`)
         return
     }
-    setFiles([...files, ...selectedFiles])
-    setPreviews([...previews, ...selectedFiles.map(f => URL.createObjectURL(f))])
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!user) return
-    if (files.length === 0) return toast.warning("Ajoutez au moins une photo.")
+    
     setUploading(true)
+    const file = e.target.files[0]
+    const fileExt = file.name.split('.').pop()
+    const fileName = `${Math.random()}.${fileExt}`
+    const filePath = `${fileName}`
 
     try {
-      let imageUrls = []
-      for (const file of files) {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`
-        const { error: uploadError } = await supabase.storage.from('products').upload(fileName, file)
-        if (uploadError) throw uploadError
-        const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
-        imageUrls.push(publicUrl)
-      }
+      const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file)
+      if (uploadError) throw uploadError
 
-      const { data: cat } = await supabase.from('categories').select('id').ilike('slug', formData.category.toLowerCase().replace(/ /g, '-')).single()
-      
-      const augmentedDescription = `${formData.description}\n\nType: ${formData.subCategory}`
-
-      const { error } = await supabase.from('products').insert({
-        user_id: user.id,
-        title: formData.title,
-        price: parseInt(formData.price),
-        category_id: cat?.id || 1,
-        location_island: formData.island,
-        location_city: formData.city,
-        description: augmentedDescription,
-        whatsapp_number: formData.phone,
-        images: JSON.stringify(imageUrls),
-        status: 'active'
-      })
-
-      if (error) throw error
-      toast.success('Annonce publiée avec succès !')
-      router.push('/') 
-      router.refresh() 
-
+      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath)
+      setImages([...images, publicUrl])
     } catch (error: any) {
-      toast.error('Erreur : ' + error.message)
+      toast.error('Erreur upload: ' + error.message)
     } finally {
       setUploading(false)
     }
   }
 
-  if (loading) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+  const removeImage = (index: number) => {
+    setImages(images.filter((_, i) => i !== index))
+  }
 
-  if (!user) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.title || !formData.price || images.length === 0) {
+        toast.error("Veuillez remplir les champs obligatoires et ajouter au moins une image.")
+        return
+    }
+
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+        const { error } = await supabase.from('products').insert({
+            user_id: user.id,
+            title: formData.title,
+            price: parseFloat(formData.price),
+            description: formData.description,
+            category_id: parseInt(formData.category_id),
+            location_island: formData.location_island,
+            location_city: formData.location_city,
+            images: JSON.stringify(images),
+            whatsapp_number: formData.whatsapp_number
+        })
+
+        if (error) {
+            toast.error(error.message)
+        } else {
+            toast.success('Annonce publiée avec succès !')
+            router.push('/')
+        }
+    }
+    setLoading(false)
+  }
+
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+
+  // --- BLOCAGE SI LIMITE D'ANNONCES ATTEINTE ---
+  const adsLimitReached = !isPro && adsCount >= FREE_ADS_LIMIT
+
+  if (adsLimitReached) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center relative p-6">
-        <div className="absolute top-0 left-0 w-full p-4 pt-safe flex items-center">
-            <Link href="/" className="flex items-center gap-2 text-gray-500 hover:text-brand font-bold bg-white/80 px-4 py-2 rounded-full shadow-sm backdrop-blur-sm transition">
-                <ArrowLeft size={20} />
-                <span>Retour</span>
+        <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+            <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500">
+                    <Lock size={32} />
+                </div>
+                <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Limite atteinte</h1>
+                <p className="text-gray-500 mb-6 text-sm">
+                    Vous avez atteint la limite de <strong>{FREE_ADS_LIMIT} annonces gratuites</strong>.
+                    Passez PRO pour publier en illimité et booster vos ventes !
+                </p>
+                
+                <Link href="/pro" className="block w-full bg-brand text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 hover:scale-[1.02] transition mb-4">
+                    Devenir Vendeur PRO 🚀
+                </Link>
+                
+                <Link href="/mes-annonces" className="text-sm text-gray-400 font-medium hover:text-gray-600 underline">
+                    Gérer mes annonces existantes
+                </Link>
+            </div>
+            <Link href="/" className="mt-8 text-gray-400 text-sm flex items-center gap-1 hover:text-gray-600">
+                <ChevronLeft size={16} /> Retour à l'accueil
             </Link>
         </div>
-
-        <div className="max-w-md mx-auto w-full bg-white p-8 rounded-2xl shadow-sm border border-gray-100 mt-12">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-brand/10 rounded-full flex items-center justify-center mx-auto mb-4 text-brand">
-              <LogIn size={32} />
-            </div>
-            <h1 className="text-2xl font-bold text-gray-900">
-                {isForgotPassword ? 'Récupération' : (isLogin ? 'Connexion' : 'Créer un compte')}
-            </h1>
-            <p className="text-gray-500 text-sm mt-2">Rejoignez la communauté Comores Market.</p>
-          </div>
-
-          {authError && (
-            <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2 border border-red-100 animate-in slide-in-from-top-1">
-                <AlertCircle size={16} /> {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            {!isLogin && !isForgotPassword && (
-              <div className="space-y-4 animate-in slide-in-from-top-2">
-                <div>
-                    <label className={labelStyle}>Nom complet</label>
-                    <input type="text" required className={inputStyle} placeholder="Ex: Ali Soilihi" value={authData.fullName} onChange={e => setAuthData({...authData, fullName: e.target.value})} autoComplete="name" />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className={labelStyle}>Île</label>
-                        <select className={inputStyle} value={authData.island} onChange={e => setAuthData({...authData, island: e.target.value})}>
-                            <option>Ngazidja</option>
-                            <option>Ndzouani</option>
-                            <option>Mwali</option>
-                            <option>Maore</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className={labelStyle}>Ville</label>
-                        <input type="text" required className={inputStyle} placeholder="Ex: Moroni" value={authData.city} onChange={e => setAuthData({...authData, city: e.target.value})} autoComplete="address-level2" />
-                    </div>
-                </div>
-
-                <div>
-                    <label className={labelStyle}>Téléphone WhatsApp</label>
-                    <div className="flex gap-2">
-                        <div className="w-1/3 relative">
-                            <select className={`${inputStyle} appearance-none pr-6 text-xs font-bold`} value={phonePrefix} onChange={(e) => setPhonePrefix(e.target.value)}>
-                                {PHONE_PREFIXES.map(p => (
-                                    <option key={p.label} value={p.code}>
-                                        {p.flag} {p.code}
-                                    </option>
-                                ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-500">
-                                <svg className="h-4 w-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                            </div>
-                        </div>
-                        <input type="tel" required className={`${inputStyle} w-2/3`} placeholder="333 44 55" value={authData.phone} onChange={e => setAuthData({...authData, phone: e.target.value})} autoComplete="tel-local" />
-                    </div>
-                </div>
-              </div>
-            )}
-            
-            <div>
-              <label className={labelStyle}>Email</label>
-              <input type="email" required className={inputStyle} placeholder="votre@email.com" value={authData.email} onChange={e => setAuthData({...authData, email: e.target.value})} autoComplete="email" />
-            </div>
-
-            {!isForgotPassword && (
-                <div className="relative">
-                <label className={labelStyle}>Mot de passe</label>
-                <input type={showPassword ? "text" : "password"} required minLength={6} className={inputStyle} placeholder="••••••••" value={authData.password} onChange={e => setAuthData({...authData, password: e.target.value})} autoComplete={isLogin ? "current-password" : "new-password"} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-9 text-gray-400 hover:text-gray-600">
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-                </div>
-            )}
-
-            {isLogin && !isForgotPassword && (
-                <div className="text-right">
-                    <button type="button" onClick={() => setIsForgotPassword(true)} className="text-xs text-brand font-bold hover:underline">
-                        Mot de passe oublié ?
-                    </button>
-                </div>
-            )}
-
-            <button type="submit" disabled={authLoading} className="w-full bg-brand text-white font-bold py-3 rounded-lg hover:bg-brand-dark transition shadow-md mt-2 disabled:opacity-70 flex justify-center">
-              {authLoading ? <Loader2 className="animate-spin" /> : (
-                  isForgotPassword ? 'Envoyer le lien' : (isLogin ? 'Se connecter' : "S'inscrire")
-              )}
-            </button>
-          </form>
-
-          <div className="text-center mt-6 text-sm text-gray-600">
-            {isForgotPassword ? (
-                <button onClick={() => setIsForgotPassword(false)} className="text-brand font-bold hover:underline">
-                    Retour à la connexion
-                </button>
-            ) : (
-                <>
-                    {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-                    <button onClick={() => {setIsLogin(!isLogin); setAuthError(null)}} className="text-brand font-bold ml-1 hover:underline">
-                        {isLogin ? "S'inscrire" : "Se connecter"}
-                    </button>
-                </>
-            )}
-          </div>
-        </div>
-      </div>
     )
   }
 
-  // VUE PUBLIER (code identique...)
+  const photosLimitReached = !isPro && images.length >= FREE_PHOTOS_LIMIT
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 font-sans">
-      <div className="bg-white p-4 sticky top-0 z-50 border-b border-gray-200 flex items-center justify-between pt-safe shadow-sm">
-        <button onClick={() => router.back()} className="text-gray-500 font-medium">Annuler</button>
-        <h1 className="font-bold text-lg">Déposer une annonce</h1>
-        <button onClick={handleSubmit} disabled={uploading} className="text-brand font-bold disabled:opacity-50">
-          {uploading ? '...' : 'Publier'}
+    <div className="min-h-screen bg-gray-50 font-sans pb-24">
+      
+      {/* Header */}
+      <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
+            <ChevronLeft size={24} />
         </button>
+        <h1 className="font-extrabold text-xl text-gray-900">Nouvelle annonce</h1>
+        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+            {isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}
+            {adsCount} / {isPro ? '∞' : FREE_ADS_LIMIT}
+        </div>
       </div>
 
-      <div className="max-w-md mx-auto p-4 space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm space-y-3 border border-gray-100">
-          <div className="flex justify-between items-center">
-             <label className={labelStyle}>Photos ({files.length}/{maxImages})</label>
-             {!profile?.is_pro && <span className="text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded font-bold">PRO = 10 photos</span>}
-          </div>
-          <div className="grid grid-cols-3 gap-3">
-            {files.length < maxImages && (
-                <label className="aspect-square bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-brand cursor-pointer hover:bg-brand/5 transition">
-                    <Camera size={24} />
-                    <span className="text-xs font-bold mt-1">Ajouter</span>
-                    <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
-                </label>
-            )}
-            {previews.map((src, index) => (
-                <div key={index} className="aspect-square relative rounded-lg overflow-hidden border border-gray-200 group">
-                    <Image src={src} alt="Aperçu" fill className="object-cover" />
-                    <button type="button" onClick={() => {setFiles(files.filter((_, i) => i !== index)); setPreviews(previews.filter((_, i) => i !== index))}} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition"><X size={14} /></button>
+      <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-md mx-auto">
+        
+        {/* Photos */}
+        <div className="space-y-2">
+            <div className="flex justify-between items-end">
+                <label className="text-sm font-bold text-gray-700 ml-1">Photos du produit</label>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${photosLimitReached ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>
+                    {images.length} / {isPro ? '∞' : FREE_PHOTOS_LIMIT}
+                </span>
+            </div>
+            
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+                {/* Bouton Ajouter Photo */}
+                <div 
+                    onClick={() => {
+                        if (photosLimitReached) {
+                            toast.error(`Passez PRO pour ajouter plus de ${FREE_PHOTOS_LIMIT} photos !`, { icon: <Lock size={16}/> })
+                        } else {
+                            fileInputRef.current?.click()
+                        }
+                    }} 
+                    className={`w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition group ${
+                        photosLimitReached 
+                        ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-50' 
+                        : 'bg-gray-100 border-gray-300 cursor-pointer hover:bg-gray-50 hover:border-brand/50'
+                    }`}
+                >
+                    {uploading ? (
+                        <Loader2 className="animate-spin text-brand" />
+                    ) : (
+                        <>
+                            {photosLimitReached ? <Lock className="text-gray-400" /> : <Camera className="text-gray-400 group-hover:text-brand" />}
+                            <span className="text-[10px] font-bold mt-1 text-gray-400 group-hover:text-brand">
+                                {photosLimitReached ? 'Limite' : 'Ajouter'}
+                            </span>
+                        </>
+                    )}
                 </div>
-            ))}
-          </div>
-        </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
-          <div><label className={labelStyle}>Titre</label><input type="text" required className={inputStyle} placeholder="Ex: Toyota Yaris" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-                <label className={labelStyle}>Catégorie</label>
-                <select className={inputStyle} value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})}>
-                    {Object.keys(SUB_CATEGORIES).map(cat => <option key={cat}>{cat}</option>)}
-                </select>
+                {/* Liste des images */}
+                {images.map((img, i) => (
+                    <div key={i} className="w-24 h-24 bg-gray-100 rounded-2xl relative shrink-0 overflow-hidden border border-gray-200 shadow-sm">
+                        <Image src={img} alt="" fill className="object-cover" />
+                        <button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition"><X size={12} /></button>
+                    </div>
+                ))}
             </div>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" disabled={photosLimitReached} />
+        </div>
+
+        {/* Info Principales */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div>
-                <label className={labelStyle}>Type</label>
-                <select className={inputStyle} value={formData.subCategory} onChange={e => setFormData({...formData, subCategory: e.target.value})}>
-                    {SUB_CATEGORIES[formData.category]?.map(sub => <option key={sub}>{sub}</option>)}
-                </select>
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Titre</label>
+                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
+                    <Type size={18} className="text-gray-400" />
+                    <input type="text" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: iPhone 12 Pro Max" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
+                </div>
             </div>
-          </div>
+
+            <div>
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label>
+                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
+                    <DollarSign size={18} className="text-gray-400" />
+                    <input type="number" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 150000" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
+                </div>
+            </div>
+
+            <div>
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Catégorie</label>
+                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
+                    <Tag size={18} className="text-gray-400" />
+                    <select className="w-full bg-transparent p-3 outline-none text-sm font-medium text-gray-700" value={formData.category_id} onChange={e => setFormData({...formData, category_id: e.target.value})}>
+                        <option value="1">Véhicules</option>
+                        <option value="2">Immobilier</option>
+                        <option value="3">Mode</option>
+                        <option value="4">Multimédia</option>
+                        <option value="5">Maison</option>
+                        <option value="6">Loisirs</option>
+                        <option value="7">Alimentation</option>
+                        <option value="8">Services</option>
+                        <option value="9">Beauté</option>
+                        <option value="10">Emploi</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
-          <div><label className={labelStyle}>Prix (KMF)</label><input type="number" required className={`${inputStyle} font-bold text-lg`} placeholder="0" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
-            <div><label className={labelStyle}>Île</label><select className={inputStyle} value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}><option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option></select></div>
-            <div><label className={labelStyle}>Ville</label><input type="text" required className={inputStyle} placeholder="Moroni" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /></div>
-          </div>
+        {/* Localisation & Contact */}
+        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label>
+                    <select className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})}>
+                        <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option>
+                    </select>
+                </div>
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Ville</label>
+                    <input type="text" className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" placeholder="Ex: Moroni" value={formData.location_city} onChange={e => setFormData({...formData, location_city: e.target.value})} />
+                </div>
+            </div>
+
+            <div>
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Numéro WhatsApp</label>
+                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
+                    <span className="text-gray-500 font-bold text-sm mr-1">KM</span>
+                    <input type="tel" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 332 00 00" value={formData.whatsapp_number} onChange={e => setFormData({...formData, whatsapp_number: e.target.value})} />
+                </div>
+            </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl shadow-sm space-y-5 border border-gray-100">
-          <div><label className={labelStyle}>Description</label><textarea rows={4} className={inputStyle} placeholder="Détails..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
-          <div><label className={labelStyle}>Téléphone (pour cette annonce)</label><input type="tel" required className={inputStyle} placeholder="+269..." value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} /></div>
+        {/* Description */}
+        <div>
+            <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Description détaillée</label>
+            {/* CORRECTION TAILWIND: min-h-30 au lieu de [120px] */}
+            <textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition min-h-30" placeholder="Décrivez votre produit..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
         </div>
 
-        <button onClick={handleSubmit} disabled={uploading} className="w-full bg-brand text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 text-lg hover:bg-brand-dark transition disabled:opacity-70">
-          {uploading ? 'Publication...' : "Publier l'annonce"}
+        <button type="submit" className="w-full bg-brand text-white font-bold py-4 rounded-xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2">
+            {loading ? <Loader2 className="animate-spin" /> : "Publier l'annonce"}
         </button>
-      </div>
+
+      </form>
     </div>
   )
 }
