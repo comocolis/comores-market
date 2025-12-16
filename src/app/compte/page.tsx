@@ -19,7 +19,7 @@ export default function ComptePage() {
 
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(true) // Commence à true
   const [saving, setSaving] = useState(false)
   
   const [avatarUploading, setAvatarUploading] = useState(false)
@@ -40,30 +40,22 @@ export default function ComptePage() {
   })
 
   useEffect(() => {
-    const getProfile = async () => {
+    const initPage = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser()
+        // 1. Vérification de la session
+        const { data: { session } } = await supabase.auth.getSession()
         
-        if (!user) { 
-            // Si pas connecté, on redirige vers l'auth
-            router.push('/auth')
-            return 
+        // 🚨 SI PAS CONNECTÉ : On redirige et ON NE FAIT RIEN D'AUTRE
+        if (!session) {
+            router.replace('/auth') // .replace est mieux que .push pour les redirections
+            return // On sort de la fonction, le loading reste à true
         }
         
-        setUser(user) 
+        // 2. Si connecté, on charge les infos
+        const currentUser = session.user
+        setUser(currentUser)
 
-        // Récupération du profil
-        const { data, error } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
-        
-        if (error) {
-            console.error("Erreur profil:", error)
-            // Si erreur (ex: pas de profil), on ne bloque pas tout
-        }
-
+        const { data } = await supabase.from('profiles').select('*').eq('id', currentUser.id).single()
         setProfile(data)
         
         if (data) {
@@ -74,20 +66,23 @@ export default function ComptePage() {
                 phone_number: data.phone_number || ''
             })
         }
+        
+        // 3. Tout est chargé, on affiche la page
+        setLoading(false)
+
       } catch (error) {
-        console.error("Erreur générale:", error)
-      } finally {
-        // QUOI QU'IL ARRIVE, on arrête le chargement
+        console.error("Erreur chargement:", error)
         setLoading(false)
       }
     }
-    getProfile()
+
+    initPage()
   }, [router, supabase])
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     toast.success("Déconnecté avec succès")
-    router.push('/auth') // Redirection vers auth
+    router.replace('/auth')
     router.refresh()
   }
 
@@ -107,19 +102,15 @@ export default function ComptePage() {
     try {
         const fileExt = file.name.split('.').pop()
         const fileName = `${user.id}-${Date.now()}.${fileExt}`
-        
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
         if (uploadError) throw uploadError
-        
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-        
         const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         if (updateError) throw updateError
-        
         setProfile({ ...profile, avatar_url: publicUrl })
         toast.success("Photo mise à jour !")
     } catch (error: any) {
-        toast.error("Erreur upload : " + error.message)
+        toast.error("Erreur upload")
     } finally {
         setAvatarUploading(false)
     }
@@ -168,6 +159,7 @@ export default function ComptePage() {
     : 0
   const isProActive = profile?.is_pro && daysRemaining > 0
 
+  // TANT QUE C'EST LOADING (ou redirection en cours), on affiche le spinner
   if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
