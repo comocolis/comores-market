@@ -161,9 +161,11 @@ export default function MarketplaceHome() {
                     <User className="text-white w-5 h-5" />
                 </Link>
             ) : (
-                <Link href="/publier" className="flex items-center gap-1.5 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold shadow-sm border border-white/10">
+
+                // APRÈS (Correction)
+               <Link href="/auth" className="flex items-center gap-1.5 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold shadow-sm border border-white/10">
                     <LogIn size={14} /> Connexion
-                </Link>
+               </Link>
             )}
           </div>
 
@@ -341,7 +343,7 @@ export default function MarketplaceHome() {
       {/* --- NAVIGATION BAS --- */}
      
 
-     
+
     </main>
   )
 }
