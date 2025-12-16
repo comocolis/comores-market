@@ -43,8 +43,7 @@ export default function AuthPage() {
             throw new Error("Le numéro de téléphone est obligatoire.")
         }
 
-        // 2. Construction du numéro complet (Ex: +2693320000)
-        // On enlève le 0 au début si l'utilisateur l'a mis (ex: 06...)
+        // 2. Construction du numéro complet
         const cleanBody = formData.phoneBody.replace(/^0/, '').replace(/\D/g, '')
         const fullPhone = `${selectedCountry.code}${cleanBody}`
 
@@ -55,8 +54,8 @@ export default function AuthPage() {
           options: {
             data: { 
                 full_name: formData.fullName,
-                phone_number: fullPhone, // On sauvegarde le numéro
-                country_origin: selectedCountry.label // Optionnel : pour savoir d'où il vient
+                phone_number: fullPhone,
+                country_origin: selectedCountry.label
             }
           }
         })
