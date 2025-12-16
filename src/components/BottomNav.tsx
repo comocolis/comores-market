@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react' // CHANGEMENT ICI: Heart au lieu de Search
+import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react'
 
 export default function BottomNav() {
   const supabase = createClient()
@@ -13,7 +13,10 @@ export default function BottomNav() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
+  // 1. DÉTECTION DES PAGES OÙ MASQUER LA BARRE
+  // On cache si : on est dans un chat (id) OU si on est sur la page de connexion (/auth)
   const isChatOpen = pathname === '/messages' && searchParams.get('id');
+  const isAuthPage = pathname === '/auth';
 
   useEffect(() => {
     const init = async () => {
@@ -45,14 +48,13 @@ export default function BottomNav() {
     return () => { supabase.removeChannel(channel) }
   }, [userId])
 
-  if (isChatOpen) return null;
+  // 🚀 SI CHAT OUVERT OU PAGE AUTH -> ON RENVOIE NULL (RIEN NE S'AFFICHE)
+  if (isChatOpen || isAuthPage) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
-        
-        {/* REMPLACEMENT RECHERCHE PAR FAVORIS */}
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
         <div className="flex justify-center relative -top-6">
