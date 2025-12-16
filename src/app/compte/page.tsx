@@ -41,23 +41,45 @@ export default function ComptePage() {
 
   useEffect(() => {
     const getProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/auth'); return }
-      
-      setUser(user) 
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        if (!user) { 
+            // Si pas connecté, on redirige vers l'auth
+            router.push('/auth')
+            return 
+        }
+        
+        setUser(user) 
 
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setProfile(data)
-      
-      if (data) {
-        setFormData({
-            full_name: data.full_name || '',
-            city: data.city || '',
-            island: data.island || 'Ngazidja',
-            phone_number: data.phone_number || ''
-        })
+        // Récupération du profil
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id)
+            .single()
+        
+        if (error) {
+            console.error("Erreur profil:", error)
+            // Si erreur (ex: pas de profil), on ne bloque pas tout
+        }
+
+        setProfile(data)
+        
+        if (data) {
+            setFormData({
+                full_name: data.full_name || '',
+                city: data.city || '',
+                island: data.island || 'Ngazidja',
+                phone_number: data.phone_number || ''
+            })
+        }
+      } catch (error) {
+        console.error("Erreur générale:", error)
+      } finally {
+        // QUOI QU'IL ARRIVE, on arrête le chargement
+        setLoading(false)
       }
-      setLoading(false)
     }
     getProfile()
   }, [router, supabase])
@@ -65,7 +87,7 @@ export default function ComptePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     toast.success("Déconnecté avec succès")
-    router.push('/')
+    router.push('/auth') // Redirection vers auth
     router.refresh()
   }
 
@@ -85,15 +107,19 @@ export default function ComptePage() {
     try {
         const fileExt = file.name.split('.').pop()
         const fileName = `${user.id}-${Date.now()}.${fileExt}`
+        
         const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
         if (uploadError) throw uploadError
+        
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+        
         const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         if (updateError) throw updateError
+        
         setProfile({ ...profile, avatar_url: publicUrl })
         toast.success("Photo mise à jour !")
     } catch (error: any) {
-        toast.error("Erreur upload")
+        toast.error("Erreur upload : " + error.message)
     } finally {
         setAvatarUploading(false)
     }
@@ -186,7 +212,7 @@ export default function ComptePage() {
 
       <div className="px-4 -mt-4 relative z-0 space-y-5 pt-8">
         
-        {/* BOUTON ADMIN (Visible seulement pour l'admin) */}
+        {/* BOUTON ADMIN */}
         {user?.email === ADMIN_EMAIL && (
              <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-gray-900/20 active:scale-95 transition border border-gray-700">
                 <div className="flex items-center gap-3">
