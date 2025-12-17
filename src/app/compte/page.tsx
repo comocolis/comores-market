@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
   PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save,
-  Facebook, Instagram, Crown 
+  Facebook, Instagram, Crown, AlertTriangle, Trash2 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -22,6 +22,7 @@ export default function ComptePage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState(false) // État pour la suppression
   
   const [avatarUploading, setAvatarUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -71,6 +72,34 @@ export default function ComptePage() {
     await supabase.auth.signOut()
     router.push('/auth')
     router.refresh()
+  }
+
+  // --- NOUVEAU : FONCTION DE SUPPRESSION DE COMPTE ---
+  const handleDeleteAccount = async () => {
+      const confirmMessage = "⚠️ Êtes-vous sûr de vouloir supprimer votre compte ?\n\nCette action est IRRÉVERSIBLE. Toutes vos annonces, messages et données seront effacés immédiatement."
+      if (!window.confirm(confirmMessage)) return
+
+      // Double confirmation pour éviter les accidents
+      const doubleCheck = window.prompt("Pour confirmer, tapez 'SUPPRIMER' ci-dessous :")
+      if (doubleCheck !== 'SUPPRIMER') {
+          toast.error("Suppression annulée (mot-clé incorrect)")
+          return
+      }
+
+      setDeleting(true)
+      
+      // Appel de la fonction RPC SQL
+      const { error } = await supabase.rpc('delete_own_account')
+
+      if (error) {
+          toast.error("Erreur lors de la suppression : " + error.message)
+          setDeleting(false)
+      } else {
+          toast.success("Votre compte a été supprimé. Au revoir !")
+          await supabase.auth.signOut()
+          router.push('/')
+          router.refresh()
+      }
   }
 
   const handleAvatarClick = () => {
@@ -256,9 +285,6 @@ export default function ComptePage() {
                     {isEditingInfo ? <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} /> : <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50 tracking-wide">{profile?.phone_number || <span className="text-gray-400 italic">Non renseigné</span>}</p>}
                 </div>
                 
-                {/* --- SECTION RESEAUX SOCIAUX --- */}
-                {/* Condition : Si PRO Actif => On affiche les champs, sinon => Message verrouillé */}
-                
                 <div className="grid grid-cols-2 gap-3 pt-2">
                     {isProActive ? (
                         <>
@@ -329,6 +355,24 @@ export default function ComptePage() {
                     </div>
                 </form>
             )}
+        </div>
+
+        {/* --- ZONE DE DANGER (SUPPRESSION) --- */}
+        <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-100 space-y-4">
+            <div className="flex items-center gap-2 text-red-600">
+                <AlertTriangle size={20} />
+                <h3 className="font-bold text-sm">Zone de Danger</h3>
+            </div>
+            <p className="text-xs text-red-500 leading-relaxed">
+                La suppression de votre compte est définitive. Toutes vos données seront effacées.
+            </p>
+            <button 
+                onClick={handleDeleteAccount} 
+                disabled={deleting}
+                className="w-full bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm hover:bg-red-600 hover:text-white transition flex items-center justify-center gap-2"
+            >
+                {deleting ? <Loader2 className="animate-spin" size={16} /> : <><Trash2 size={16} /> Supprimer mon compte</>}
+            </button>
         </div>
 
         <div className="pt-4 pb-8 text-center">
