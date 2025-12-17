@@ -1,8 +1,13 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #22c55e;
-  --color-brand-dark: #16a34a;
+  /* Vert Comores : Plus profond et riche */
+  --color-brand: #16a34a; 
+  --color-brand-dark: #15803d;
+  
+  /* Jaune Moutarde : Chaud et distinctif */
+  --color-mustard: #fbbf24; 
+  --color-mustard-dark: #d97706;
 }
 
 body {
