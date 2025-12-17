@@ -4,11 +4,11 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, Filter, X } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Filter } from 'lucide-react'
 
-// MÊME LISTE QUE DANS PUBLIER (Cohérence)
+// --- CONSTANTES UNIFIÉES ---
 const CATEGORIES = [
-  { id: 0, label: 'Tout', icon: '🔍' }, // 0 = Pas de filtre
+  { id: 0, label: 'Tout', icon: '🔍' },
   { id: 1, label: 'Véhicules', icon: '🚗' },
   { id: 2, label: 'Immobilier', icon: '🏠' },
   { id: 3, label: 'Mode', icon: '👕' },
@@ -21,6 +21,19 @@ const CATEGORIES = [
   { id: 10, label: 'Emploi', icon: '💼' },
 ]
 
+const SUB_CATEGORIES: { [key: number]: string[] } = {
+  1: ['Voitures', 'Motos', 'Pièces Détachées', 'Location', 'Camions', 'Bateaux'],
+  2: ['Vente Maison', 'Vente Terrain', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Colocation'],
+  3: ['Vêtements Homme', 'Vêtements Femme', 'Enfant & Bébé', 'Chaussures', 'Montres & Bijoux', 'Sacs & Accessoires'],
+  4: ['Téléphones', 'Ordinateurs', 'Audio & Son', 'Appareils Photo', 'Accessoires Info', 'Consoles & Jeux'],
+  5: ['Meubles', 'Décoration', 'Électroménager', 'Bricolage', 'Jardin', 'Linge de maison'],
+  6: ['Sports', 'Instruments de musique', 'Livres', 'Vélos', 'Voyages & Billets'],
+  7: ['Fruits & Légumes', 'Plats cuisinés', 'Épicerie', 'Boissons', 'Produits frais'],
+  8: ['Cours & Formations', 'Réparations', 'Déménagement', 'Événements', 'Ménage & Aide'],
+  9: ['Parfums', 'Maquillage', 'Soins Visage & Corps', 'Coiffure', 'Matériel Pro'],
+  10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
+}
+
 const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion']
 
 export default function HomePage() {
@@ -32,7 +45,13 @@ export default function HomePage() {
   // Filtres
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(0) // 0 = Tout
+  const [selectedSubCategory, setSelectedSubCategory] = useState('Tout')
   const [selectedIsland, setSelectedIsland] = useState('Tout')
+
+  // Reset sous-catégorie quand on change de catégorie
+  useEffect(() => {
+    setSelectedSubCategory('Tout')
+  }, [selectedCategory])
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -43,9 +62,12 @@ export default function HomePage() {
         .select('*')
         .order('created_at', { ascending: false })
 
-      // Application des filtres
       if (selectedCategory !== 0) {
         query = query.eq('category_id', selectedCategory)
+        // Ajout filtre sous-catégorie
+        if (selectedSubCategory !== 'Tout') {
+            query = query.eq('sub_category', selectedSubCategory)
+        }
       }
 
       if (selectedIsland !== 'Tout') {
@@ -63,16 +85,18 @@ export default function HomePage() {
       setLoading(false)
     }
 
-    // Petit délai pour éviter de spammer la base pendant la frappe
     const timer = setTimeout(fetchProducts, 400)
     return () => clearTimeout(timer)
-  }, [selectedCategory, selectedIsland, searchTerm, supabase])
+  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, supabase])
+
+  // Liste des sous-catégories actives
+  const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      {/* HEADER & RECHERCHE */}
-      <div className="bg-brand pt-safe px-4 pb-6 sticky top-0 z-30 shadow-md">
+      {/* HEADER */}
+      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="text-white font-extrabold text-2xl tracking-tight">Comores<span className="text-white/80">Market</span></h1>
             <Link href="/auth" className="flex items-center gap-1.5 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold shadow-sm border border-white/10">
@@ -83,7 +107,7 @@ export default function HomePage() {
         <div className="relative">
             <input 
                 type="text" 
-                placeholder="Rechercher une bonne affaire..." 
+                placeholder="Que cherchez-vous ?" 
                 className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-white/20 transition shadow-sm text-gray-900 placeholder:text-gray-400"
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -93,15 +117,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* FILTRES CATÉGORIES (Scroll Horizontal) */}
-      {/* CORRECTION ICI : top-30 au lieu de top-[120px] */}
+      {/* FILTRES NIVEAU 1 : CATÉGORIES */}
       <div className="bg-white border-b border-gray-100 py-3 sticky top-30 z-20 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
                 <button 
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
-                    /* CORRECTION ICI : min-w-17.5 au lieu de min-w-[70px] */
                     className={`flex flex-col items-center gap-1 min-w-17.5 p-2 rounded-xl transition active:scale-95 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand font-bold border border-brand/20' : 'text-gray-500 hover:bg-gray-50'}`}
                 >
                     <span className="text-2xl">{cat.icon}</span>
@@ -109,9 +131,30 @@ export default function HomePage() {
                 </button>
             ))}
         </div>
+        
+        {/* FILTRES NIVEAU 2 : SOUS-CATÉGORIES (Si catégorie sélectionnée) */}
+        {currentSubCats && currentSubCats.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto px-4 mt-3 pb-1 scrollbar-hide animate-in slide-in-from-top-2 fade-in">
+                <button 
+                    onClick={() => setSelectedSubCategory('Tout')}
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border whitespace-nowrap transition ${selectedSubCategory === 'Tout' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-600 border-gray-200'}`}
+                >
+                    Tout voir
+                </button>
+                {currentSubCats.map(sub => (
+                    <button 
+                        key={sub}
+                        onClick={() => setSelectedSubCategory(sub)}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border whitespace-nowrap transition ${selectedSubCategory === sub ? 'bg-brand text-white border-brand' : 'bg-white text-gray-600 border-gray-200'}`}
+                    >
+                        {sub}
+                    </button>
+                ))}
+            </div>
+        )}
       </div>
 
-      {/* FILTRE ÎLES */}
+      {/* FILTRES NIVEAU 3 : ÎLES */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {ISLANDS.map(ile => (
             <button 
@@ -124,7 +167,7 @@ export default function HomePage() {
         ))}
       </div>
 
-      {/* LISTE PRODUITS */}
+      {/* RÉSULTATS */}
       <div className="px-4 py-2 space-y-3">
         {loading ? (
             <div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2">
@@ -138,7 +181,7 @@ export default function HomePage() {
                 </div>
                 <p>Aucune annonce trouvée.</p>
                 <button onClick={() => {setSearchTerm(''); setSelectedCategory(0); setSelectedIsland('Tout')}} className="mt-4 text-brand font-bold text-sm hover:underline">
-                    Effacer les filtres
+                    Tout effacer
                 </button>
             </div>
         ) : (

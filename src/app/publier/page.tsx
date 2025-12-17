@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
-import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers, Phone, Ban } from 'lucide-react'
+import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers, Phone, Ban, Mail, MessageCircle, AlertCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -14,6 +14,7 @@ const CATEGORIES_LIST = [
   { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
 ]
 
+// MÊME LISTE EXACTE QUE PAGE D'ACCUEIL POUR COHÉRENCE
 const SUB_CATEGORIES: { [key: number]: string[] } = {
   1: ['Voitures', 'Motos', 'Pièces Détachées', 'Location', 'Camions', 'Bateaux'],
   2: ['Vente Maison', 'Vente Terrain', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Colocation'],
@@ -27,12 +28,9 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
 }
 
-const isValidPhoneNumber = (phone: string) => {
-  const clean = phone.replace(/[\s\-\.]/g, '')
-  const comorosRegex = /^(?:\+269|00269)?3[234]\d{5}$/
-  const franceRegex = /^(?:\+33|0033|0)[67]\d{8}$/
-  return comorosRegex.test(clean) || franceRegex.test(clean)
-}
+// Support Contact
+const SUPPORT_EMAIL = "abdesisco1@gmail.com"
+const SUPPORT_WA = "2693320000" // Mettre le vrai numéro admin ici
 
 export default function PublierPage() {
   const supabase = createClient()
@@ -64,11 +62,11 @@ export default function PublierPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
 
-      // Récupération IsPro + IsBanned
       const { data: profile } = await supabase.from('profiles').select('is_pro, is_banned, phone_number').eq('id', user.id).single()
       setIsPro(profile?.is_pro || false)
       setIsBanned(profile?.is_banned || false)
       
+      // On force le numéro du profil
       if (profile?.phone_number) {
         setFormData(prev => ({ ...prev, whatsapp_number: profile.phone_number }))
       }
@@ -83,16 +81,12 @@ export default function PublierPage() {
 
   const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
 
-  // GESTION DU MULTI-UPLOAD
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
-    
-    // Convertir FileList en Array
     const files = Array.from(e.target.files)
     
-    // Vérification de la limite totale (existantes + nouvelles)
     if (images.length + files.length > currentPhotoLimit) {
-        toast.error(`Vous ne pouvez ajouter que ${currentPhotoLimit} photos au total.`, { icon: <Lock size={16}/> })
+        toast.error(`Limite de ${currentPhotoLimit} photos atteinte.`, { icon: <Lock size={16}/> })
         return
     }
     
@@ -100,24 +94,19 @@ export default function PublierPage() {
     const newImages: string[] = []
 
     try {
-      // Upload en parallèle
       await Promise.all(files.map(async (file) => {
           const fileExt = file.name.split('.').pop()
           const fileName = `${Math.random()}.${fileExt}`
-          
           const { error: uploadError } = await supabase.storage.from('products').upload(fileName, file)
           if (uploadError) throw uploadError
-          
           const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
           newImages.push(publicUrl)
       }))
-      
       setImages(prev => [...prev, ...newImages])
     } catch (error: any) {
       toast.error('Erreur upload: ' + error.message)
     } finally {
       setUploading(false)
-      // Reset input pour permettre de ré-uploader les mêmes fichiers si besoin
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -129,19 +118,10 @@ export default function PublierPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
-    if (isBanned) {
-        toast.error("Action impossible : Votre compte est suspendu.", {
-            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
-        })
-        return
-    }
+    if (isBanned) return
 
     if (!formData.title || !formData.price || images.length === 0 || !formData.sub_category) {
-        toast.error("Veuillez remplir tous les champs obligatoires et ajouter une photo.")
-        return
-    }
-    if (formData.whatsapp_number && !isValidPhoneNumber(formData.whatsapp_number)) {
-        toast.error("Numéro invalide. Utilisez un numéro Comores (+269) ou France (+33).")
+        toast.error("Veuillez remplir tous les champs et ajouter une photo.")
         return
     }
 
@@ -159,7 +139,7 @@ export default function PublierPage() {
             location_island: formData.location_island,
             location_city: formData.location_city,
             images: JSON.stringify(images),
-            whatsapp_number: formData.whatsapp_number
+            whatsapp_number: formData.whatsapp_number // On envoie le numéro (même s'il est verrouillé dans l'UI)
         })
 
         if (error) {
@@ -174,15 +154,25 @@ export default function PublierPage() {
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
-  // ECRAN UTILISATEUR BANNI
+  // --- ECRAN BANNI AVEC CONTACT SUPPORT ---
   if (isBanned) {
     return (
         <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center p-6 text-center font-sans">
             <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-red-100">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600"><Ban size={32} /></div>
                 <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Compte Suspendu</h1>
-                <p className="text-gray-500 mb-6 text-sm">Vous ne pouvez plus publier d'annonces car votre compte a été suspendu pour non-respect des règles.</p>
-                <Link href="/compte" className="text-sm text-gray-400 font-medium hover:text-gray-600 underline">Retour à mon compte</Link>
+                <p className="text-gray-500 mb-6 text-sm">Votre compte a été suspendu. Pour contester cette décision, contactez le support.</p>
+                
+                <div className="space-y-3">
+                    <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center justify-center gap-2 w-full bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold py-3 rounded-xl transition">
+                        <Mail size={18} /> Contacter par Email
+                    </a>
+                    <a href={`https://wa.me/${SUPPORT_WA}`} target="_blank" className="flex items-center justify-center gap-2 w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-green-500/20">
+                        <MessageCircle size={18} /> Contacter sur WhatsApp
+                    </a>
+                </div>
+                
+                <Link href="/compte" className="block mt-6 text-sm text-gray-400 hover:underline">Retour à mon compte</Link>
             </div>
         </div>
     )
@@ -196,9 +186,9 @@ export default function PublierPage() {
             <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500"><Lock size={32} /></div>
                 <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Limite atteinte</h1>
-                <p className="text-gray-500 mb-6 text-sm">Vous avez atteint la limite de <strong>{FREE_ADS_LIMIT} annonces gratuites</strong>. Passez PRO pour publier en illimité !</p>
+                <p className="text-gray-500 mb-6 text-sm">Limite de <strong>{FREE_ADS_LIMIT} annonces</strong> atteinte. Passez PRO pour l'illimité.</p>
                 <Link href="/pro" className="block w-full bg-brand text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 hover:scale-[1.02] transition mb-4">Devenir Vendeur PRO 🚀</Link>
-                <Link href="/mes-annonces" className="text-sm text-gray-400 font-medium hover:text-gray-600 underline">Gérer mes annonces</Link>
+                <Link href="/mes-annonces" className="text-sm text-gray-400 hover:text-gray-600 underline">Gérer mes annonces</Link>
             </div>
             <Link href="/" className="mt-8 text-gray-400 text-sm flex items-center gap-1 hover:text-gray-600"><ChevronLeft size={16} /> Retour à l'accueil</Link>
         </div>
@@ -229,7 +219,6 @@ export default function PublierPage() {
                     <div key={i} className="w-24 h-24 bg-gray-100 rounded-2xl relative shrink-0 overflow-hidden border border-gray-200 shadow-sm"><Image src={img} alt="" fill className="object-cover" /><button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition"><X size={12} /></button></div>
                 ))}
             </div>
-            {/* AJOUT DE 'multiple' ICI */}
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" disabled={photosLimitReached} multiple />
         </div>
 
@@ -247,7 +236,24 @@ export default function PublierPage() {
                 <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label><select className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})}><option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option><option>La Réunion</option></select></div>
                 <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Ville</label><input type="text" className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" placeholder="Ex: Moroni" value={formData.location_city} onChange={e => setFormData({...formData, location_city: e.target.value})} /></div>
             </div>
-            <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Numéro WhatsApp</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand transition"><Phone size={18} className="text-gray-400 mr-2" /><input type="tel" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 332 00 00" value={formData.whatsapp_number} onChange={e => setFormData({...formData, whatsapp_number: e.target.value})} /></div></div>
+            {/* WHATSAPP VERROUILLÉ */}
+            <div>
+                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 flex justify-between items-center">
+                    Numéro WhatsApp
+                    <Link href="/compte" className="text-[10px] text-brand hover:underline flex items-center gap-1"><AlertCircle size={10} /> Modifier</Link>
+                </label>
+                <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 opacity-80 cursor-not-allowed">
+                    <Phone size={18} className="text-gray-400 mr-2" />
+                    <input 
+                        type="tel" 
+                        className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-600 cursor-not-allowed" 
+                        value={formData.whatsapp_number} 
+                        readOnly 
+                        disabled
+                    />
+                    <Lock size={14} className="text-gray-400 ml-2" />
+                </div>
+            </div>
         </div>
 
         <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Description</label><textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition min-h-30" placeholder="Décrivez votre produit..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
