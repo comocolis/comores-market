@@ -14,7 +14,6 @@ const CATEGORIES_LIST = [
   { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
 ]
 
-// MÊME LISTE EXACTE QUE PAGE D'ACCUEIL POUR COHÉRENCE
 const SUB_CATEGORIES: { [key: number]: string[] } = {
   1: ['Voitures', 'Motos', 'Pièces Détachées', 'Location', 'Camions', 'Bateaux'],
   2: ['Vente Maison', 'Vente Terrain', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Colocation'],
@@ -28,9 +27,17 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
 }
 
-// Support Contact
-const SUPPORT_EMAIL = "abdesisco1@gmail.com"
-const SUPPORT_WA = "2693320000" // Mettre le vrai numéro admin ici
+// SUPPORT CONTACT
+const SUPPORT_EMAIL = "contact.comoresmarket@gmail.com"
+// MODIFICATION ICI : Nouveau numéro formaté pour le lien wa.me (33758760743)
+const SUPPORT_WA = "33758760743" 
+
+const isValidPhoneNumber = (phone: string) => {
+  const clean = phone.replace(/[\s\-\.]/g, '')
+  const comorosRegex = /^(?:\+269|00269)?3[234]\d{5}$/
+  const franceRegex = /^(?:\+33|0033|0)[67]\d{8}$/
+  return comorosRegex.test(clean) || franceRegex.test(clean)
+}
 
 export default function PublierPage() {
   const supabase = createClient()
@@ -66,7 +73,6 @@ export default function PublierPage() {
       setIsPro(profile?.is_pro || false)
       setIsBanned(profile?.is_banned || false)
       
-      // On force le numéro du profil
       if (profile?.phone_number) {
         setFormData(prev => ({ ...prev, whatsapp_number: profile.phone_number }))
       }
@@ -124,6 +130,10 @@ export default function PublierPage() {
         toast.error("Veuillez remplir tous les champs et ajouter une photo.")
         return
     }
+    if (formData.whatsapp_number && !isValidPhoneNumber(formData.whatsapp_number)) {
+        toast.error("Numéro invalide. Utilisez un numéro Comores (+269) ou France (+33).")
+        return
+    }
 
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -139,7 +149,7 @@ export default function PublierPage() {
             location_island: formData.location_island,
             location_city: formData.location_city,
             images: JSON.stringify(images),
-            whatsapp_number: formData.whatsapp_number // On envoie le numéro (même s'il est verrouillé dans l'UI)
+            whatsapp_number: formData.whatsapp_number
         })
 
         if (error) {
@@ -186,7 +196,7 @@ export default function PublierPage() {
             <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
                 <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-500"><Lock size={32} /></div>
                 <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Limite atteinte</h1>
-                <p className="text-gray-500 mb-6 text-sm">Limite de <strong>{FREE_ADS_LIMIT} annonces</strong> atteinte. Passez PRO pour l'illimité.</p>
+                <p className="text-gray-500 mb-6 text-sm">Vous avez atteint la limite de <strong>{FREE_ADS_LIMIT} annonces gratuites</strong>. Passez PRO pour publier en illimité !</p>
                 <Link href="/pro" className="block w-full bg-brand text-white font-bold py-4 rounded-xl shadow-lg shadow-brand/20 hover:scale-[1.02] transition mb-4">Devenir Vendeur PRO 🚀</Link>
                 <Link href="/mes-annonces" className="text-sm text-gray-400 hover:text-gray-600 underline">Gérer mes annonces</Link>
             </div>
