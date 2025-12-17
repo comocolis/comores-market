@@ -4,11 +4,16 @@ import { createClient } from '@/utils/supabase/client'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
+
+// 1. IMPORT CORRECT DU LIEN DE NAVIGATION
+import Link from 'next/link' 
+
+// 2. RETIRE "Link" DE CETTE LISTE
 import { 
   MapPin, Calendar, User, ShieldCheck, ArrowLeft, Loader2, 
-  Package, Facebook, Instagram, Star, MessageSquare, Plus, X, 
-  Link
+  Package, Facebook, Instagram, Star, MessageSquare, Plus, X 
 } from 'lucide-react'
+
 import { toast } from 'sonner'
 
 export default function PublicProfilePage() {
