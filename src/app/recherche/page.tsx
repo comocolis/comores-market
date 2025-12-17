@@ -4,10 +4,12 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Search, MapPin, Loader2, ArrowLeft } from 'lucide-react'
+import { Search, MapPin, Loader2, ArrowLeft, Package, Crown, ShieldCheck } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 export default function RecherchePage() {
   const supabase = createClient()
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -18,10 +20,12 @@ export default function RecherchePage() {
       if (query.length < 2) { setResults([]); return }
       setLoading(true)
       
+      // CHANGEMENT ICI : On utilise la vue pour avoir le status is_pro
       const { data } = await supabase
-        .from('products')
+        .from('products_with_details') 
         .select('*')
         .ilike('title', `%${query}%`) // Recherche flexible
+        .order('is_pro', { ascending: false }) // Les PROs en premier dans la recherche aussi
         .limit(20)
       
       setResults(data || [])
@@ -36,8 +40,11 @@ export default function RecherchePage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* Header Recherche */}
-      <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe">
-        <h1 className="text-2xl font-extrabold text-gray-900 mb-4">Recherche</h1>
+      <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex flex-col gap-4">
+        <div className="flex items-center gap-2">
+            <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ArrowLeft size={24} /></button>
+            <h1 className="text-xl font-extrabold text-gray-900">Recherche</h1>
+        </div>
         <div className="relative">
             <input 
                 type="text" 
@@ -58,14 +65,35 @@ export default function RecherchePage() {
         ) : results.length > 0 ? (
             results.map(product => {
                 let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+                const isPro = product.is_pro // Récupéré via la vue
+
                 return (
-                    <Link key={product.id} href={`/annonce/${product.id}`} className="bg-white p-3 rounded-xl flex gap-4 shadow-sm border border-gray-100 active:scale-[0.99] transition">
+                    <Link 
+                        key={product.id} 
+                        href={`/annonce/${product.id}`} 
+                        className={`p-3 rounded-xl flex gap-4 shadow-sm border active:scale-[0.99] transition ${
+                            isPro 
+                            ? 'bg-yellow-50/40 border-yellow-400 ring-1 ring-yellow-400/20' 
+                            : 'bg-white border-gray-100'
+                        }`}
+                    >
                         <div className="w-20 h-20 bg-gray-100 rounded-lg relative overflow-hidden shrink-0">
                             {img && <Image src={img} alt="" fill className="object-cover" />}
+                            {/* Petit badge PRO sur l'image */}
+                            {isPro && (
+                                <div className="absolute top-1 left-1 bg-yellow-400 text-black px-1.5 py-0.5 rounded text-[8px] font-black shadow-sm flex items-center gap-0.5">
+                                    <Crown size={8} strokeWidth={3} /> PRO
+                                </div>
+                            )}
                         </div>
-                        <div>
-                            <h3 className="font-bold text-gray-900 line-clamp-1">{product.title}</h3>
-                            <p className="text-brand font-extrabold">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p>
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                            <h3 className="font-bold text-gray-900 line-clamp-1 flex items-center gap-1">
+                                {product.title}
+                                {isPro && <ShieldCheck size={14} className="text-yellow-500 fill-yellow-100 shrink-0" />}
+                            </h3>
+                            <p className={`font-extrabold ${isPro ? 'text-yellow-600' : 'text-brand'}`}>
+                                {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
+                            </p>
                             <div className="flex items-center gap-1 text-gray-400 text-xs mt-1">
                                 <MapPin size={12} /> {product.location_city}
                             </div>
