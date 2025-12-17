@@ -140,8 +140,10 @@ export default function HomePage() {
       )}
 
       {/* --- MODALE FILTRES (NOUVEAU DESIGN) --- */}
+      {/* --- MODALE FILTRES (NOUVEAU DESIGN) --- */}
       {showFilters && (
-        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300" onClick={() => setShowFilters(false)}>
+        // CORRECTION ICI : Changement de z-50 à z-[60] pour passer au-dessus du footer (z-50)
+        <div className="fixed inset-0 z-60 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300" onClick={() => setShowFilters(false)}>
             <div className="bg-white w-full max-w-md rounded-t-4xl sm:rounded-3xl p-6 shadow-2xl space-y-6 animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
                 
                 {/* Header Modale */}
