@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, ChangeEvent } from 'react'
 import { Loader2, Camera, X } from 'lucide-react'
 import Image from 'next/image'
+import { toast } from 'sonner' // Ajout de Sonner
 
 export default function ModifierPage({ params }: { params: Promise<{ id: string }> }) {
   const supabase = createClient()
@@ -24,10 +25,16 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/publier'); return }
       const { data: product } = await supabase.from('products').select('*').eq('id', id).single()
-      if (product.user_id !== user.id) { alert("Accès refusé"); router.push('/'); return }
+      
+      // Sécurité : Vérifier le propriétaire
+      if (product.user_id !== user.id) { 
+          toast.error("Accès refusé. Ce n'est pas votre annonce.") // Remplacé alert
+          router.push('/')
+          return 
+      }
       
       setFormData({
-        title: product.title, price: product.price, category: 'Véhicules', // Simple default
+        title: product.title, price: product.price, category: 'Véhicules',
         island: product.location_island, city: product.location_city, 
         description: product.description, phone: product.whatsapp_number
       })
@@ -62,9 +69,17 @@ export default function ModifierPage({ params }: { params: Promise<{ id: string 
         description: formData.description, whatsapp_number: formData.phone,
         images: JSON.stringify(finalImages)
       }).eq('id', productId)
+      
       if (error) throw error
-      alert("Modifié !"); router.push('/compte')
-    } catch (e: any) { alert(e.message) } finally { setUploading(false) }
+      
+      toast.success("Annonce modifiée avec succès !") // Remplacé alert
+      router.push('/compte')
+      
+    } catch (e: any) { 
+        toast.error("Erreur : " + e.message) // Remplacé alert
+    } finally { 
+        setUploading(false) 
+    }
   }
 
   if (loading || !formData) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
