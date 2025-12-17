@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -26,6 +26,14 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
 }
 
 const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion']
+
+// NOUVEAU : Suggestions de budget rapide
+const BUDGET_CHIPS = [
+    { label: '< 10k', min: '', max: '10000' },
+    { label: '10k - 50k', min: '10000', max: '50000' },
+    { label: '50k - 200k', min: '50000', max: '200000' },
+    { label: '> 200k', min: '200000', max: '' },
+]
 
 export default function HomePage() {
   const supabase = createClient()
@@ -102,6 +110,12 @@ export default function HomePage() {
     setPreviewImage(img)
   }
 
+  // Appliquer un budget rapide
+  const applyBudget = (min: string, max: string) => {
+      setPriceMin(min)
+      setPriceMax(max)
+  }
+
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
@@ -125,31 +139,75 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- MODALE FILTRES --- */}
+      {/* --- MODALE FILTRES (NOUVEAU DESIGN) --- */}
       {showFilters && (
-        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in" onClick={() => setShowFilters(false)}>
-            <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-xl space-y-5 animate-in slide-in-from-bottom-5" onClick={e => e.stopPropagation()}>
-                <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-lg text-gray-900">Filtres</h3>
-                    <button onClick={() => setShowFilters(false)} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300" onClick={() => setShowFilters(false)}>
+            <div className="bg-white w-full max-w-md rounded-t-4xl sm:rounded-3xl p-6 shadow-2xl space-y-6 animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
+                
+                {/* Header Modale */}
+                <div className="flex justify-between items-center border-b border-gray-50 pb-4">
+                    <div>
+                        <h3 className="font-extrabold text-xl text-gray-900 tracking-tight">Filtrer par prix</h3>
+                        <p className="text-xs text-gray-400 font-medium mt-0.5">Définissez votre budget en KMF</p>
+                    </div>
+                    <button onClick={() => {setPriceMin(''); setPriceMax('')}} className="p-2 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full transition active:scale-90" title="Réinitialiser">
+                        <RefreshCw size={18} />
+                    </button>
                 </div>
                 
+                {/* Inputs Unifiés */}
                 <div>
-                    <label className="text-sm font-bold text-gray-500 mb-2 block">Budget (KMF)</label>
-                    <div className="flex gap-3">
-                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand">
-                            <span className="text-[10px] text-gray-400 uppercase font-bold">Min</span>
-                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900" placeholder="0" value={priceMin} onChange={e => setPriceMin(e.target.value)} />
+                    <div className="flex items-center bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-mustard focus-within:ring-4 focus-within:ring-mustard/10 transition-all">
+                        <div className="flex-1 px-3">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Minimum</span>
+                            <input 
+                                type="number" 
+                                className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300" 
+                                placeholder="0" 
+                                value={priceMin} 
+                                onChange={e => setPriceMin(e.target.value)} 
+                            />
                         </div>
-                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand">
-                            <span className="text-[10px] text-gray-400 uppercase font-bold">Max</span>
-                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900" placeholder="Illimité" value={priceMax} onChange={e => setPriceMax(e.target.value)} />
+                        <div className="w-px h-8 bg-gray-200 mx-2"></div>
+                        <div className="flex-1 px-3 text-right">
+                            <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Maximum</span>
+                            <input 
+                                type="number" 
+                                className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300 text-right" 
+                                placeholder="Illimité" 
+                                value={priceMax} 
+                                onChange={e => setPriceMax(e.target.value)} 
+                            />
                         </div>
                     </div>
                 </div>
 
-                <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark transition active:scale-95 flex items-center justify-center gap-2">
-                    <Check size={18} /> Voir les résultats
+                {/* Chips de Sélection Rapide */}
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">Suggestions rapides</label>
+                    <div className="flex flex-wrap gap-2">
+                        {BUDGET_CHIPS.map((chip, idx) => {
+                            const isActive = priceMin === chip.min && priceMax === chip.max
+                            return (
+                                <button 
+                                    key={idx}
+                                    onClick={() => applyBudget(chip.min, chip.max)}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
+                                        isActive 
+                                        ? 'bg-mustard text-white border-mustard shadow-md shadow-mustard/30' 
+                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    {chip.label}
+                                </button>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                {/* Bouton Valider */}
+                <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+                    <Check size={20} /> Voir les annonces
                 </button>
             </div>
         </div>
@@ -185,13 +243,15 @@ export default function HomePage() {
             {/* BOUTON FILTRE AVEC INDICATEUR ACTIF */}
             <button 
                 onClick={() => setShowFilters(true)} 
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border ${
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border relative ${
                     (priceMin || priceMax) 
                     ? 'bg-mustard text-gray-900 border-mustard' 
                     : 'bg-white/20 text-white border-white/10 hover:bg-white/30'
                 }`}
             >
                 <SlidersHorizontal size={20} />
+                {/* Petit point rouge si un filtre est actif */}
+                {(priceMin || priceMax) && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-mustard"></span>}
             </button>
         </div>
       </div>
@@ -224,6 +284,7 @@ export default function HomePage() {
                         <Link 
                             key={product.id} 
                             href={`/annonce/${product.id}`} 
+                            // UTILISATION DE LA COULEUR "MUSTARD" (Moutarde)
                             className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                                 isPro 
                                 ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
@@ -242,6 +303,7 @@ export default function HomePage() {
                                     <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
                                 )}
                                 
+                                {/* BADGE PRO : MOUTARDE */}
                                 {isPro && (
                                     <div className="absolute top-2 left-2 bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
                                         <Crown size={10} strokeWidth={3} /> PRO
@@ -272,6 +334,7 @@ export default function HomePage() {
                                     {isPro && <ShieldCheck size={12} className="text-mustard fill-mustard/20 shrink-0" />}
                                 </h3>
                                 
+                                {/* PRIX EN MOUTARDE FONCÉ POUR LES PROS */}
                                 <p className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                                     {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                                 </p>
