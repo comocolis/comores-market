@@ -2,10 +2,10 @@
 
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { usePathname, useSearchParams, useRouter } from 'next/navigation' // Ajout de useRouter
+import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react'
-import { toast } from 'sonner' // Pour la notification
+import { toast } from 'sonner'
 
 export default function BottomNav() {
   const supabase = createClient()
@@ -40,7 +40,6 @@ export default function BottomNav() {
     setUnreadCount(count || 0)
   }
 
-  // 3. Temps Réel : Notifications & Badge
   useEffect(() => {
     if (!userId) return
 
@@ -54,18 +53,11 @@ export default function BottomNav() {
           filter: `receiver_id=eq.${userId}` 
         }, 
         (payload) => {
-            // 1. Mettre à jour le badge
             fetchUnreadCount(userId)
-
-            // 2. Si on n'est pas déjà dans les messages, afficher une notification Toast
-            // On vérifie si l'URL actuelle ne contient pas "/messages"
             if (!window.location.pathname.includes('/messages')) {
                 toast.message('Nouveau message !', {
                     description: payload.new.content,
-                    action: {
-                        label: 'Voir',
-                        onClick: () => router.push('/messages')
-                    },
+                    action: { label: 'Voir', onClick: () => router.push('/messages') },
                     duration: 4000,
                 })
             }
@@ -73,7 +65,6 @@ export default function BottomNav() {
       )
       .subscribe()
 
-    // Un autre listener pour les updates (ex: marqué comme lu ailleurs) pour garder le badge à jour
     const channelUpdate = supabase.channel('nav-badges-update')
         .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, () => fetchUnreadCount(userId))
         .subscribe()
@@ -87,12 +78,14 @@ export default function BottomNav() {
   if (isChatOpen || isAuthPage) return null
 
   return (
-    <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-      <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2">
+    // AJOUT : backdrop-blur pour un effet "verre" moderne
+    <nav className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+      <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
-        <div className="flex justify-center relative -top-6">
+        {/* BOUTON CENTRAL + AJUSTÉ */}
+        <div className="flex justify-center relative -top-5">
           <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
             <Plus strokeWidth={3} size={28} />
           </Link>
