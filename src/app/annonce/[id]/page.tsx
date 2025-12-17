@@ -173,10 +173,10 @@ export default function AnnoncePage() {
 
       {lightboxIndex !== null && (
         <div 
-            className="fixed inset-0 z-50 bg-black flex items-center justify-center animate-in fade-in duration-200"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
+            className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
         >
             <button onClick={() => setLightboxIndex(null)} className="absolute top-4 right-4 z-50 text-white p-3 bg-black/50 rounded-full hover:bg-black/70 backdrop-blur-md transition"><X size={28} /></button>
             <div className="relative w-full h-full max-h-[85vh] aspect-square md:aspect-auto pointer-events-none p-2">

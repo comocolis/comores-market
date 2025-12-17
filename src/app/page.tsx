@@ -149,8 +149,16 @@ export default function HomePage() {
                             }`}
                         >
                             <div className="relative w-full aspect-square bg-gray-100">
-                                {img ? <Image src={img} alt="" fill className="object-cover" /> : <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>}
-                                
+                                {img ? (
+                                  <Image 
+                                   src={img} 
+                                   alt="" 
+                                   fill 
+                                   className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                 />
+                            ) : (
+                               <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
+                            )}
                                 {/* BADGE PRO SUR L'IMAGE */}
                                 {isPro && (
                                     <div className="absolute top-2 left-2 bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
