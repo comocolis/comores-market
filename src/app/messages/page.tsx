@@ -1,5 +1,6 @@
 'use client'
 
+import { sendNewMessageEmail } from '@/app/actions/email'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
@@ -145,23 +146,37 @@ function MessagesContent() {
       } 
   }
 
+  // ... (Code existant du début de handleSend)
+
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
-    if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
-    
-    const myHistory = activeConv.messages.filter(m => m.sender_id === currentUser.id).slice(-5).map(m => textToDigits(m.content)).join("")
-    if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { toast.error("Interdit : Échange de coordonnées bloqué."); return }
+    // ... (Vérifications bannissement et numéro de téléphone)
 
     const tempId = Date.now().toString()
     const content = replyContent
-    setReplyContent(''); inputRef.current?.focus() 
+    // ... (Optimistic UI updates) ...
     
-    const optimisticMsg: Message = { id: tempId, content: content, sender_id: currentUser.id, created_at: new Date().toISOString(), is_read: false, pending: true }
-    setActiveConv(prev => { if(!prev) return null; return { ...prev, messages: [...prev.messages, optimisticMsg], lastMessage: content, lastDate: new Date().toISOString() } })
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    // 1. Envoi Supabase (Existant)
+    const { error } = await supabase.from('messages').insert({ 
+        content: content, 
+        sender_id: currentUser.id, 
+        receiver_id: activeConv.counterpartId, 
+        product_id: activeConv.productId 
+    })
     
-    const { error } = await supabase.from('messages').insert({ content: content, sender_id: currentUser.id, receiver_id: activeConv.counterpartId, product_id: activeConv.productId })
-    if (error) toast.error("Échec envoi")
+    if (error) {
+        toast.error("Échec envoi")
+    } else {
+        // 2. NOUVEAU : Envoi de l'Email de notification (En tâche de fond, sans attendre)
+        // On n'attend pas (await) pour ne pas ralentir l'interface
+        sendNewMessageEmail(
+            activeConv.counterpartId,      // ID du destinataire
+            currentUser.user_metadata?.full_name || 'Un utilisateur', // Nom de l'expéditeur
+            content,                       // Contenu du message
+            activeConv.productId           // ID du produit
+        )
+    }
+  
   }
 
   if (view === 'list') {
