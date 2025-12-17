@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, Sparkles } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -36,6 +36,9 @@ export default function HomePage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   
+  // État pour la Lightbox (Image en grand)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(0)
   const [selectedSubCategory, setSelectedSubCategory] = useState('Tout')
@@ -53,12 +56,11 @@ export default function HomePage() {
         if (favs) setFavorites(new Set(favs.map((f: any) => f.product_id)))
       }
 
-      // MODIFICATION ICI : On utilise la Vue SQL 'products_with_details'
-      // TRI : Les PROs en premier, puis les plus récents
+      // Utilisation de la vue SQL pour le tri PRO
       let query = supabase
-        .from('products_with_details') // <-- Utilisation de la vue
+        .from('products_with_details')
         .select('*')
-        .order('is_pro', { ascending: false }) // <-- Boost PRO
+        .order('is_pro', { ascending: false })
         .order('created_at', { ascending: false })
       
       if (selectedCategory !== 0) { query = query.eq('category_id', selectedCategory); if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) }
@@ -88,10 +90,37 @@ export default function HomePage() {
     }
   }
 
+  // Fonction pour ouvrir la loupe sans aller sur la page
+  const openPreview = (e: React.MouseEvent, img: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setPreviewImage(img)
+  }
+
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+      
+      {/* --- LIGHTBOX (Visionneuse Plein Écran) --- */}
+      {previewImage && (
+        <div 
+            className="fixed inset-0 z-100 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
+            onClick={() => setPreviewImage(null)}
+        >
+            <button 
+                onClick={() => setPreviewImage(null)} 
+                className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md"
+            >
+                <X size={24} />
+            </button>
+            <div className="relative w-full max-w-4xl h-full max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
+                 <Image src={previewImage} alt="Zoom" fill className="object-contain" />
+            </div>
+        </div>
+      )}
+
+      {/* HEADER */}
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="text-white font-extrabold text-2xl tracking-tight">Comores<span className="text-white/80">Market</span></h1>
@@ -112,6 +141,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* CATEGORIES */}
       <div className="bg-white border-b border-gray-100 py-3 sticky top-30 z-20 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1 min-w-17.5 p-2 rounded-xl transition active:scale-95 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand font-bold border border-brand/20' : 'text-gray-500 hover:bg-gray-50'}`}><span className="text-2xl">{cat.icon}</span><span className="text-[10px] whitespace-nowrap">{cat.label}</span></button>))}
@@ -124,56 +154,75 @@ export default function HomePage() {
         )}
       </div>
 
+      {/* ILES */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
         {ISLANDS.map(ile => (<button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{ile}</button>))}
       </div>
 
+      {/* LISTE DES PRODUITS */}
       <div className="px-4 py-2 space-y-3">
         {loading ? (<div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2"><Loader2 className="animate-spin text-brand" size={32} /><span className="text-xs font-medium">Chargement...</span></div>) : products.length === 0 ? (<div className="text-center text-gray-400 pt-20 flex flex-col items-center"><div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Package size={32} className="opacity-30" /></div><p>Aucune annonce trouvée.</p><button onClick={() => {setSearchTerm(''); setSelectedCategory(0); setSelectedIsland('Tout')}} className="mt-4 text-brand font-bold text-sm hover:underline">Tout effacer</button></div>) : (
             <div className="grid grid-cols-2 gap-3">
                 {products.map(product => {
                     let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
                     const isFav = favorites.has(product.id)
-                    // NOUVEAU : Récupération du status PRO depuis la vue
-                    const isPro = product.is_pro
+                    const isPro = product.is_pro // Via la vue SQL
                     
                     return (
                         <Link 
                             key={product.id} 
                             href={`/annonce/${product.id}`} 
-                            // STYLE PRO : Bordure dorée, ombre colorée, fond subtil
+                            // STYLE PRO + GROUPE POUR HOVER
                             className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                                 isPro 
                                 ? 'bg-yellow-50/30 border-2 border-yellow-400 shadow-md shadow-yellow-100/50 ring-2 ring-yellow-400/10' 
                                 : 'bg-white shadow-sm border border-gray-100 hover:shadow-md'
                             }`}
                         >
-                            <div className="relative w-full aspect-square bg-gray-100">
+                            <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
                                 {img ? (
-                                  <Image 
-                                   src={img} 
-                                   alt="" 
-                                   fill 
-                                   className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                                 />
-                            ) : (
-                               <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
-                            )}
-                                {/* BADGE PRO SUR L'IMAGE */}
+                                    <Image 
+                                        src={img} 
+                                        alt="" 
+                                        fill 
+                                        // ZOOM AU SURVOL
+                                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                    />
+                                ) : (
+                                    <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
+                                )}
+                                
+                                {/* BADGE PRO */}
                                 {isPro && (
                                     <div className="absolute top-2 left-2 bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
                                         <Crown size={10} strokeWidth={3} /> PRO
                                     </div>
                                 )}
 
-                                <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white transition active:scale-90 z-10"><Heart size={16} className={isFav ? "fill-red-500 text-red-500" : "text-gray-500"} /></button>
-                                <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10 font-medium">{product.location_island}</div>
+                                {/* BOUTON FAVORIS (Haut Droite) */}
+                                <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white transition active:scale-90 z-10 text-gray-500 hover:text-red-500">
+                                    <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
+                                </button>
+                                
+                                {/* BOUTON LOUPE (Bas Gauche) - Le retour ! */}
+                                {img && (
+                                    <button 
+                                        onClick={(e) => openPreview(e, img)}
+                                        className="absolute bottom-2 left-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white text-gray-700 transition active:scale-90 z-10 hover:text-brand"
+                                    >
+                                        <ZoomIn size={14} />
+                                    </button>
+                                )}
+
+                                {/* LOCALISATION (Bas Droite) */}
+                                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10 font-medium">
+                                    {product.location_island}
+                                </div>
                             </div>
                             
                             <div className="p-3">
                                 <h3 className="font-bold text-gray-900 line-clamp-1 text-sm flex items-center gap-1">
                                     {product.title}
-                                    {/* Petit badge aussi à côté du titre pour bien voir */}
                                     {isPro && <ShieldCheck size={12} className="text-yellow-500 fill-yellow-100 shrink-0" />}
                                 </h3>
                                 
