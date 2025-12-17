@@ -10,26 +10,28 @@ export default function BottomNav() {
   const supabase = createClient()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // 1. DÉTECTION DES PAGES OÙ MASQUER LA BARRE
-  // On cache si : on est dans un chat (id) OU si on est sur la page de connexion (/auth)
-  const isChatOpen = pathname === '/messages' && searchParams.get('id');
-  const isAuthPage = pathname === '/auth';
+  // Masquer la barre si on est dans un chat ou sur la page de connexion
+  const isChatOpen = pathname === '/messages' && searchParams.get('id')
+  const isAuthPage = pathname === '/auth'
 
+  // 1. Initialisation : Qui est connecté ?
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
-        updateUnreadCount(user.id)
+        fetchUnreadCount(user.id)
       }
     }
     init()
   }, [])
 
-  const updateUnreadCount = async (uid: string) => {
+  // 2. Fonction pour compter les messages non lus
+  const fetchUnreadCount = async (uid: string) => {
     const { count } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
@@ -39,17 +41,27 @@ export default function BottomNav() {
     setUnreadCount(count || 0)
   }
 
+  // 3. Temps Réel : On écoute les nouveaux messages pour mettre à jour le badge
   useEffect(() => {
     if (!userId) return
-    const channel = supabase.channel('nav-badge')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, 
-      () => updateUnreadCount(userId))
+
+    const channel = supabase.channel('nav-badges')
+      .on(
+        'postgres_changes', 
+        { 
+          event: '*', // Insert (nouveau msg) ou Update (lu)
+          schema: 'public', 
+          table: 'messages', 
+          filter: `receiver_id=eq.${userId}` 
+        }, 
+        () => fetchUnreadCount(userId) // On recompte à chaque changement
+      )
       .subscribe()
+
     return () => { supabase.removeChannel(channel) }
   }, [userId])
 
-  // 🚀 SI CHAT OUVERT OU PAGE AUTH -> ON RENVOIE NULL (RIEN NE S'AFFICHE)
-  if (isChatOpen || isAuthPage) return null;
+  if (isChatOpen || isAuthPage) return null
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -67,7 +79,7 @@ export default function BottomNav() {
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
                 {unreadCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm animate-in zoom-in">
+                    <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm animate-in zoom-in border border-white">
                         {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                 )}
