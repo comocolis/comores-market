@@ -6,13 +6,12 @@ import { useEffect, useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
-  Home, Search, MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
+  MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// Types
-type Message = {
+type Message = { 
   id: string
   content: string
   sender_id: string
@@ -22,7 +21,7 @@ type Message = {
   sender_avatar?: string | null 
 }
 
-type Conversation = {
+type Conversation = { 
   id: string
   productId: string
   productTitle: string
@@ -38,24 +37,18 @@ type Conversation = {
   messages: Message[]
 }
 
-// 🛡️ FONCTIONS DE SÉCURITÉ 🛡️
+// 🛡️ SÉCURITÉ ANTI-NUMÉRO
 const textToDigits = (text: string) => {
     const map: { [key: string]: string } = {
-        'zero': '0', 'zéro': '0', 'un': '1', 'deux': '2', 'trois': '3', 
-        'quatre': '4', 'cinq': '5', 'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9'
+        'zero': '0', 'un': '1', 'deux': '2', 'trois': '3', 'quatre': '4', 'cinq': '5', 
+        'six': '6', 'sept': '7', 'huit': '8', 'neuf': '9', 'vingt': '20', 'trente': '30'
     }
-    return text.toLowerCase().split(/[\s,.-]+/).map(word => map[word] || word).join('')
+    return text.toLowerCase().split(/[\s,.-]+/).map(word => map[word] || word).join('').replace(/[^0-9]/g, "")
 }
 
-const containsPhoneNumber = (text: string) => {
-    const cleanNumber = text.replace(/[^0-9]/g, "");
-    const patterns = [
-        /3[234]\d{5,}/,     // Comores local
-        /269\d{7}/,         // Comores international
-        /0[67]\d{8}/,       // France
-        /\d{9,}/            // Tout numéro long
-    ];
-    return patterns.some(regex => regex.test(cleanNumber));
+const containsPhoneNumber = (cleanText: string) => {
+    // Détecte les suites de 7 chiffres ou plus
+    return /\d{7,}/.test(cleanText);
 }
 
 export default function MessagesPage() {
@@ -73,6 +66,7 @@ function MessagesContent() {
   
   const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isBanned, setIsBanned] = useState(false) // État pour le bannissement
   
   const [view, setView] = useState<'list' | 'chat'>('list')
   const [activeConv, setActiveConv] = useState<Conversation | null>(null)
@@ -89,7 +83,7 @@ function MessagesContent() {
     activeConvRef.current = activeConv
   }, [activeConv])
 
-  // --- CHARGEMENT ---
+  // --- CHARGEMENT DES MESSAGES ---
   const fetchAndGroupMessages = async (userId: string) => {
     const { data, error } = await supabase.from('messages')
         .select(`
@@ -141,12 +135,10 @@ function MessagesContent() {
             }
         }
         
-        const messageWithAvatar: Message = {
+        groups[key].messages.push({
             ...msg,
             sender_avatar: msg.sender?.avatar_url
-        }
-        
-        groups[key].messages.push(messageWithAvatar)
+        })
         groups[key].lastMessage = msg.content
         groups[key].lastDate = msg.created_at
         
@@ -162,6 +154,7 @@ function MessagesContent() {
     setConversations(sortedConvs)
     setLoading(false)
     
+    // Ouverture auto si ID dans l'URL
     const urlConvId = searchParams.get('id')
     const currentActiveId = activeConvRef.current?.id || urlConvId
 
@@ -178,34 +171,47 @@ function MessagesContent() {
   }
 
   const markAsRead = async (conv: Conversation) => {
-    if (!currentUser) return
-    if (conv.unreadCount > 0) {
-        const updatedConvs = conversations.map(c => 
-            c.id === conv.id ? { ...c, unreadCount: 0 } : c
-        )
-        setConversations(updatedConvs)
+    if (!currentUser || conv.unreadCount === 0) return
+    
+    setConversations(prev => prev.map(c => 
+        c.id === conv.id ? { ...c, unreadCount: 0 } : c
+    ))
 
-        await supabase.from('messages')
-            .update({ is_read: true })
-            .eq('product_id', conv.productId)
-            .eq('sender_id', conv.counterpartId)
-            .eq('receiver_id', currentUser.id)
-            .eq('is_read', false)
-    }
+    await supabase.from('messages')
+        .update({ is_read: true })
+        .eq('product_id', conv.productId)
+        .eq('sender_id', conv.counterpartId)
+        .eq('receiver_id', currentUser.id)
+        .eq('is_read', false)
   }
 
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/publier'); return }
+      if (!user) { router.push('/auth'); return }
+      
       setCurrentUser(user)
+
+      // VÉRIFICATION DU BANNISSEMENT
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('is_banned')
+        .eq('id', user.id)
+        .single()
+      
+      if (profile?.is_banned) {
+        setIsBanned(true)
+      }
+
       await fetchAndGroupMessages(user.id)
 
+      // ABONNEMENT TEMPS RÉEL
       const channel = supabase.channel('chat-room')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, 
         (payload) => {
             const newMsg = payload.new as any
             if (newMsg.sender_id === user.id || newMsg.receiver_id === user.id) {
+                
                 const currentConv = activeConvRef.current
                 if (currentConv) {
                     const isRelevant = 
@@ -213,17 +219,15 @@ function MessagesContent() {
                         (newMsg.sender_id === currentConv.counterpartId || newMsg.receiver_id === currentConv.counterpartId)
 
                     if (isRelevant) {
-                        const msgToAdd: Message = {
-                            ...newMsg,
-                            sender_avatar: newMsg.sender_id === user.id ? null : currentConv.counterpartAvatar
-                        }
-                        
                         setActiveConv(prev => {
                             if (!prev) return null
                             if (prev.messages.some(m => m.id === newMsg.id)) return prev
                             return {
                                 ...prev,
-                                messages: [...prev.messages, msgToAdd],
+                                messages: [...prev.messages, {
+                                    ...newMsg,
+                                    sender_avatar: newMsg.sender_id === user.id ? null : currentConv.counterpartAvatar
+                                }],
                                 lastMessage: newMsg.content,
                                 lastDate: newMsg.created_at
                             }
@@ -260,8 +264,6 @@ function MessagesContent() {
     if (currentUser) fetchAndGroupMessages(currentUser.id)
   }
 
-  // --- ACTIONS ---
-
   const handleCall = () => {
     if (!activeConv?.productPhone) {
         toast.error("Aucun numéro disponible.")
@@ -291,24 +293,33 @@ function MessagesContent() {
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     
-    // 🛡️ CHECK SÉCURITÉ
-    const normalizedContent = textToDigits(replyContent)
-    
+    // 🚨 1. VÉRIFICATION BANNI
+    if (isBanned) {
+        toast.error("Votre compte est suspendu. Envoi impossible.", {
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
+        })
+        return
+    }
+
+    // 🛡️ 2. SÉCURITÉ ANTI-NUMÉRO
     const myHistory = activeConv.messages
         .filter(m => m.sender_id === currentUser.id)
-        .slice(-3)
-        .map(m => textToDigits(m.content))
+        .slice(-5) // On check les 5 derniers messages
+        .map(m => textToDigits(m.content)) 
         .join("")
     
-    const fullContext = myHistory + normalizedContent
+    const currentClean = textToDigits(replyContent)
+    const fullContext = myHistory + currentClean
 
     if (containsPhoneNumber(fullContext)) {
         toast.error("Interdit : L'échange de coordonnées est bloqué.", {
-            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' },
+            duration: 4000
         })
         return;
     }
 
+    // Envoi optimiste
     const tempId = Date.now().toString()
     const content = replyContent
     setReplyContent('') 
@@ -392,11 +403,9 @@ function MessagesContent() {
 
   // --- VUE CHAT ---
   return (
-    // CORRECTION : h-dvh (standard) au lieu de h-[100dvh]
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* HEADER VERT (BRAND) */}
-        {/* CORRECTION : min-h-20 (standard) au lieu de min-h-[80px] */}
+        {/* HEADER */}
         <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 sticky top-0 z-40 text-white min-h-20">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition">
                 <ArrowLeft size={22} />
@@ -440,7 +449,7 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* Zone Messages */}
+        {/* ZONE MESSAGES */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-2 pb-20">
                 <div className="flex justify-center my-2">
@@ -470,7 +479,7 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* Input Zone */}
+        {/* INPUT ZONE */}
         <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50">
             <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 <button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50"><Plus size={20} /></button>

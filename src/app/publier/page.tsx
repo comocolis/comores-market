@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
-import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers, Phone } from 'lucide-react'
+import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers, Phone, Ban } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -43,11 +43,12 @@ export default function PublierPage() {
   const [images, setImages] = useState<string[]>([])
   
   const [isPro, setIsPro] = useState(false)
+  const [isBanned, setIsBanned] = useState(false)
   const [adsCount, setAdsCount] = useState(0)
   
   const FREE_ADS_LIMIT = 3
   const FREE_PHOTOS_LIMIT = 3
-  const PRO_PHOTOS_LIMIT = 10 // Nouvelle limite PRO
+  const PRO_PHOTOS_LIMIT = 10
   
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -63,8 +64,10 @@ export default function PublierPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/auth'); return }
 
-      const { data: profile } = await supabase.from('profiles').select('is_pro, phone_number').eq('id', user.id).single()
+      // Récupération IsPro + IsBanned
+      const { data: profile } = await supabase.from('profiles').select('is_pro, is_banned, phone_number').eq('id', user.id).single()
       setIsPro(profile?.is_pro || false)
+      setIsBanned(profile?.is_banned || false)
       
       if (profile?.phone_number) {
         setFormData(prev => ({ ...prev, whatsapp_number: profile.phone_number }))
@@ -80,31 +83,42 @@ export default function PublierPage() {
 
   const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
 
+  // GESTION DU MULTI-UPLOAD
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     
-    if (images.length >= currentPhotoLimit) {
-        toast.error(isPro ? "Limite de 10 photos atteinte." : `Limite gratuite atteinte (${FREE_PHOTOS_LIMIT}). Passez PRO pour plus !`, {
-            icon: <Lock size={16} />,
-            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
-        })
+    // Convertir FileList en Array
+    const files = Array.from(e.target.files)
+    
+    // Vérification de la limite totale (existantes + nouvelles)
+    if (images.length + files.length > currentPhotoLimit) {
+        toast.error(`Vous ne pouvez ajouter que ${currentPhotoLimit} photos au total.`, { icon: <Lock size={16}/> })
         return
     }
     
     setUploading(true)
-    const file = e.target.files[0]
-    const fileExt = file.name.split('.').pop()
-    const fileName = `${Math.random()}.${fileExt}`
-    
+    const newImages: string[] = []
+
     try {
-      const { error: uploadError } = await supabase.storage.from('products').upload(fileName, file)
-      if (uploadError) throw uploadError
-      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
-      setImages([...images, publicUrl])
+      // Upload en parallèle
+      await Promise.all(files.map(async (file) => {
+          const fileExt = file.name.split('.').pop()
+          const fileName = `${Math.random()}.${fileExt}`
+          
+          const { error: uploadError } = await supabase.storage.from('products').upload(fileName, file)
+          if (uploadError) throw uploadError
+          
+          const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+          newImages.push(publicUrl)
+      }))
+      
+      setImages(prev => [...prev, ...newImages])
     } catch (error: any) {
       toast.error('Erreur upload: ' + error.message)
     } finally {
       setUploading(false)
+      // Reset input pour permettre de ré-uploader les mêmes fichiers si besoin
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
 
@@ -114,6 +128,14 @@ export default function PublierPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (isBanned) {
+        toast.error("Action impossible : Votre compte est suspendu.", {
+            style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
+        })
+        return
+    }
+
     if (!formData.title || !formData.price || images.length === 0 || !formData.sub_category) {
         toast.error("Veuillez remplir tous les champs obligatoires et ajouter une photo.")
         return
@@ -141,7 +163,7 @@ export default function PublierPage() {
         })
 
         if (error) {
-            toast.error(error.message)
+            toast.error("Erreur : " + error.message)
         } else {
             toast.success('Annonce publiée avec succès !')
             router.push('/')
@@ -152,6 +174,21 @@ export default function PublierPage() {
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
+  // ECRAN UTILISATEUR BANNI
+  if (isBanned) {
+    return (
+        <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center p-6 text-center font-sans">
+            <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full border border-red-100">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6 text-red-600"><Ban size={32} /></div>
+                <h1 className="text-2xl font-extrabold text-gray-900 mb-2">Compte Suspendu</h1>
+                <p className="text-gray-500 mb-6 text-sm">Vous ne pouvez plus publier d'annonces car votre compte a été suspendu pour non-respect des règles.</p>
+                <Link href="/compte" className="text-sm text-gray-400 font-medium hover:text-gray-600 underline">Retour à mon compte</Link>
+            </div>
+        </div>
+    )
+  }
+
+  // ECRAN LIMITE ATTEINTE
   const adsLimitReached = !isPro && adsCount >= FREE_ADS_LIMIT
   if (adsLimitReached) {
     return (
@@ -192,7 +229,8 @@ export default function PublierPage() {
                     <div key={i} className="w-24 h-24 bg-gray-100 rounded-2xl relative shrink-0 overflow-hidden border border-gray-200 shadow-sm"><Image src={img} alt="" fill className="object-cover" /><button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition"><X size={12} /></button></div>
                 ))}
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" disabled={photosLimitReached} />
+            {/* AJOUT DE 'multiple' ICI */}
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" disabled={photosLimitReached} multiple />
         </div>
 
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
