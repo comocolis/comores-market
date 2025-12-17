@@ -2,10 +2,10 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, useRef, TouchEvent } from 'react' // Ajout de useRef
+import { useEffect, useState, useRef, TouchEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Lock } from 'lucide-react'
+import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Share2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AnnoncePage() {
@@ -29,7 +29,6 @@ export default function AnnoncePage() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
-  // 1. REF POUR EVITER LE DOUBLE COMPTAGE DE VUE (STRICT MODE)
   const viewLogged = useRef(false)
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export default function AnnoncePage() {
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
-      // On récupère le produit + les infos du profil vendeur
       const { data: productData, error } = await supabase
         .from('products')
         .select('*, profiles(*)')
@@ -65,22 +63,18 @@ export default function AnnoncePage() {
     getData()
   }, [supabase, params.id])
 
-  // 2. ENREGISTREMENT DE LA VUE (Statistiques)
   useEffect(() => {
     const logView = async () => {
-        // Sécurité pour ne pas compter 2 fois au montage
         if (viewLogged.current) return
         viewLogged.current = true
         
         const { data: { user } } = await supabase.auth.getUser()
         
-        // On insère la vue
         await supabase.from('product_views').insert({
             product_id: params.id,
             viewer_id: user?.id || null
         })
     }
-    // On loggue la vue seulement quand le produit est chargé
     if (product) {
         logView()
     }
@@ -118,6 +112,25 @@ export default function AnnoncePage() {
         await supabase.from('favorites').insert({ user_id: currentUser.id, product_id: id })
         setFavorites(new Set([...favorites, id]))
         toast.success("Ajouté aux favoris")
+    }
+  }
+
+  // NOUVEAU : Fonction de partage native
+  const handleShare = async () => {
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: product.title,
+                text: `Regarde cette annonce sur Comores Market : ${product.title} - ${product.price} KMF`,
+                url: window.location.href,
+            })
+        } catch (error) {
+            console.log('Partage annulé')
+        }
+    } else {
+        // Fallback : Copier le lien
+        navigator.clipboard.writeText(window.location.href)
+        toast.success("Lien copié !")
     }
   }
 
@@ -174,7 +187,12 @@ export default function AnnoncePage() {
 
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
             <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto"><ArrowLeft size={20} /></button>
+            
+            {/* GROUPE BOUTONS : PARTAGE + FAVORIS */}
             <div className="flex gap-2 pointer-events-auto">
+                <button onClick={(e) => {e.stopPropagation(); handleShare()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
+                    <Share2 size={20} />
+                </button>
                 <button onClick={(e) => {e.stopPropagation(); toggleFavorite()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
                 </button>
@@ -196,7 +214,6 @@ export default function AnnoncePage() {
         )}
       </div>
 
-      {/* 3. LIGHTBOX CORRIGÉE : Z-INDEX 100 POUR PASSER AU-DESSUS DU FOOTER */}
       {lightboxIndex !== null && (
         <div 
             className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
@@ -258,7 +275,6 @@ export default function AnnoncePage() {
         {!isOwner ? (
             currentUser ? (
                 <div className="space-y-3 pb-8">
-                    {/* BOUTON WHATSAPP UNIQUEMENT SI LE VENDEUR EST PRO */}
                     {isPro && (
                         <button 
                             onClick={handleWhatsAppClick}

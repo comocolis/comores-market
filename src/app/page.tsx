@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -38,10 +38,15 @@ export default function HomePage() {
   
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   
+  // -- FILTRES --
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(0)
   const [selectedSubCategory, setSelectedSubCategory] = useState('Tout')
   const [selectedIsland, setSelectedIsland] = useState('Tout')
+  
+  const [showFilters, setShowFilters] = useState(false)
+  const [priceMin, setPriceMin] = useState('')
+  const [priceMax, setPriceMax] = useState('')
 
   useEffect(() => { setSelectedSubCategory('Tout') }, [selectedCategory])
 
@@ -65,6 +70,10 @@ export default function HomePage() {
       if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
       if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
 
+      // Application des filtres PRIX
+      if (priceMin) query = query.gte('price', parseInt(priceMin))
+      if (priceMax) query = query.lte('price', parseInt(priceMax))
+
       const { data, error } = await query
       if (error) console.error(error)
       setProducts(data || [])
@@ -72,7 +81,7 @@ export default function HomePage() {
     }
     const timer = setTimeout(init, 400)
     return () => clearTimeout(timer)
-  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, supabase])
+  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, supabase])
 
   const toggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault(); e.stopPropagation()
@@ -98,7 +107,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      {/* LIGHTBOX */}
+      {/* --- LIGHTBOX --- */}
       {previewImage && (
         <div 
             className="fixed inset-0 z-100 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
@@ -116,10 +125,39 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* HEADER : COULEURS IDENTITAIRES (VERT + BLANC + MOUTARDE) */}
+      {/* --- MODALE FILTRES --- */}
+      {showFilters && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in" onClick={() => setShowFilters(false)}>
+            <div className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-2xl p-6 shadow-xl space-y-5 animate-in slide-in-from-bottom-5" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center">
+                    <h3 className="font-bold text-lg text-gray-900">Filtres</h3>
+                    <button onClick={() => setShowFilters(false)} className="bg-gray-100 p-2 rounded-full text-gray-500"><X size={20} /></button>
+                </div>
+                
+                <div>
+                    <label className="text-sm font-bold text-gray-500 mb-2 block">Budget (KMF)</label>
+                    <div className="flex gap-3">
+                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold">Min</span>
+                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900" placeholder="0" value={priceMin} onChange={e => setPriceMin(e.target.value)} />
+                        </div>
+                        <div className="flex-1 bg-gray-50 rounded-xl px-3 py-2 border border-gray-200 focus-within:border-brand">
+                            <span className="text-[10px] text-gray-400 uppercase font-bold">Max</span>
+                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900" placeholder="Illimité" value={priceMax} onChange={e => setPriceMax(e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+
+                <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark transition active:scale-95 flex items-center justify-center gap-2">
+                    <Check size={18} /> Voir les résultats
+                </button>
+            </div>
+        </div>
+      )}
+
+      {/* HEADER */}
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
-            {/* LOGO : Blanc et Jaune Moutarde */}
             <h1 className="font-extrabold text-2xl tracking-tight">
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
@@ -135,10 +173,26 @@ export default function HomePage() {
                 </Link>
             )}
         </div>
-        <div className="relative">
-            <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-mustard/50 transition shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-            <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
-            {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"><X size={18} /></button>}
+        
+        {/* BARRE RECHERCHE + FILTRE */}
+        <div className="flex gap-2">
+            <div className="relative flex-1">
+                <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-mustard/50 transition shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
+                {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"><X size={18} /></button>}
+            </div>
+            
+            {/* BOUTON FILTRE AVEC INDICATEUR ACTIF */}
+            <button 
+                onClick={() => setShowFilters(true)} 
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border ${
+                    (priceMin || priceMax) 
+                    ? 'bg-mustard text-gray-900 border-mustard' 
+                    : 'bg-white/20 text-white border-white/10 hover:bg-white/30'
+                }`}
+            >
+                <SlidersHorizontal size={20} />
+            </button>
         </div>
       </div>
 
@@ -159,7 +213,7 @@ export default function HomePage() {
       </div>
 
       <div className="px-4 py-2 space-y-3">
-        {loading ? (<div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2"><Loader2 className="animate-spin text-brand" size={32} /><span className="text-xs font-medium">Chargement...</span></div>) : products.length === 0 ? (<div className="text-center text-gray-400 pt-20 flex flex-col items-center"><div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Package size={32} className="opacity-30" /></div><p>Aucune annonce trouvée.</p><button onClick={() => {setSearchTerm(''); setSelectedCategory(0); setSelectedIsland('Tout')}} className="mt-4 text-brand font-bold text-sm hover:underline">Tout effacer</button></div>) : (
+        {loading ? (<div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2"><Loader2 className="animate-spin text-brand" size={32} /><span className="text-xs font-medium">Chargement...</span></div>) : products.length === 0 ? (<div className="text-center text-gray-400 pt-20 flex flex-col items-center"><div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Package size={32} className="opacity-30" /></div><p>Aucune annonce trouvée.</p><button onClick={() => {setSearchTerm(''); setSelectedCategory(0); setSelectedIsland('Tout'); setPriceMin(''); setPriceMax('')}} className="mt-4 text-brand font-bold text-sm hover:underline">Tout effacer</button></div>) : (
             <div className="grid grid-cols-2 gap-3">
                 {products.map(product => {
                     let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
@@ -170,7 +224,6 @@ export default function HomePage() {
                         <Link 
                             key={product.id} 
                             href={`/annonce/${product.id}`} 
-                            // UTILISATION DE LA COULEUR "MUSTARD" (Moutarde)
                             className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                                 isPro 
                                 ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
@@ -189,7 +242,6 @@ export default function HomePage() {
                                     <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
                                 )}
                                 
-                                {/* BADGE PRO : MOUTARDE */}
                                 {isPro && (
                                     <div className="absolute top-2 left-2 bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
                                         <Crown size={10} strokeWidth={3} /> PRO
@@ -220,7 +272,6 @@ export default function HomePage() {
                                     {isPro && <ShieldCheck size={12} className="text-mustard fill-mustard/20 shrink-0" />}
                                 </h3>
                                 
-                                {/* PRIX EN MOUTARDE FONCÉ POUR LES PROS */}
                                 <p className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                                     {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                                 </p>
