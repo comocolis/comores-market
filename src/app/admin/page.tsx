@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, Calendar, Clock, CheckCircle } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, Calendar, Clock, CheckCircle, Flag, XCircle } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,11 +15,13 @@ export default function AdminPage() {
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products'>('dashboard')
+  // Ajout de l'onglet 'reports'
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports'>('dashboard')
   
-  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0 })
+  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0, reports: 0 })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
+  const [reports, setReports] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
 
   useEffect(() => {
@@ -42,32 +44,35 @@ export default function AdminPage() {
   const fetchData = async () => {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
+    
+    // Récupération des signalements avec les détails du produit et du signalant
+    const { data: reportsData } = await supabase
+        .from('reports')
+        .select('*, product:products(*), reporter:profiles(*)')
+        .order('created_at', { ascending: false })
 
     if (profiles && items) {
         setUsers(profiles)
         setProducts(items)
+        setReports(reportsData || [])
         setStats({
             users: profiles.length,
             products: items.length,
             pro: profiles.filter(p => p.is_pro).length,
-            banned: profiles.filter(p => p.is_banned).length
+            banned: profiles.filter(p => p.is_banned).length,
+            reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0
         })
     }
   }
 
-  // --- GESTION ABONNEMENTS ---
+  // --- ACTIONS ---
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
-    // 1. Calcul de la nouvelle date
     const now = new Date()
-    // Si l'abo est déjà actif, on part de la date de fin, sinon de maintenant
     const startDate = (currentEndDate && new Date(currentEndDate) > now) ? new Date(currentEndDate) : now
-    
-    // On ajoute les mois
     const newDate = new Date(startDate)
     newDate.setMonth(newDate.getMonth() + months)
 
-    // 2. Mise à jour Supabase (On met is_pro à true automatiquement)
     const { error } = await supabase.from('profiles').update({ 
         is_pro: true,
         subscription_end_date: newDate.toISOString() 
@@ -82,17 +87,9 @@ export default function AdminPage() {
 
   const stopSubscription = async (userId: string) => {
     if(!confirm("Arrêter l'abonnement PRO de cet utilisateur ?")) return
-    
-    const { error } = await supabase.from('profiles').update({ 
-        is_pro: false,
-        subscription_end_date: null 
-    }).eq('id', userId)
-
+    const { error } = await supabase.from('profiles').update({ is_pro: false, subscription_end_date: null }).eq('id', userId)
     if (error) toast.error("Erreur")
-    else {
-        toast.info("Abonnement arrêté")
-        fetchData()
-    }
+    else { toast.info("Abonnement arrêté"); fetchData() }
   }
 
   const toggleBanUser = async (userId: string, currentBan: boolean) => {
@@ -107,7 +104,11 @@ export default function AdminPage() {
     if (!error) { toast.success("Annonce supprimée"); fetchData() }
   }
 
-  // Utilitaire pour afficher le temps restant
+  const resolveReport = async (reportId: string) => {
+      const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId)
+      if(!error) { toast.success("Signalement traité"); fetchData() }
+  }
+
   const getDaysRemaining = (dateString: string | null) => {
     if (!dateString) return 0
     const end = new Date(dateString)
@@ -132,6 +133,9 @@ export default function AdminPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
+            <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+                <Flag size={14} /> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 text-[10px] px-1.5 rounded-full">{stats.reports}</span>}
+            </button>
             <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
             <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'products' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
         </div>
@@ -145,22 +149,49 @@ export default function AdminPage() {
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p></div><div className="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={20} /></div></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.banned}</p><p className="text-xs text-gray-500 font-bold uppercase">Bannis</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Ban size={20} /></div></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs font-bold uppercase text-red-500">Alertes</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
             </div>
         )}
 
-        {/* GESTION UTILISATEURS (ABONNEMENTS) */}
+        {/* SIGNALEMENTS */}
+        {activeTab === 'reports' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                {reports.length === 0 ? <p className="text-center text-gray-400 mt-10">Aucun signalement.</p> : reports.map(r => (
+                    <div key={r.id} className={`bg-white p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 bg-red-50/50' : 'border-gray-100 opacity-60'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
+                            <span className="text-[10px] text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 mb-1">Motif : "{r.reason}"</p>
+                        <div className="bg-white p-3 rounded-lg border border-gray-200 mb-3">
+                            <p className="text-xs text-gray-500 font-bold uppercase mb-1">Annonce visée :</p>
+                            {r.product ? (
+                                <Link href={`/annonce/${r.product_id}`} target="_blank" className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded transition">
+                                    <div className="w-8 h-8 bg-gray-100 rounded overflow-hidden relative">
+                                        {r.product.images && <Image src={JSON.parse(r.product.images)[0]} alt="" fill className="object-cover" />}
+                                    </div>
+                                    <span className="text-sm font-medium truncate flex-1">{r.product.title}</span>
+                                </Link>
+                            ) : (
+                                <p className="text-sm text-red-400 italic">Annonce supprimée</p>
+                            )}
+                        </div>
+                        <div className="flex gap-2 justify-end">
+                            {r.product && <button onClick={() => deleteProduct(r.product_id)} className="text-xs bg-red-100 text-red-600 px-3 py-2 rounded-lg font-bold hover:bg-red-200 flex items-center gap-1"><Trash2 size={12}/> Supprimer Annonce</button>}
+                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-xs bg-gray-800 text-white px-3 py-2 rounded-lg font-bold hover:bg-black flex items-center gap-1"><CheckCircle size={12}/> Marquer traité</button>}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+
+        {/* LISTE UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                <div className="relative">
-                    <input type="text" placeholder="Rechercher..." className="w-full bg-white p-3 rounded-xl shadow-sm pl-10 text-sm outline-none" onChange={e => setSearchTerm(e.target.value)} />
-                    <Search className="absolute left-3 top-3 text-gray-400 w-4 h-4" />
-                </div>
-                
+                <input type="text" placeholder="Rechercher un utilisateur..." className="w-full bg-white p-3 rounded-xl shadow-sm pl-10 text-sm outline-none" onChange={e => setSearchTerm(e.target.value)} />
                 {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
                     const daysLeft = getDaysRemaining(u.subscription_end_date)
                     const isProActive = u.is_pro && daysLeft > 0
-
                     return (
                         <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isProActive ? 'border-green-200 bg-green-50/30' : 'border-gray-100')}`}>
                             <div className="flex items-center justify-between mb-3">
@@ -173,22 +204,11 @@ export default function AdminPage() {
                                 </div>
                                 {u.is_banned && <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">BANNI</span>}
                             </div>
-
-                            {/* INFO ABONNEMENT */}
-                            <div className="bg-gray-50 p-2 rounded-lg mb-3 flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-xs text-gray-600">
-                                    <Clock size={14} className={isProActive ? "text-green-600" : "text-gray-400"} />
-                                    {isProActive ? <span className="font-bold text-green-700">{daysLeft} jours restants</span> : "Pas d'abonnement actif"}
-                                </div>
-                                {isProActive && <span className="text-[9px] text-gray-400">Fin: {new Date(u.subscription_end_date).toLocaleDateString()}</span>}
-                            </div>
-
-                            {/* ACTIONS */}
                             <div className="grid grid-cols-4 gap-2">
-                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="col-span-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100 border border-blue-100">+1 Mois</button>
-                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="col-span-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-100 border border-purple-100">+1 An</button>
-                                <button onClick={() => stopSubscription(u.id)} className="col-span-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-200 border border-gray-200">Stop</button>
-                                <button onClick={() => toggleBanUser(u.id, u.is_banned)} className={`col-span-1 py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-100'}`}>{u.is_banned ? 'Débannir' : 'Bannir'}</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="col-span-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100">+1 Mois</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="col-span-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-100">+1 An</button>
+                                <button onClick={() => stopSubscription(u.id)} className="col-span-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-200">Stop</button>
+                                <button onClick={() => toggleBanUser(u.id, u.is_banned)} className={`col-span-1 py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Débannir' : 'Bannir'}</button>
                             </div>
                         </div>
                     )
@@ -196,7 +216,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* LISTE ANNONCES (inchangée) */}
+        {/* LISTE ANNONCES */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {

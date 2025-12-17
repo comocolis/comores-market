@@ -5,7 +5,11 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState, useRef, TouchEvent } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Share2 } from 'lucide-react'
+import { 
+  MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, 
+  User, ArrowRight, X, ChevronLeft, ChevronRight, 
+  ChevronRight as ChevronRightIcon, Share2, Flag, ZoomIn, Crown, ShieldCheck 
+} from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AnnoncePage() {
@@ -19,6 +23,7 @@ export default function AnnoncePage() {
   
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [reporting, setReporting] = useState(false)
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   const [images, setImages] = useState<string[]>([])
@@ -29,6 +34,7 @@ export default function AnnoncePage() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
+  // REF POUR EVITER LE DOUBLE COMPTAGE DE VUE
   const viewLogged = useRef(false)
 
   useEffect(() => {
@@ -41,6 +47,7 @@ export default function AnnoncePage() {
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
+      // On récupère le produit + les infos du profil vendeur
       const { data: productData, error } = await supabase
         .from('products')
         .select('*, profiles(*)')
@@ -63,6 +70,7 @@ export default function AnnoncePage() {
     getData()
   }, [supabase, params.id])
 
+  // ENREGISTREMENT DE LA VUE
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current) return
@@ -115,7 +123,7 @@ export default function AnnoncePage() {
     }
   }
 
-  // NOUVEAU : Fonction de partage native
+  // PARTAGE NATIF
   const handleShare = async () => {
     if (navigator.share) {
         try {
@@ -128,10 +136,27 @@ export default function AnnoncePage() {
             console.log('Partage annulé')
         }
     } else {
-        // Fallback : Copier le lien
         navigator.clipboard.writeText(window.location.href)
         toast.success("Lien copié !")
     }
+  }
+
+  // SIGNALEMENT
+  const handleReport = async () => {
+    if (!currentUser) return router.push('/auth')
+    const reason = prompt("Pourquoi signalez-vous cette annonce ? (Fraude, Inapproprié, etc.)")
+    if (!reason) return
+
+    setReporting(true)
+    const { error } = await supabase.from('reports').insert({
+        reporter_id: currentUser.id,
+        product_id: product.id,
+        reason: reason
+    })
+
+    if (error) toast.error("Erreur lors du signalement")
+    else toast.success("Signalement envoyé. Merci de votre vigilance !")
+    setReporting(false)
   }
 
   const handleWhatsAppClick = () => {
@@ -174,6 +199,7 @@ export default function AnnoncePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
+      {/* HEADER IMAGE */}
       <div className="relative w-full h-96 bg-gray-200 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
             src={images[selectedImageIndex] || '/placeholder.png'} 
@@ -182,17 +208,27 @@ export default function AnnoncePage() {
             className="object-cover transition duration-300" 
         />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
-            <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md">Agrandir</span>
+            <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md flex items-center gap-1">
+                <ZoomIn size={14} /> Agrandir
+            </span>
         </div>
 
+        {/* BARRE OUTILS FLOTTANTE */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
-            <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto"><ArrowLeft size={20} /></button>
+            <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto">
+                <ArrowLeft size={20} />
+            </button>
             
-            {/* GROUPE BOUTONS : PARTAGE + FAVORIS */}
             <div className="flex gap-2 pointer-events-auto">
+                {/* BOUTON SIGNALER */}
+                <button onClick={(e) => {e.stopPropagation(); handleReport()}} disabled={reporting} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-red-500 hover:text-white transition" title="Signaler">
+                    {reporting ? <Loader2 size={20} className="animate-spin" /> : <Flag size={20} />}
+                </button>
+                {/* BOUTON PARTAGER */}
                 <button onClick={(e) => {e.stopPropagation(); handleShare()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Share2 size={20} />
                 </button>
+                {/* BOUTON FAVORIS */}
                 <button onClick={(e) => {e.stopPropagation(); toggleFavorite()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
                 </button>
@@ -214,6 +250,7 @@ export default function AnnoncePage() {
         )}
       </div>
 
+      {/* LIGHTBOX (Z-INDEX 100) */}
       {lightboxIndex !== null && (
         <div 
             className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
@@ -238,28 +275,35 @@ export default function AnnoncePage() {
       <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[50vh] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
         <div className="flex justify-between items-start mb-4">
             <div>
-                <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1">{product.title}</h1>
+                <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1">
+                    {product.title}
+                    {/* Badge PRO Titre */}
+                    {isPro && <ShieldCheck size={18} className="text-mustard fill-mustard/20" />}
+                </h1>
                 <div className="flex items-center gap-1 text-gray-400 text-xs">
                     <MapPin size={12} /> {product.location_city}, {product.location_island}
                 </div>
             </div>
             <div className="text-right">
-                <p className="text-xl font-extrabold text-brand">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p>
+                {/* PRIX COULEUR MOUTARDE SI PRO */}
+                <p className={`text-xl font-extrabold ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
+                    {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
+                </p>
                 <span className="text-[10px] text-gray-400">{new Date(product.created_at).toLocaleDateString()}</span>
             </div>
         </div>
 
         <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6 active:scale-[0.98] transition hover:bg-gray-100 cursor-pointer">
             <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500 overflow-hidden relative border border-white shadow-sm">
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-500 overflow-hidden relative border shadow-sm ${isPro ? 'border-mustard ring-1 ring-mustard/30' : 'bg-gray-200 border-white'}`}>
                     {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={20} />}
                 </div>
                 <div>
                     <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
                         {product.profiles?.full_name || "Utilisateur"}
-                        {isPro && <CheckCircle size={12} className="text-blue-500 fill-blue-100" />}
+                        {isPro && <Crown size={12} className="text-mustard fill-mustard" />}
                     </p>
-                    <p className="text-xs text-gray-400">{isPro ? 'Vendeur PRO' : 'Particulier'}</p>
+                    <p className={`text-xs ${isPro ? 'text-mustard-dark font-bold' : 'text-gray-400'}`}>{isPro ? 'Vendeur PRO' : 'Particulier'}</p>
                 </div>
             </div>
             <div className="bg-white p-2 rounded-full text-gray-400 shadow-sm">
@@ -275,6 +319,7 @@ export default function AnnoncePage() {
         {!isOwner ? (
             currentUser ? (
                 <div className="space-y-3 pb-8">
+                    {/* BOUTON WHATSAPP UNIQUEMENT SI LE VENDEUR EST PRO */}
                     {isPro && (
                         <button 
                             onClick={handleWhatsAppClick}

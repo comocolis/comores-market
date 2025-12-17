@@ -2,23 +2,23 @@
 
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
-import { usePathname, useSearchParams } from 'next/navigation'
+import { usePathname, useSearchParams, useRouter } from 'next/navigation' // Ajout de useRouter
 import { useEffect, useState } from 'react'
 import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react'
+import { toast } from 'sonner' // Pour la notification
 
 export default function BottomNav() {
   const supabase = createClient()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const router = useRouter()
   
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  // Masquer la barre si on est dans un chat ou sur la page de connexion
   const isChatOpen = pathname === '/messages' && searchParams.get('id')
   const isAuthPage = pathname === '/auth'
 
-  // 1. Initialisation : Qui est connecté ?
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -30,7 +30,6 @@ export default function BottomNav() {
     init()
   }, [])
 
-  // 2. Fonction pour compter les messages non lus
   const fetchUnreadCount = async (uid: string) => {
     const { count } = await supabase
       .from('messages')
@@ -41,25 +40,49 @@ export default function BottomNav() {
     setUnreadCount(count || 0)
   }
 
-  // 3. Temps Réel : On écoute les nouveaux messages pour mettre à jour le badge
+  // 3. Temps Réel : Notifications & Badge
   useEffect(() => {
     if (!userId) return
 
-    const channel = supabase.channel('nav-badges')
+    const channel = supabase.channel('nav-notifications')
       .on(
         'postgres_changes', 
         { 
-          event: '*', // Insert (nouveau msg) ou Update (lu)
+          event: 'INSERT', 
           schema: 'public', 
           table: 'messages', 
           filter: `receiver_id=eq.${userId}` 
         }, 
-        () => fetchUnreadCount(userId) // On recompte à chaque changement
+        (payload) => {
+            // 1. Mettre à jour le badge
+            fetchUnreadCount(userId)
+
+            // 2. Si on n'est pas déjà dans les messages, afficher une notification Toast
+            // On vérifie si l'URL actuelle ne contient pas "/messages"
+            if (!window.location.pathname.includes('/messages')) {
+                toast.message('Nouveau message !', {
+                    description: payload.new.content,
+                    action: {
+                        label: 'Voir',
+                        onClick: () => router.push('/messages')
+                    },
+                    duration: 4000,
+                })
+            }
+        }
       )
       .subscribe()
 
-    return () => { supabase.removeChannel(channel) }
-  }, [userId])
+    // Un autre listener pour les updates (ex: marqué comme lu ailleurs) pour garder le badge à jour
+    const channelUpdate = supabase.channel('nav-badges-update')
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, () => fetchUnreadCount(userId))
+        .subscribe()
+
+    return () => { 
+        supabase.removeChannel(channel) 
+        supabase.removeChannel(channelUpdate)
+    }
+  }, [userId, router])
 
   if (isChatOpen || isAuthPage) return null
 
