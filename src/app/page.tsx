@@ -299,8 +299,14 @@ export default function HomePage() {
                                         src={img} 
                                         alt="" 
                                         fill 
+                                        // OPTIMISATION ICI :
+                                        // Mobile (jusqu'à 768px) : L'image prend 50% de l'écran (2 colonnes)
+                                        // Desktop : L'image prend environ 25% ou 33% (selon la grille)
+                                        sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                                        // Qualité légèrement réduite pour gagner en poids (invisible à l'œil nu sur mobile)
+                                        quality={75}
                                         className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                                    />
+                             />
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
                                 )}
