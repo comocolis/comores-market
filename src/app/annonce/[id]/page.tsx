@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, TouchEvent } from 'react'
+import { useEffect, useState, useRef, TouchEvent } from 'react' // Ajout de useRef
 import Image from 'next/image'
 import Link from 'next/link'
 import { MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, User, ArrowRight, X, ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon, Lock } from 'lucide-react'
@@ -29,6 +29,9 @@ export default function AnnoncePage() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
+  // 1. REF POUR EVITER LE DOUBLE COMPTAGE DE VUE (STRICT MODE)
+  const viewLogged = useRef(false)
+
   useEffect(() => {
     const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -39,6 +42,7 @@ export default function AnnoncePage() {
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
+      // On récupère le produit + les infos du profil vendeur
       const { data: productData, error } = await supabase
         .from('products')
         .select('*, profiles(*)')
@@ -60,6 +64,27 @@ export default function AnnoncePage() {
     }
     getData()
   }, [supabase, params.id])
+
+  // 2. ENREGISTREMENT DE LA VUE (Statistiques)
+  useEffect(() => {
+    const logView = async () => {
+        // Sécurité pour ne pas compter 2 fois au montage
+        if (viewLogged.current) return
+        viewLogged.current = true
+        
+        const { data: { user } } = await supabase.auth.getUser()
+        
+        // On insère la vue
+        await supabase.from('product_views').insert({
+            product_id: params.id,
+            viewer_id: user?.id || null
+        })
+    }
+    // On loggue la vue seulement quand le produit est chargé
+    if (product) {
+        logView()
+    }
+  }, [product, params.id, supabase])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -131,7 +156,7 @@ export default function AnnoncePage() {
 
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
-  const isPro = product.profiles?.is_pro // Est-ce que le vendeur est PRO ?
+  const isPro = product.profiles?.is_pro
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
@@ -171,12 +196,13 @@ export default function AnnoncePage() {
         )}
       </div>
 
+      {/* 3. LIGHTBOX CORRIGÉE : Z-INDEX 100 POUR PASSER AU-DESSUS DU FOOTER */}
       {lightboxIndex !== null && (
         <div 
             className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
         >
             <button onClick={() => setLightboxIndex(null)} className="absolute top-4 right-4 z-50 text-white p-3 bg-black/50 rounded-full hover:bg-black/70 backdrop-blur-md transition"><X size={28} /></button>
             <div className="relative w-full h-full max-h-[85vh] aspect-square md:aspect-auto pointer-events-none p-2">
