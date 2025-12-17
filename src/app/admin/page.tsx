@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, Calendar, Clock, CheckCircle, Flag, XCircle } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, CheckCircle, Flag, AlertTriangle, X } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,7 +15,6 @@ export default function AdminPage() {
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
-  // Ajout de l'onglet 'reports'
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports'>('dashboard')
   
   const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0, reports: 0 })
@@ -23,6 +22,17 @@ export default function AdminPage() {
   const [products, setProducts] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+
+  // ETAT POUR LA MODALE DE CONFIRMATION
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    action: () => void; // La fonction à exécuter si on confirme
+    isDanger: boolean;
+  }>({
+    isOpen: false, title: '', message: '', action: () => {}, isDanger: false
+  })
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -45,7 +55,6 @@ export default function AdminPage() {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
     
-    // Récupération des signalements avec les détails du produit et du signalant
     const { data: reportsData } = await supabase
         .from('reports')
         .select('*, product:products(*), reporter:profiles(*)')
@@ -65,7 +74,21 @@ export default function AdminPage() {
     }
   }
 
-  // --- ACTIONS ---
+  // --- HELPER POUR OUVRIR LA MODALE ---
+  const askConfirm = (title: string, message: string, action: () => void, isDanger: boolean = true) => {
+      setConfirmModal({ isOpen: true, title, message, action, isDanger })
+  }
+
+  const closeConfirm = () => {
+      setConfirmModal({ ...confirmModal, isOpen: false })
+  }
+
+  const executeAction = async (actionFn: () => Promise<void>) => {
+      await actionFn()
+      closeConfirm()
+  }
+
+  // --- ACTIONS LOGIQUES (SANS CONFIRM NATIVE) ---
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
     const now = new Date()
@@ -86,20 +109,17 @@ export default function AdminPage() {
   }
 
   const stopSubscription = async (userId: string) => {
-    if(!confirm("Arrêter l'abonnement PRO de cet utilisateur ?")) return
     const { error } = await supabase.from('profiles').update({ is_pro: false, subscription_end_date: null }).eq('id', userId)
     if (error) toast.error("Erreur")
     else { toast.info("Abonnement arrêté"); fetchData() }
   }
 
   const toggleBanUser = async (userId: string, currentBan: boolean) => {
-    if (!confirm(currentBan ? "Débannir ?" : "BANNIR cet utilisateur ?")) return
     const { error } = await supabase.from('profiles').update({ is_banned: !currentBan }).eq('id', userId)
     if (!error) { toast.success(currentBan ? "Utilisateur débanni" : "Utilisateur BANNI"); fetchData() }
   }
 
   const deleteProduct = async (productId: string) => {
-    if (!confirm("Supprimer cette annonce ?")) return
     const { error } = await supabase.from('products').delete().eq('id', productId)
     if (!error) { toast.success("Annonce supprimée"); fetchData() }
   }
@@ -122,6 +142,37 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
       
+      {/* MODALE DE CONFIRMATION GLOBALE */}
+      {confirmModal.isOpen && (
+        <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={closeConfirm}>
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 border-t-4 border-transparent" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-full ${confirmModal.isDanger ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
+                        <AlertTriangle size={24} />
+                    </div>
+                    <h3 className="font-bold text-lg text-gray-900">{confirmModal.title}</h3>
+                </div>
+                
+                <p className="text-sm text-gray-500 leading-relaxed">{confirmModal.message}</p>
+                
+                <div className="flex gap-3 pt-2">
+                    <button 
+                        onClick={closeConfirm} 
+                        className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        onClick={() => executeAction(async () => confirmModal.action())}
+                        className={`flex-1 py-3 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2 ${confirmModal.isDanger ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}
+                    >
+                        Confirmer
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
         <div className="flex justify-between items-center mb-6">
@@ -149,7 +200,7 @@ export default function AdminPage() {
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p></div><div className="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={20} /></div></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs font-bold uppercase text-red-500">Alertes</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs text-gray-500 font-bold uppercase">Alertes</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
             </div>
         )}
 
@@ -162,12 +213,19 @@ export default function AdminPage() {
                             <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
                             <span className="text-[10px] text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
-                        <p className="text-sm font-bold text-gray-900 mb-1">Motif : "{r.reason}"</p>
+                        
+                        <p className="text-sm font-bold text-gray-900 mb-2">Motif : "{r.reason}"</p>
+                        
+                        <div className="flex items-center gap-2 mb-3 text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
+                            <User size={12} />
+                            <span>Signalé par : <strong>{r.reporter?.full_name || 'Utilisateur inconnu'}</strong></span>
+                        </div>
+
                         <div className="bg-white p-3 rounded-lg border border-gray-200 mb-3">
                             <p className="text-xs text-gray-500 font-bold uppercase mb-1">Annonce visée :</p>
                             {r.product ? (
                                 <Link href={`/annonce/${r.product_id}`} target="_blank" className="flex items-center gap-2 hover:bg-gray-50 p-1 rounded transition">
-                                    <div className="w-8 h-8 bg-gray-100 rounded overflow-hidden relative">
+                                    <div className="w-8 h-8 bg-gray-100 rounded overflow-hidden relative shrink-0">
                                         {r.product.images && <Image src={JSON.parse(r.product.images)[0]} alt="" fill className="object-cover" />}
                                     </div>
                                     <span className="text-sm font-medium truncate flex-1">{r.product.title}</span>
@@ -176,8 +234,16 @@ export default function AdminPage() {
                                 <p className="text-sm text-red-400 italic">Annonce supprimée</p>
                             )}
                         </div>
+                        
                         <div className="flex gap-2 justify-end">
-                            {r.product && <button onClick={() => deleteProduct(r.product_id)} className="text-xs bg-red-100 text-red-600 px-3 py-2 rounded-lg font-bold hover:bg-red-200 flex items-center gap-1"><Trash2 size={12}/> Supprimer Annonce</button>}
+                            {r.product && (
+                                <button 
+                                    onClick={() => askConfirm("Supprimer l'annonce ?", "Cette action est irréversible.", () => deleteProduct(r.product_id))} 
+                                    className="text-xs bg-red-100 text-red-600 px-3 py-2 rounded-lg font-bold hover:bg-red-200 flex items-center gap-1"
+                                >
+                                    <Trash2 size={12}/> Supprimer Annonce
+                                </button>
+                            )}
                             {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-xs bg-gray-800 text-white px-3 py-2 rounded-lg font-bold hover:bg-black flex items-center gap-1"><CheckCircle size={12}/> Marquer traité</button>}
                         </div>
                     </div>
@@ -205,10 +271,27 @@ export default function AdminPage() {
                                 {u.is_banned && <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">BANNI</span>}
                             </div>
                             <div className="grid grid-cols-4 gap-2">
+                                {/* PAS DE CONFIRMATION POUR L'AJOUT DE TEMPS, C'EST POSITIF */}
                                 <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="col-span-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100">+1 Mois</button>
                                 <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="col-span-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-100">+1 An</button>
-                                <button onClick={() => stopSubscription(u.id)} className="col-span-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-200">Stop</button>
-                                <button onClick={() => toggleBanUser(u.id, u.is_banned)} className={`col-span-1 py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Débannir' : 'Bannir'}</button>
+                                
+                                <button 
+                                    onClick={() => askConfirm("Arrêter l'abonnement ?", "L'utilisateur perdra son statut PRO immédiatement.", () => stopSubscription(u.id))} 
+                                    className="col-span-1 bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-bold hover:bg-gray-200"
+                                >
+                                    Stop
+                                </button>
+                                <button 
+                                    onClick={() => askConfirm(
+                                        u.is_banned ? "Débannir l'utilisateur ?" : "Bannir l'utilisateur ?", 
+                                        u.is_banned ? "Il pourra de nouveau accéder à son compte." : "Il ne pourra plus se connecter.", 
+                                        () => toggleBanUser(u.id, u.is_banned),
+                                        !u.is_banned // Danger si on bannit, pas danger si on débannit
+                                    )} 
+                                    className={`col-span-1 py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}
+                                >
+                                    {u.is_banned ? 'Débannir' : 'Bannir'}
+                                </button>
                             </div>
                         </div>
                     )
@@ -229,7 +312,12 @@ export default function AdminPage() {
                                 <p className="text-xs text-gray-500 truncate">{p.profiles?.full_name}</p>
                                 <p className="text-brand font-bold text-xs mt-1">{p.price} KMF</p>
                             </div>
-                            <button onClick={() => deleteProduct(p.id)} className="bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 self-center"><Trash2 size={18} /></button>
+                            <button 
+                                onClick={() => askConfirm("Supprimer l'annonce ?", "Cette action est irréversible.", () => deleteProduct(p.id))} 
+                                className="bg-red-50 text-red-500 p-2 rounded-lg hover:bg-red-100 self-center"
+                            >
+                                <Trash2 size={18} />
+                            </button>
                         </div>
                     )
                 })}
