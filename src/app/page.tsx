@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Heart, User } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
@@ -53,7 +53,14 @@ export default function HomePage() {
         if (favs) setFavorites(new Set(favs.map((f: any) => f.product_id)))
       }
 
-      let query = supabase.from('products').select('*').order('created_at', { ascending: false })
+      // MODIFICATION ICI : On utilise la Vue SQL 'products_with_details'
+      // TRI : Les PROs en premier, puis les plus récents
+      let query = supabase
+        .from('products_with_details') // <-- Utilisation de la vue
+        .select('*')
+        .order('is_pro', { ascending: false }) // <-- Boost PRO
+        .order('created_at', { ascending: false })
+      
       if (selectedCategory !== 0) { query = query.eq('category_id', selectedCategory); if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) }
       if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
       if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
@@ -88,7 +95,6 @@ export default function HomePage() {
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="text-white font-extrabold text-2xl tracking-tight">Comores<span className="text-white/80">Market</span></h1>
-            {/* CORRECTION ICI : Si userId, on affiche l'icône Compte, sinon Connexion */}
             {userId ? (
                 <Link href="/compte" className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm hover:bg-white/30 transition shadow-sm border border-white/10">
                     <User size={18} className="text-white" />
@@ -128,14 +134,49 @@ export default function HomePage() {
                 {products.map(product => {
                     let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
                     const isFav = favorites.has(product.id)
+                    // NOUVEAU : Récupération du status PRO depuis la vue
+                    const isPro = product.is_pro
+                    
                     return (
-                        <Link key={product.id} href={`/annonce/${product.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition active:scale-[0.98] relative group">
+                        <Link 
+                            key={product.id} 
+                            href={`/annonce/${product.id}`} 
+                            // STYLE PRO : Bordure dorée, ombre colorée, fond subtil
+                            className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
+                                isPro 
+                                ? 'bg-yellow-50/30 border-2 border-yellow-400 shadow-md shadow-yellow-100/50 ring-2 ring-yellow-400/10' 
+                                : 'bg-white shadow-sm border border-gray-100 hover:shadow-md'
+                            }`}
+                        >
                             <div className="relative w-full aspect-square bg-gray-100">
                                 {img ? <Image src={img} alt="" fill className="object-cover" /> : <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>}
+                                
+                                {/* BADGE PRO SUR L'IMAGE */}
+                                {isPro && (
+                                    <div className="absolute top-2 left-2 bg-yellow-400 text-black text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
+                                        <Crown size={10} strokeWidth={3} /> PRO
+                                    </div>
+                                )}
+
                                 <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white transition active:scale-90 z-10"><Heart size={16} className={isFav ? "fill-red-500 text-red-500" : "text-gray-500"} /></button>
                                 <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10 font-medium">{product.location_island}</div>
                             </div>
-                            <div className="p-3"><h3 className="font-bold text-gray-900 line-clamp-1 text-sm">{product.title}</h3><p className="text-brand font-extrabold text-sm">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p><div className="flex items-center gap-1 text-gray-400 text-[10px] mt-1"><MapPin size={10} /> {product.location_city}</div></div>
+                            
+                            <div className="p-3">
+                                <h3 className="font-bold text-gray-900 line-clamp-1 text-sm flex items-center gap-1">
+                                    {product.title}
+                                    {/* Petit badge aussi à côté du titre pour bien voir */}
+                                    {isPro && <ShieldCheck size={12} className="text-yellow-500 fill-yellow-100 shrink-0" />}
+                                </h3>
+                                
+                                <p className={`font-extrabold text-sm ${isPro ? 'text-yellow-600' : 'text-brand'}`}>
+                                    {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
+                                </p>
+                                
+                                <div className="flex items-center gap-1 text-gray-400 text-[10px] mt-1">
+                                    <MapPin size={10} /> {product.location_city}
+                                </div>
+                            </div>
                         </Link>
                     )
                 })}
