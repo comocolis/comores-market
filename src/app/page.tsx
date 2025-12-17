@@ -4,9 +4,10 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Filter } from 'lucide-react'
+import { MapPin, Search, Loader2, Package, X, Heart } from 'lucide-react'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
 
-// --- CONSTANTES UNIFIÉES ---
 const CATEGORIES = [
   { id: 0, label: 'Tout', icon: '🔍' },
   { id: 1, label: 'Véhicules', icon: '🚗' },
@@ -38,13 +39,16 @@ const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'
 
 export default function HomePage() {
   const supabase = createClient()
+  const router = useRouter()
   
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [userId, setUserId] = useState<string | null>(null)
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
   
   // Filtres
   const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState(0) // 0 = Tout
+  const [selectedCategory, setSelectedCategory] = useState(0)
   const [selectedSubCategory, setSelectedSubCategory] = useState('Tout')
   const [selectedIsland, setSelectedIsland] = useState('Tout')
 
@@ -54,9 +58,20 @@ export default function HomePage() {
   }, [selectedCategory])
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const init = async () => {
       setLoading(true)
       
+      // 1. Récupérer l'utilisateur et ses favoris
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setUserId(user.id)
+        const { data: favs } = await supabase.from('favorites').select('product_id').eq('user_id', user.id)
+        if (favs) {
+            setFavorites(new Set(favs.map((f: any) => f.product_id)))
+        }
+      }
+
+      // 2. Récupérer les produits avec filtres
       let query = supabase
         .from('products')
         .select('*')
@@ -64,7 +79,6 @@ export default function HomePage() {
 
       if (selectedCategory !== 0) {
         query = query.eq('category_id', selectedCategory)
-        // Ajout filtre sous-catégorie
         if (selectedSubCategory !== 'Tout') {
             query = query.eq('sub_category', selectedSubCategory)
         }
@@ -85,11 +99,38 @@ export default function HomePage() {
       setLoading(false)
     }
 
-    const timer = setTimeout(fetchProducts, 400)
+    // Debounce pour la recherche
+    const timer = setTimeout(init, 400)
     return () => clearTimeout(timer)
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, supabase])
 
-  // Liste des sous-catégories actives
+  // GESTION DES FAVORIS
+  const toggleFavorite = async (e: React.MouseEvent, productId: string) => {
+    e.preventDefault() // Empêche le clic d'ouvrir l'annonce
+    e.stopPropagation()
+
+    if (!userId) {
+        router.push('/auth')
+        return
+    }
+
+    if (favorites.has(productId)) {
+        // Retirer
+        const newFavs = new Set(favorites)
+        newFavs.delete(productId)
+        setFavorites(newFavs)
+        await supabase.from('favorites').delete().match({ user_id: userId, product_id: productId })
+        toast.info("Retiré des favoris")
+    } else {
+        // Ajouter
+        const newFavs = new Set(favorites)
+        newFavs.add(productId)
+        setFavorites(newFavs)
+        await supabase.from('favorites').insert({ user_id: userId, product_id: productId })
+        toast.success("Ajouté aux favoris")
+    }
+  }
+
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
@@ -99,9 +140,11 @@ export default function HomePage() {
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="text-white font-extrabold text-2xl tracking-tight">Comores<span className="text-white/80">Market</span></h1>
-            <Link href="/auth" className="flex items-center gap-1.5 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold shadow-sm border border-white/10">
-                Connexion
-            </Link>
+            {!userId && (
+                <Link href="/auth" className="flex items-center gap-1.5 bg-white/20 px-4 py-2 rounded-full backdrop-blur-sm hover:bg-white/30 transition text-white text-xs font-bold shadow-sm border border-white/10">
+                    Connexion
+                </Link>
+            )}
         </div>
 
         <div className="relative">
@@ -132,7 +175,7 @@ export default function HomePage() {
             ))}
         </div>
         
-        {/* FILTRES NIVEAU 2 : SOUS-CATÉGORIES (Si catégorie sélectionnée) */}
+        {/* FILTRES NIVEAU 2 : SOUS-CATÉGORIES */}
         {currentSubCats && currentSubCats.length > 0 && (
             <div className="flex gap-2 overflow-x-auto px-4 mt-3 pb-1 scrollbar-hide animate-in slide-in-from-top-2 fade-in">
                 <button 
@@ -188,10 +231,21 @@ export default function HomePage() {
             <div className="grid grid-cols-2 gap-3">
                 {products.map(product => {
                     let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+                    const isFav = favorites.has(product.id)
+                    
                     return (
-                        <Link key={product.id} href={`/annonce/${product.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition active:scale-[0.98]">
+                        <Link key={product.id} href={`/annonce/${product.id}`} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col hover:shadow-md transition active:scale-[0.98] relative group">
                             <div className="relative w-full aspect-square bg-gray-100">
                                 {img ? <Image src={img} alt="" fill className="object-cover" /> : <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>}
+                                
+                                {/* BOUTON FAVORIS (RÉTABLI) */}
+                                <button 
+                                    onClick={(e) => toggleFavorite(e, product.id)}
+                                    className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white transition active:scale-90 z-10"
+                                >
+                                    <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : "text-gray-500"} />
+                                </button>
+
                                 <div className="absolute bottom-1 right-1 bg-black/60 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10 font-medium">
                                     {product.location_island}
                                 </div>
