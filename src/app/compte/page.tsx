@@ -7,7 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
-  PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save 
+  PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save,
+  Facebook, Instagram, Crown 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -36,15 +37,14 @@ export default function ComptePage() {
     full_name: '',
     city: '',
     island: 'Ngazidja',
-    phone_number: ''
+    phone_number: '',
+    facebook_url: '',
+    instagram_url: ''
   })
 
   useEffect(() => {
     const getProfile = async () => {
-      // Pas besoin de vérifier la session ici, le Middleware l'a déjà fait !
       const { data: { user } } = await supabase.auth.getUser()
-      
-      // Si par miracle on arrive ici sans user (latence), on ne fait rien
       if (!user) return 
       
       setUser(user) 
@@ -57,7 +57,9 @@ export default function ComptePage() {
             full_name: data.full_name || '',
             city: data.city || '',
             island: data.island || 'Ngazidja',
-            phone_number: data.phone_number || ''
+            phone_number: data.phone_number || '',
+            facebook_url: data.facebook_url || '',
+            instagram_url: data.instagram_url || ''
         })
       }
       setLoading(false)
@@ -67,13 +69,9 @@ export default function ComptePage() {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut()
-    // Le middleware redirigera automatiquement vers /auth si on essaie de revenir
     router.push('/auth')
     router.refresh()
   }
-
-  // ... (LE RESTE DU CODE EST IDENTIQUE : handleAvatarClick, handleUpdateProfile, etc.)
-  // Je remets les fonctions pour que le fichier soit complet et copiable
 
   const handleAvatarClick = () => {
     if (!isEditingInfo) {
@@ -123,7 +121,9 @@ export default function ComptePage() {
         full_name: profile?.full_name || '',
         city: profile?.city || '',
         island: profile?.island || 'Ngazidja',
-        phone_number: profile?.phone_number || ''
+        phone_number: profile?.phone_number || '',
+        facebook_url: profile?.facebook_url || '',
+        instagram_url: profile?.instagram_url || ''
     })
     setIsEditingInfo(false)
   }
@@ -255,6 +255,46 @@ export default function ComptePage() {
                     <label className="text-xs font-bold text-gray-400 uppercase ml-1">WhatsApp</label>
                     {isEditingInfo ? <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} /> : <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50 tracking-wide">{profile?.phone_number || <span className="text-gray-400 italic">Non renseigné</span>}</p>}
                 </div>
+                
+                {/* --- SECTION RESEAUX SOCIAUX --- */}
+                {/* Condition : Si PRO Actif => On affiche les champs, sinon => Message verrouillé */}
+                
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                    {isProActive ? (
+                        <>
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase ml-1 flex gap-1 items-center"><Facebook size={12}/> Facebook</label>
+                                {isEditingInfo ? (
+                                    <input type="url" placeholder="Lien profil" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> 
+                                ) : (
+                                    <p className="p-3 text-gray-900 font-medium text-xs border-b border-gray-50 truncate h-11 flex items-center">{profile?.facebook_url || <span className="text-gray-400 italic">-</span>}</p>
+                                )}
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-gray-400 uppercase ml-1 flex gap-1 items-center"><Instagram size={12}/> Instagram</label>
+                                {isEditingInfo ? (
+                                    <input type="url" placeholder="Lien profil" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> 
+                                ) : (
+                                    <p className="p-3 text-gray-900 font-medium text-xs border-b border-gray-50 truncate h-11 flex items-center">{profile?.instagram_url || <span className="text-gray-400 italic">-</span>}</p>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="col-span-2 bg-yellow-50/50 border border-yellow-200 border-dashed rounded-xl p-3 text-center flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 text-left">
+                                <div className="bg-yellow-100 text-yellow-700 p-2 rounded-full shrink-0"><Lock size={16} /></div>
+                                <div>
+                                    <p className="text-xs font-bold text-gray-800">Liens Réseaux Sociaux</p>
+                                    <p className="text-[10px] text-gray-500">Fonctionnalité réservée aux membres PRO</p>
+                                </div>
+                            </div>
+                            <Link href="/pro" className="bg-yellow-400 text-black text-[10px] font-bold px-3 py-1.5 rounded-lg shadow-sm hover:bg-yellow-500 transition whitespace-nowrap flex items-center gap-1">
+                                <Crown size={12} /> DÉBLOQUER
+                            </Link>
+                        </div>
+                    )}
+                </div>
+
             </div>
             
             {isEditingInfo && (

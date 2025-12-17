@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Calendar, User, ShieldCheck, ArrowLeft, Loader2, Package } from 'lucide-react'
+import { MapPin, Calendar, User, ShieldCheck, ArrowLeft, Loader2, Package, Facebook, Instagram } from 'lucide-react'
 
 export default function PublicProfilePage() {
   const supabase = createClient()
@@ -80,6 +80,22 @@ export default function PublicProfilePage() {
             <span className="flex items-center gap-1"><MapPin size={14} /> {profile.city || 'Comores'}</span>
             <span className="flex items-center gap-1"><Calendar size={14} /> Membre depuis {new Date(profile.created_at).getFullYear()}</span>
         </div>
+
+        {/* LIENS RESEAUX SOCIAUX - UNIQUEMENT SI PRO ! */}
+        {profile.is_pro && (profile.facebook_url || profile.instagram_url) && (
+            <div className="flex gap-3 mt-5 w-full justify-center">
+                {profile.facebook_url && (
+                    <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-[#1877F2] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition">
+                        <Facebook size={16} /> Facebook
+                    </a>
+                )}
+                {profile.instagram_url && (
+                    <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-linear-to-tr from-[#FFD600] via-[#FF0100] to-[#D800B9] text-white px-4 py-2 rounded-xl text-sm font-bold shadow-md hover:opacity-90 transition">
+                        <Instagram size={16} /> Instagram
+                    </a>
+                )}
+            </div>
+        )}
       </div>
 
       {/* LISTE DES ANNONCES */}
