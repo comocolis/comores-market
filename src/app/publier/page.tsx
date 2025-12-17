@@ -4,22 +4,14 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
-import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers } from 'lucide-react'
+import { Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, Layers, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-// --- DONNÉES DES CATÉGORIES ---
 const CATEGORIES_LIST = [
-  { id: 1, label: 'Véhicules' },
-  { id: 2, label: 'Immobilier' },
-  { id: 3, label: 'Mode' },
-  { id: 4, label: 'Tech' },
-  { id: 5, label: 'Maison' },
-  { id: 6, label: 'Loisirs' },
-  { id: 7, label: 'Alimentation' },
-  { id: 8, label: 'Services' },
-  { id: 9, label: 'Beauté' },
-  { id: 10, label: 'Emploi' },
+  { id: 1, label: 'Véhicules' }, { id: 2, label: 'Immobilier' }, { id: 3, label: 'Mode' },
+  { id: 4, label: 'Tech' }, { id: 5, label: 'Maison' }, { id: 6, label: 'Loisirs' },
+  { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
 ]
 
 const SUB_CATEGORIES: { [key: number]: string[] } = {
@@ -35,6 +27,13 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
 }
 
+const isValidPhoneNumber = (phone: string) => {
+  const clean = phone.replace(/[\s\-\.]/g, '')
+  const comorosRegex = /^(?:\+269|00269)?3[234]\d{5}$/
+  const franceRegex = /^(?:\+33|0033|0)[67]\d{8}$/
+  return comorosRegex.test(clean) || franceRegex.test(clean)
+}
+
 export default function PublierPage() {
   const supabase = createClient()
   const router = useRouter()
@@ -43,27 +42,20 @@ export default function PublierPage() {
   const [uploading, setUploading] = useState(false)
   const [images, setImages] = useState<string[]>([])
   
-  // États Limite & Pro
   const [isPro, setIsPro] = useState(false)
   const [adsCount, setAdsCount] = useState(0)
   
   const FREE_ADS_LIMIT = 3
   const FREE_PHOTOS_LIMIT = 3
+  const PRO_PHOTOS_LIMIT = 10 // Nouvelle limite PRO
   
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const [formData, setFormData] = useState({
-    title: '',
-    price: '',
-    description: '',
-    category_id: '1',
-    sub_category: '', // Nouveau champ
-    location_island: 'Ngazidja',
-    location_city: '',
-    whatsapp_number: ''
+    title: '', price: '', description: '', category_id: '1', sub_category: '',
+    location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
 
-  // Liste dynamique des sous-catégories selon la catégorie choisie
   const currentSubCats = SUB_CATEGORIES[parseInt(formData.category_id)] || []
 
   useEffect(() => {
@@ -86,11 +78,13 @@ export default function PublierPage() {
     checkUser()
   }, [router, supabase])
 
+  const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     
-    if (!isPro && images.length >= FREE_PHOTOS_LIMIT) {
-        toast.error(`Limite atteinte : Les comptes gratuits sont limités à ${FREE_PHOTOS_LIMIT} photos.`, {
+    if (images.length >= currentPhotoLimit) {
+        toast.error(isPro ? "Limite de 10 photos atteinte." : `Limite gratuite atteinte (${FREE_PHOTOS_LIMIT}). Passez PRO pour plus !`, {
             icon: <Lock size={16} />,
             style: { background: '#FEF2F2', color: '#B91C1C', border: '1px solid #FCA5A5' }
         })
@@ -101,12 +95,11 @@ export default function PublierPage() {
     const file = e.target.files[0]
     const fileExt = file.name.split('.').pop()
     const fileName = `${Math.random()}.${fileExt}`
-    const filePath = `${fileName}`
-
+    
     try {
-      const { error: uploadError } = await supabase.storage.from('products').upload(filePath, file)
+      const { error: uploadError } = await supabase.storage.from('products').upload(fileName, file)
       if (uploadError) throw uploadError
-      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(filePath)
+      const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
       setImages([...images, publicUrl])
     } catch (error: any) {
       toast.error('Erreur upload: ' + error.message)
@@ -121,9 +114,12 @@ export default function PublierPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Vérification des champs obligatoires
     if (!formData.title || !formData.price || images.length === 0 || !formData.sub_category) {
-        toast.error("Veuillez remplir tous les champs (titre, prix, sous-catégorie) et ajouter une photo.")
+        toast.error("Veuillez remplir tous les champs obligatoires et ajouter une photo.")
+        return
+    }
+    if (formData.whatsapp_number && !isValidPhoneNumber(formData.whatsapp_number)) {
+        toast.error("Numéro invalide. Utilisez un numéro Comores (+269) ou France (+33).")
         return
     }
 
@@ -137,7 +133,7 @@ export default function PublierPage() {
             price: parseFloat(formData.price),
             description: formData.description,
             category_id: parseInt(formData.category_id),
-            sub_category: formData.sub_category, // Envoi de la sous-catégorie
+            sub_category: formData.sub_category,
             location_island: formData.location_island,
             location_city: formData.location_city,
             images: JSON.stringify(images),
@@ -172,12 +168,10 @@ export default function PublierPage() {
     )
   }
 
-  const photosLimitReached = !isPro && images.length >= FREE_PHOTOS_LIMIT
+  const photosLimitReached = images.length >= currentPhotoLimit
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans pb-24">
-      
-      {/* Header */}
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
         <h1 className="font-extrabold text-xl text-gray-900">Nouvelle annonce</h1>
@@ -185,16 +179,14 @@ export default function PublierPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-md mx-auto">
-        
-        {/* Photos */}
         <div className="space-y-2">
             <div className="flex justify-between items-end">
-                <label className="text-sm font-bold text-gray-700 ml-1">Photos du produit</label>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${photosLimitReached ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{images.length} / {isPro ? '∞' : FREE_PHOTOS_LIMIT}</span>
+                <label className="text-sm font-bold text-gray-700 ml-1">Photos</label>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${photosLimitReached ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{images.length} / {currentPhotoLimit}</span>
             </div>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                <div onClick={() => { if (photosLimitReached) { toast.error(`Passez PRO pour plus de photos !`, { icon: <Lock size={16}/> }) } else { fileInputRef.current?.click() } }} className={`w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition group ${photosLimitReached ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-50' : 'bg-gray-100 border-gray-300 cursor-pointer hover:bg-gray-50 hover:border-brand/50'}`}>
-                    {uploading ? <Loader2 className="animate-spin text-brand" /> : <><Camera className="text-gray-400 group-hover:text-brand" /><span className="text-[10px] font-bold mt-1 text-gray-400 group-hover:text-brand">{photosLimitReached ? 'Limite' : 'Ajouter'}</span></>}
+                <div onClick={() => { if (photosLimitReached) { toast.error(isPro ? "Max 10 photos" : `Passez PRO pour plus !`, { icon: <Lock size={16}/> }) } else { fileInputRef.current?.click() } }} className={`w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition group ${photosLimitReached ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-50' : 'bg-gray-100 border-gray-300 cursor-pointer hover:bg-gray-50 hover:border-brand/50'}`}>
+                    {uploading ? <Loader2 className="animate-spin text-brand" /> : <><Camera className="text-gray-400 group-hover:text-brand" /><span className="text-[10px] font-bold mt-1 text-gray-400 group-hover:text-brand">{photosLimitReached ? 'Max' : 'Ajouter'}</span></>}
                 </div>
                 {images.map((img, i) => (
                     <div key={i} className="w-24 h-24 bg-gray-100 rounded-2xl relative shrink-0 overflow-hidden border border-gray-200 shadow-sm"><Image src={img} alt="" fill className="object-cover" /><button type="button" onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full hover:bg-red-500 transition"><X size={12} /></button></div>
@@ -203,95 +195,26 @@ export default function PublierPage() {
             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" disabled={photosLimitReached} />
         </div>
 
-        {/* Info Principales */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div>
-                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Titre</label>
-                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
-                    <Type size={18} className="text-gray-400" />
-                    <input type="text" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: iPhone 12 Pro Max" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-                </div>
-            </div>
-
-            <div>
-                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label>
-                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
-                    <DollarSign size={18} className="text-gray-400" />
-                    <input type="number" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 150000" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} />
-                </div>
-            </div>
-
-            {/* SÉLECTEURS DE CATÉGORIE & SOUS-CATÉGORIE */}
+            <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Titre</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition"><Type size={18} className="text-gray-400" /><input type="text" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: iPhone 12 Pro" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div></div>
+            <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition"><DollarSign size={18} className="text-gray-400" /><input type="number" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="150000" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></div></div>
             <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Catégorie</label>
-                    <div className="flex items-center bg-gray-50 rounded-xl px-2 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
-                        <Tag size={16} className="text-gray-400 shrink-0" />
-                        <select 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-medium text-gray-700 min-w-0" 
-                            value={formData.category_id} 
-                            onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
-                        >
-                            {CATEGORIES_LIST.map(cat => (
-                                <option key={cat.id} value={cat.id}>{cat.label}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
-
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Sous-catégorie</label>
-                    <div className="flex items-center bg-gray-50 rounded-xl px-2 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
-                        <Layers size={16} className="text-gray-400 shrink-0" />
-                        <select 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-medium text-gray-700 min-w-0" 
-                            value={formData.sub_category} 
-                            onChange={e => setFormData({ ...formData, sub_category: e.target.value })}
-                        >
-                            <option value="">Choisir...</option>
-                            {currentSubCats.map((sub, idx) => (
-                                <option key={idx} value={sub}>{sub}</option>
-                            ))}
-                        </select>
-                    </div>
-                </div>
+                <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Catégorie</label><div className="flex items-center bg-gray-50 rounded-xl px-2 border border-gray-200 focus-within:border-brand transition"><Tag size={16} className="text-gray-400 shrink-0" /><select className="w-full bg-transparent p-3 outline-none text-sm font-medium text-gray-700 min-w-0" value={formData.category_id} onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}>{CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id}>{cat.label}</option>))}</select></div></div>
+                <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Sous-catégorie</label><div className="flex items-center bg-gray-50 rounded-xl px-2 border border-gray-200 focus-within:border-brand transition"><Layers size={16} className="text-gray-400 shrink-0" /><select className="w-full bg-transparent p-3 outline-none text-sm font-medium text-gray-700 min-w-0" value={formData.sub_category} onChange={e => setFormData({ ...formData, sub_category: e.target.value })}><option value="">Choisir...</option>{currentSubCats.map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}</select></div></div>
             </div>
         </div>
 
-        {/* Localisation & Contact */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
             <div className="grid grid-cols-2 gap-3">
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label>
-                    <select className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})}>
-                        <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option>
-                    </select>
-                </div>
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Ville</label>
-                    <input type="text" className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" placeholder="Ex: Moroni" value={formData.location_city} onChange={e => setFormData({...formData, location_city: e.target.value})} />
-                </div>
+                <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label><select className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})}><option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option><option>La Réunion</option></select></div>
+                <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Ville</label><input type="text" className="w-full bg-gray-50 rounded-xl p-3 text-sm font-medium border border-gray-200 outline-none focus:border-brand" placeholder="Ex: Moroni" value={formData.location_city} onChange={e => setFormData({...formData, location_city: e.target.value})} /></div>
             </div>
-
-            <div>
-                <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Numéro WhatsApp</label>
-                <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand/20 transition">
-                    <span className="text-gray-500 font-bold text-sm mr-1">KM</span>
-                    <input type="tel" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 332 00 00" value={formData.whatsapp_number} onChange={e => setFormData({...formData, whatsapp_number: e.target.value})} />
-                </div>
-            </div>
+            <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Numéro WhatsApp</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand transition"><Phone size={18} className="text-gray-400 mr-2" /><input type="tel" className="w-full bg-transparent p-3 outline-none text-sm font-medium" placeholder="Ex: 332 00 00" value={formData.whatsapp_number} onChange={e => setFormData({...formData, whatsapp_number: e.target.value})} /></div></div>
         </div>
 
-        {/* Description */}
-        <div>
-            <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Description détaillée</label>
-            <textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition min-h-30" placeholder="Décrivez votre produit..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-        </div>
+        <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Description</label><textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition min-h-30" placeholder="Décrivez votre produit..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} /></div>
 
-        <button type="submit" className="w-full bg-brand text-white font-bold py-4 rounded-xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2">
-            {loading ? <Loader2 className="animate-spin" /> : "Publier l'annonce"}
-        </button>
-
+        <button type="submit" className="w-full bg-brand text-white font-bold py-4 rounded-xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2">{loading ? <Loader2 className="animate-spin" /> : "Publier l'annonce"}</button>
       </form>
     </div>
   )
