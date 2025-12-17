@@ -3,13 +3,15 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
-import { Suspense } from "react"; // <--- 1. IMPORT IMPORTANT
+import InstallBanner from '@/components/InstallBanner'; // <-- 1. IMPORT DU COMPOSANT
+import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Comores Market",
   description: "Achat et vente aux Comores",
+  manifest: '/manifest.json', // Assure-toi que c'est bien référencé
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -28,7 +30,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#22c55e",
+  themeColor: "#16a34a", // Couleur Brand
   viewportFit: "cover", 
   width: "device-width",
   initialScale: 1,
@@ -44,6 +46,10 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
+        
+        {/* 2. AJOUT DU BANDEAU D'INSTALLATION (Global) */}
+        <InstallBanner />
+
         <div className="w-full max-w-125 min-h-screen bg-white shadow-2xl relative">
           <Toaster richColors position="top-center" duration={3000} />
           
@@ -51,8 +57,6 @@ export default function RootLayout({
             {children}
           </main>
 
-          {/* 2. ENVELOPPER LA NAVIGATION DANS SUSPENSE */}
-          {/* Cela empêche l'erreur de build sur la page 404 statique */}
           <Suspense fallback={null}>
             <BottomNav />
           </Suspense>
