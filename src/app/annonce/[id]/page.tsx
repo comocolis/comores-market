@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { 
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, 
   User, ArrowRight, X, ChevronLeft, ChevronRight, 
-  ChevronRight as ChevronRightIcon, Share2, Flag, ZoomIn, Crown, ShieldCheck 
+  ChevronRight as ChevronRightIcon, Share2, Flag, ZoomIn, Crown, ShieldCheck, AlertTriangle 
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,7 +23,12 @@ export default function AnnoncePage() {
   
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  
+  // ETATS POUR LE SIGNALEMENT (MODALE)
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportReason, setReportReason] = useState('')
   const [reporting, setReporting] = useState(false)
+  
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   const [images, setImages] = useState<string[]>([])
@@ -34,7 +39,6 @@ export default function AnnoncePage() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
-  // REF POUR EVITER LE DOUBLE COMPTAGE DE VUE
   const viewLogged = useRef(false)
 
   useEffect(() => {
@@ -47,7 +51,6 @@ export default function AnnoncePage() {
          setFavorites(new Set(favs?.map((f: any) => f.product_id)))
       }
 
-      // On récupère le produit + les infos du profil vendeur
       const { data: productData, error } = await supabase
         .from('products')
         .select('*, profiles(*)')
@@ -70,14 +73,11 @@ export default function AnnoncePage() {
     getData()
   }, [supabase, params.id])
 
-  // ENREGISTREMENT DE LA VUE
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current) return
         viewLogged.current = true
-        
         const { data: { user } } = await supabase.auth.getUser()
-        
         await supabase.from('product_views').insert({
             product_id: params.id,
             viewer_id: user?.id || null
@@ -123,7 +123,6 @@ export default function AnnoncePage() {
     }
   }
 
-  // PARTAGE NATIF
   const handleShare = async () => {
     if (navigator.share) {
         try {
@@ -132,30 +131,35 @@ export default function AnnoncePage() {
                 text: `Regarde cette annonce sur Comores Market : ${product.title} - ${product.price} KMF`,
                 url: window.location.href,
             })
-        } catch (error) {
-            console.log('Partage annulé')
-        }
+        } catch (error) { console.log('Partage annulé') }
     } else {
         navigator.clipboard.writeText(window.location.href)
         toast.success("Lien copié !")
     }
   }
 
-  // SIGNALEMENT
-  const handleReport = async () => {
-    if (!currentUser) return router.push('/auth')
-    const reason = prompt("Pourquoi signalez-vous cette annonce ? (Fraude, Inapproprié, etc.)")
-    if (!reason) return
+  // --- NOUVEAU : GESTION MODALE SIGNALEMENT ---
+  const openReportModal = () => {
+      if (!currentUser) return router.push('/auth')
+      setShowReportModal(true)
+  }
+
+  const submitReport = async () => {
+    if (!reportReason.trim()) return toast.error("Veuillez indiquer un motif.")
 
     setReporting(true)
     const { error } = await supabase.from('reports').insert({
         reporter_id: currentUser.id,
         product_id: product.id,
-        reason: reason
+        reason: reportReason
     })
 
     if (error) toast.error("Erreur lors du signalement")
-    else toast.success("Signalement envoyé. Merci de votre vigilance !")
+    else {
+        toast.success("Signalement envoyé. Merci de votre vigilance !")
+        setShowReportModal(false)
+        setReportReason('')
+    }
     setReporting(false)
   }
 
@@ -199,6 +203,44 @@ export default function AnnoncePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
+      {/* MODALE DE SIGNALEMENT ESTHÉTIQUE */}
+      {showReportModal && (
+        <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200">
+                <div className="flex items-center gap-3 text-red-600 mb-2">
+                    <div className="bg-red-100 p-2 rounded-full"><AlertTriangle size={24} /></div>
+                    <h3 className="font-bold text-lg text-gray-900">Signaler l'annonce</h3>
+                </div>
+                
+                <p className="text-sm text-gray-500">Aidez-nous à modérer la communauté. Pourquoi signalez-vous ce contenu ?</p>
+                
+                <textarea 
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none min-h-24 resize-none"
+                    placeholder="Fraude, contrefaçon, contenu inapproprié..."
+                    value={reportReason}
+                    onChange={(e) => setReportReason(e.target.value)}
+                    autoFocus
+                />
+
+                <div className="flex gap-3 pt-2">
+                    <button 
+                        onClick={() => setShowReportModal(false)} 
+                        className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        onClick={submitReport} 
+                        disabled={reporting || !reportReason.trim()}
+                        className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                        {reporting ? <Loader2 size={18} className="animate-spin" /> : "Envoyer"}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* HEADER IMAGE */}
       <div className="relative w-full h-96 bg-gray-200 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
@@ -213,22 +255,19 @@ export default function AnnoncePage() {
             </span>
         </div>
 
-        {/* BARRE OUTILS FLOTTANTE */}
         <div className="absolute top-0 left-0 w-full p-4 pt-safe flex justify-between items-start bg-linear-to-b from-black/50 to-transparent pointer-events-none">
             <button onClick={(e) => {e.stopPropagation(); router.back()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition pointer-events-auto">
                 <ArrowLeft size={20} />
             </button>
             
             <div className="flex gap-2 pointer-events-auto">
-                {/* BOUTON SIGNALER */}
-                <button onClick={(e) => {e.stopPropagation(); handleReport()}} disabled={reporting} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-red-500 hover:text-white transition" title="Signaler">
-                    {reporting ? <Loader2 size={20} className="animate-spin" /> : <Flag size={20} />}
+                {/* BOUTON SIGNALER ACTUALISÉ */}
+                <button onClick={(e) => {e.stopPropagation(); openReportModal()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-red-500 hover:text-white transition" title="Signaler">
+                    <Flag size={20} />
                 </button>
-                {/* BOUTON PARTAGER */}
                 <button onClick={(e) => {e.stopPropagation(); handleShare()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Share2 size={20} />
                 </button>
-                {/* BOUTON FAVORIS */}
                 <button onClick={(e) => {e.stopPropagation(); toggleFavorite()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
                     <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
                 </button>
@@ -250,7 +289,7 @@ export default function AnnoncePage() {
         )}
       </div>
 
-      {/* LIGHTBOX (Z-INDEX 100) */}
+      {/* LIGHTBOX */}
       {lightboxIndex !== null && (
         <div 
             className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
@@ -277,7 +316,6 @@ export default function AnnoncePage() {
             <div>
                 <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1">
                     {product.title}
-                    {/* Badge PRO Titre */}
                     {isPro && <ShieldCheck size={18} className="text-mustard fill-mustard/20" />}
                 </h1>
                 <div className="flex items-center gap-1 text-gray-400 text-xs">
@@ -285,7 +323,6 @@ export default function AnnoncePage() {
                 </div>
             </div>
             <div className="text-right">
-                {/* PRIX COULEUR MOUTARDE SI PRO */}
                 <p className={`text-xl font-extrabold ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                     {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                 </p>
@@ -319,7 +356,6 @@ export default function AnnoncePage() {
         {!isOwner ? (
             currentUser ? (
                 <div className="space-y-3 pb-8">
-                    {/* BOUTON WHATSAPP UNIQUEMENT SI LE VENDEUR EST PRO */}
                     {isPro && (
                         <button 
                             onClick={handleWhatsAppClick}

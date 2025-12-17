@@ -22,7 +22,11 @@ export default function ComptePage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [deleting, setDeleting] = useState(false) // État pour la suppression
+  
+  // ETATS POUR MODALE DE SUPPRESSION
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [deleteConfirmation, setDeleteConfirmation] = useState('')
+  const [deleting, setDeleting] = useState(false)
   
   const [avatarUploading, setAvatarUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -74,28 +78,21 @@ export default function ComptePage() {
     router.refresh()
   }
 
-  // --- NOUVEAU : FONCTION DE SUPPRESSION DE COMPTE ---
-  const handleDeleteAccount = async () => {
-      const confirmMessage = "⚠️ Êtes-vous sûr de vouloir supprimer votre compte ?\n\nCette action est IRRÉVERSIBLE. Toutes vos annonces, messages et données seront effacés immédiatement."
-      if (!window.confirm(confirmMessage)) return
-
-      // Double confirmation pour éviter les accidents
-      const doubleCheck = window.prompt("Pour confirmer, tapez 'SUPPRIMER' ci-dessous :")
-      if (doubleCheck !== 'SUPPRIMER') {
-          toast.error("Suppression annulée (mot-clé incorrect)")
+  // VALIDATION SUPPRESSION
+  const confirmDeleteAccount = async () => {
+      if (deleteConfirmation !== 'SUPPRIMER') {
+          toast.error("Mot-clé incorrect")
           return
       }
 
       setDeleting(true)
-      
-      // Appel de la fonction RPC SQL
       const { error } = await supabase.rpc('delete_own_account')
 
       if (error) {
-          toast.error("Erreur lors de la suppression : " + error.message)
+          toast.error("Erreur : " + error.message)
           setDeleting(false)
       } else {
-          toast.success("Votre compte a été supprimé. Au revoir !")
+          toast.success("Votre compte a été supprimé.")
           await supabase.auth.signOut()
           router.push('/')
           router.refresh()
@@ -181,6 +178,49 @@ export default function ComptePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
+      {/* --- MODALE SUPPRESSION (DANGER) --- */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-110 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 duration-200 border-t-4 border-red-600">
+                <div className="text-center">
+                    <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><AlertTriangle size={32} /></div>
+                    <h3 className="font-extrabold text-xl text-gray-900 mb-2">Êtes-vous sûr ?</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                        Cette action est <span className="font-bold text-red-600">irréversible</span>. Votre profil, vos annonces et vos messages seront effacés définitivement.
+                    </p>
+                </div>
+                
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block">Pour confirmer, tapez "SUPPRIMER"</label>
+                    <input 
+                        type="text"
+                        className="w-full bg-white border border-gray-300 rounded-lg p-3 text-sm font-bold text-center focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none uppercase placeholder:font-normal"
+                        placeholder="SUPPRIMER"
+                        value={deleteConfirmation}
+                        onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())}
+                        autoFocus
+                    />
+                </div>
+
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setShowDeleteModal(false)} 
+                        className="flex-1 py-3 rounded-xl font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 transition"
+                    >
+                        Annuler
+                    </button>
+                    <button 
+                        onClick={confirmDeleteAccount} 
+                        disabled={deleting || deleteConfirmation !== 'SUPPRIMER'}
+                        className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {deleting ? <Loader2 size={18} className="animate-spin" /> : "Confirmer"}
+                    </button>
+                </div>
+            </div>
+        </div>
+      )}
+
       {/* HEADER */}
       <div className="bg-white p-6 pb-8 rounded-b-4xl shadow-sm relative z-10">
         <div className="flex justify-between items-start mb-6">
@@ -357,7 +397,7 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* --- ZONE DE DANGER (SUPPRESSION) --- */}
+        {/* --- ZONE DE DANGER (MODALE AJOUTÉE) --- */}
         <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-100 space-y-4">
             <div className="flex items-center gap-2 text-red-600">
                 <AlertTriangle size={20} />
@@ -367,11 +407,10 @@ export default function ComptePage() {
                 La suppression de votre compte est définitive. Toutes vos données seront effacées.
             </p>
             <button 
-                onClick={handleDeleteAccount} 
-                disabled={deleting}
+                onClick={() => setShowDeleteModal(true)} 
                 className="w-full bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm hover:bg-red-600 hover:text-white transition flex items-center justify-center gap-2"
             >
-                {deleting ? <Loader2 className="animate-spin" size={16} /> : <><Trash2 size={16} /> Supprimer mon compte</>}
+                <Trash2 size={16} /> Supprimer mon compte
             </button>
         </div>
 
