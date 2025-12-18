@@ -2,15 +2,18 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Smartphone, CreditCard, ShieldCheck, Camera, MessageCircle, Mail, Image as ImageIcon } from 'lucide-react'
+import { 
+  ArrowLeft, Smartphone, CreditCard, ShieldCheck, 
+  Camera, MessageCircle, Mail, Crown, BarChart3, Share2, ImageIcon 
+} from 'lucide-react'
 
 export default function ProPage() {
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
-  // 1. Numéro Mvola (Pour le paiement) - Reste un numéro local
+  // 1. Numéro Mvola (Pour le paiement)
   const MVOLA_NUMBER = "434 20 63"
   
-  // 2. Numéro WhatsApp (Pour la réception de preuve) - Nouveau numéro +33
+  // 2. Numéro WhatsApp (Pour la réception de preuve)
   const WHATSAPP_CONTACT = "33758760743"
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
   
@@ -21,7 +24,7 @@ export default function ProPage() {
     <div className="min-h-screen bg-gray-50 font-sans pb-24">
       
       {/* HEADER */}
-      <div className="bg-brand pt-14 px-4 pb-20 rounded-b-[2.5rem] shadow-sm relative">
+      <div className="bg-brand pt-14 px-4 pb-24 rounded-b-[2.5rem] shadow-sm relative">
         <Link href="/compte" className="absolute top-14 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition">
             <ArrowLeft size={20} />
         </Link>
@@ -35,34 +38,76 @@ export default function ProPage() {
                     <span className="text-xs font-medium text-white/80">/ mois</span>
                 </div>
             </div>
+            <p className="text-white/80 text-sm mt-2 font-medium">Devenez un Vendeur d'Élite 🚀</p>
         </div>
       </div>
 
       {/* CARTE DES AVANTAGES */}
-      <div className="px-4 -mt-12 relative z-10">
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-4">
+      <div className="px-4 -mt-16 relative z-10">
+        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-5">
+            
+            {/* Boost Visibilité */}
             <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-brand"><MessageCircle size={20} /></div>
-                <span className="text-gray-700 font-medium">Lien WhatsApp Direct</span>
+                <div className="bg-yellow-100 p-2.5 rounded-full text-yellow-600 shrink-0"><Crown size={20} /></div>
+                <div>
+                    <p className="font-bold text-gray-900 text-sm">Visibilité Boostée ⚡</p>
+                    <p className="text-xs text-gray-500">Vos annonces apparaissent en premier avec un design Gold distinctif.</p>
+                </div>
             </div>
+
+            {/* Stats */}
             <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-brand"><ShieldCheck size={20} /></div>
-                <span className="text-gray-700 font-medium">Badge "Vendeur Pro"</span>
+                <div className="bg-blue-100 p-2.5 rounded-full text-blue-600 shrink-0"><BarChart3 size={20} /></div>
+                <div>
+                    <p className="font-bold text-gray-900 text-sm">Statistiques de Vues 📈</p>
+                    <p className="text-xs text-gray-500">Sachez exactement combien de clients consultent vos produits.</p>
+                </div>
             </div>
+
+            {/* Réseaux Sociaux */}
             <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-brand"><Camera size={20} /></div>
-                <span className="text-gray-700 font-medium">10 photos / annonce</span>
+                <div className="bg-purple-100 p-2.5 rounded-full text-purple-600 shrink-0"><Share2 size={20} /></div>
+                <div>
+                    <p className="font-bold text-gray-900 text-sm">Réseaux Sociaux 🌐</p>
+                    <p className="text-xs text-gray-500">Affichez vos liens Facebook & Instagram sur votre profil public.</p>
+                </div>
             </div>
-            {/* NOUVEL AVANTAGE AJOUTÉ */}
+
+            {/* NOUVEAU : Photos Chat */}
             <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-brand"><ImageIcon size={20} /></div>
-                <span className="text-gray-700 font-medium">Envoi photos en chat</span>
+                <div className="bg-indigo-100 p-2.5 rounded-full text-indigo-600 shrink-0"><ImageIcon size={20} /></div>
+                <div>
+                    <p className="font-bold text-gray-900 text-sm">Photos dans le chat 📸</p>
+                    <p className="text-xs text-gray-500">Envoyez des photos dans les messages privés pour convaincre l'acheteur.</p>
+                </div>
             </div>
+
+            <div className="h-px bg-gray-50 w-full" />
+
+            {/* Liste Simple (Badge, WhatsApp, etc.) */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                    <div className="bg-green-100 p-2 rounded-full text-green-600 shrink-0"><MessageCircle size={18} /></div>
+                    <span className="text-gray-700 font-medium text-sm">Lien WhatsApp Direct sur l'annonce</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="bg-gray-100 p-2 rounded-full text-gray-600 shrink-0"><ShieldCheck size={18} /></div>
+                    <span className="text-gray-700 font-medium text-sm">Badge Certifié "PRO"</span>
+                </div>
+
+                <div className="flex items-center gap-3">
+                    <div className="bg-orange-100 p-2 rounded-full text-orange-600 shrink-0"><Camera size={18} /></div>
+                    <span className="text-gray-700 font-medium text-sm">Galerie jusqu'à 10 photos</span>
+                </div>
+            </div>
+
         </div>
       </div>
 
       {/* ZONE DE PAIEMENT */}
       <div className="px-4 mt-8">
+        <h3 className="font-bold text-gray-900 mb-3 ml-1">Moyen de paiement</h3>
         <div className="bg-gray-200 p-1 rounded-xl flex mb-6">
             <button 
                 onClick={() => setActiveTab('mvola')}
@@ -119,7 +164,6 @@ export default function ProPage() {
                     </a>
                 </div>
 
-                {/* ZONE CONTACT EMAIL */}
                 <div className="border-t border-gray-100 pt-6 mt-2 text-center">
                     <p className="text-xs text-gray-400 mb-2 font-medium">Besoin d'aide ou autre moyen de paiement ?</p>
                     <a 
