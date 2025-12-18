@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
-  Camera, X // Ajout de Camera et X pour la preview
+  Camera, X 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
@@ -45,9 +45,10 @@ function MessagesContent() {
   const [showMenu, setShowMenu] = useState(false)
   const [replyContent, setReplyContent] = useState('')
   
-  // NOUVEAU : ETATS POUR IMAGE & DELETE
+  // ETATS POUR IMAGE, PREVIEW & DELETE
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [previewImage, setPreviewImage] = useState<string | null>(null) // <-- NOUVEAU
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -84,7 +85,6 @@ function MessagesContent() {
         let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0] } } catch {}
         if (!groups[key]) groups[key] = { id: key, productId: msg.product_id, productTitle: msg.product?.title || 'Produit', productImage: img, productPhone: msg.product?.whatsapp_number || null, counterpartId: otherId, counterpartName: otherProfile?.full_name || 'Utilisateur', counterpartAvatar: otherProfile?.avatar_url, counterpartIsPro: otherProfile?.is_pro || false, lastMessage: '', lastDate: '', unreadCount: 0, messages: [] }
         groups[key].messages.push({ ...msg, sender_avatar: msg.sender?.avatar_url })
-        // On met "Photo" comme dernier message si c'est une image
         const content = msg.content.includes('messages_images') ? '📷 Photo' : msg.content
         groups[key].lastMessage = content
         groups[key].lastDate = msg.created_at
@@ -138,9 +138,7 @@ function MessagesContent() {
 
   const handleDeleteConversation = async () => { 
       if (!activeConv || !currentUser) return; 
-      
       const { error } = await supabase.from('messages').delete().eq('product_id', activeConv.productId).or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeConv.counterpartId}),and(sender_id.eq.${activeConv.counterpartId},receiver_id.eq.${currentUser.id})`); 
-      
       if (error) { toast.error("Erreur suppression") } 
       else { 
           toast.success("Supprimée")
@@ -149,12 +147,10 @@ function MessagesContent() {
       } 
   }
 
-  // --- GESTION ENVOI IMAGE ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const file = e.target.files[0]
     
-    // 1. VERIFICATION PRO
     const { data: profile } = await supabase.from('profiles').select('is_pro').eq('id', currentUser.id).single()
     if (!profile?.is_pro) {
         toast.error("Réservé aux membres PRO", {
@@ -162,11 +158,10 @@ function MessagesContent() {
             action: { label: "Voir l'offre", onClick: () => router.push('/pro') },
             duration: 5000
         })
-        if(fileInputRef.current) fileInputRef.current.value = '' // Reset input
+        if(fileInputRef.current) fileInputRef.current.value = ''
         return
     }
 
-    // 2. UPLOAD
     setIsUploading(true)
     try {
         const fileExt = file.name.split('.').pop()
@@ -177,17 +172,14 @@ function MessagesContent() {
         
         const { data: { publicUrl } } = supabase.storage.from('messages_images').getPublicUrl(fileName)
         
-        // 3. INSERTION DB
         const { error: msgError } = await supabase.from('messages').insert({
-            content: publicUrl, // L'URL est le contenu
+            content: publicUrl,
             sender_id: currentUser.id,
             receiver_id: activeConv?.counterpartId,
             product_id: activeConv?.productId,
         })
 
         if (msgError) throw msgError
-        
-        // 4. NOTIFICATION
         sendNewMessageEmail(activeConv!.counterpartId, currentUser.user_metadata?.full_name, "📷 A envoyé une photo", activeConv!.productId)
         toast.success("Photo envoyée !")
 
@@ -203,30 +195,20 @@ function MessagesContent() {
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
-    
     const myHistory = activeConv.messages.filter(m => m.sender_id === currentUser.id).slice(-5).map(m => textToDigits(m.content)).join("")
     if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { toast.error("Interdit : Échange de coordonnées bloqué."); return }
 
     const content = replyContent
     setReplyContent(''); inputRef.current?.focus() 
     
-    // Optimistic UI (Optionnel, simplifié ici pour la clarté)
-    
     const { error } = await supabase.from('messages').insert({ content: content, sender_id: currentUser.id, receiver_id: activeConv.counterpartId, product_id: activeConv.productId })
     
-    if (error) {
-        toast.error("Échec envoi")
-    } else {
-        sendNewMessageEmail(
-            activeConv.counterpartId, 
-            currentUser.user_metadata?.full_name || 'Utilisateur',
-            content,
-            activeConv.productId
-        )
+    if (error) { toast.error("Échec envoi") } 
+    else {
+        sendNewMessageEmail(activeConv.counterpartId, currentUser.user_metadata?.full_name || 'Utilisateur', content, activeConv.productId)
     }
   }
 
-  // Helper pour savoir si c'est une image
   const isImageMessage = (content: string) => {
       return content.includes('messages_images') && content.startsWith('http')
   }
@@ -245,6 +227,18 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
+        {/* --- LIGHTBOX (IMAGE PLEIN ECRAN) --- */}
+        {previewImage && (
+            <div className="fixed inset-0 z-120g-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md z-50">
+                    <X size={24} />
+                </button>
+                <div className="relative w-full h-full max-w-4xl max-h-[85vh] pointer-events-none">
+                    <Image src={previewImage} alt="Zoom" fill className="object-contain" />
+                </div>
+            </div>
+        )}
+
         {/* MODALE SUPPRESSION */}
         {showDeleteModal && (
             <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowDeleteModal(false)}>
@@ -295,7 +289,11 @@ function MessagesContent() {
                             
                             <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
                                 {isImg ? (
-                                    <div className="relative w-48 sm:w-64 aspect-square bg-gray-100">
+                                    // IMAGE DANS LE CHAT (CLICKABLE)
+                                    <div 
+                                        className="relative w-48 sm:w-64 aspect-square bg-gray-100 cursor-pointer hover:opacity-90 transition"
+                                        onClick={() => setPreviewImage(msg.content)}
+                                    >
                                         <Image src={msg.content} alt="Photo" fill className="object-cover" />
                                     </div>
                                 ) : (
@@ -316,7 +314,6 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* INPUT BARRE */}
         <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50">
             <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 
