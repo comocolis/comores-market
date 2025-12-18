@@ -14,60 +14,94 @@ export async function sendNewMessageEmail(
   try {
     const supabase = await createClient()
 
-    // 1. Récupérer l'email du destinataire via la table profiles
-    // (On suppose que la colonne 'email' est remplie dans profiles)
-    const { data: receiver } = await supabase
+    // 1. Récupérer l'email du destinataire dans la base de données
+    const { data: receiver, error: dbError } = await supabase
       .from('profiles')
       .select('email, full_name')
       .eq('id', receiverId)
       .single()
 
-    if (!receiver || !receiver.email) {
-      console.error("Email destinataire introuvable pour ID:", receiverId)
-      return { success: false }
+    if (dbError || !receiver || !receiver.email) {
+      console.error("❌ Erreur : Email destinataire introuvable pour ID:", receiverId)
+      return { success: false, error: "Email introuvable" }
     }
 
-    // 2. Envoyer l'email via Resend
+    // 2. Préparer l'adresse d'expédition
+    // ⚠️ TANT QUE LE DOMAINE N'EST PAS VÉRIFIÉ SUR RESEND : Utilise 'onboarding@resend.dev'
+    // ✅ UNE FOIS LE DOMAINE VÉRIFIÉ : Remplace par 'notifications@comores-market.com'
+    const FROM_EMAIL = 'Comores Market <onboarding@resend.dev>' 
+    
+    // 3. Envoyer l'email
     const { data, error } = await resend.emails.send({
-      from: 'Comores Market <onboarding@resend.dev>', // Utilise le domaine par défaut de Resend pour tester
-      to: [receiver.email], // L'email du destinataire
+      from: FROM_EMAIL,
+      to: [receiver.email], 
       subject: `Nouveau message de ${senderName}`,
       html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9fafb; padding: 20px; border-radius: 12px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #16a34a; margin: 0;">Comores<span style="color: #fbbf24;">Market</span></h1>
-          </div>
-          <div style="background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-            <p style="font-size: 16px; color: #374151;">Bonjour <strong>${receiver.full_name || 'Utilisateur'}</strong>,</p>
-            <p style="font-size: 16px; color: #374151;">Vous avez reçu un nouveau message concernant une annonce.</p>
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Nouveau message</title>
+        </head>
+        <body style="font-family: Helvetica, Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 20px;">
+          <div style="max-width: 600px; margin: 0 auto; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             
-            <div style="background-color: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #16a34a;">
-              <p style="margin: 0; font-weight: bold; color: #111827; font-size: 14px;">${senderName} a écrit :</p>
-              <p style="margin: 8px 0 0 0; color: #4b5563; font-style: italic;">"${messageContent}"</p>
+            <div style="background-color: #16a34a; padding: 30px; text-align: center;">
+              <h1 style="color: white; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.5px;">
+                Comores<span style="color: #fbbf24;">Market</span>
+              </h1>
             </div>
 
-            <div style="text-align: center; margin-top: 30px;">
-              <a href="https://comores-market.com/messages" style="background-color: #16a34a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
-                Répondre maintenant
-              </a>
+            <div style="padding: 30px; color: #374151;">
+              <p style="font-size: 16px; margin-bottom: 20px;">Bonjour <strong>${receiver.full_name || 'Utilisateur'}</strong>,</p>
+              
+              <p style="font-size: 16px; margin-bottom: 24px;">
+                Vous avez reçu un nouveau message concernant votre annonce.
+              </p>
+              
+              <div style="background-color: #f9fafb; padding: 20px; border-radius: 12px; border-left: 4px solid #16a34a; margin-bottom: 30px;">
+                <p style="margin: 0; font-weight: bold; color: #111827; font-size: 14px; margin-bottom: 8px;">
+                  ${senderName} a écrit :
+                </p>
+                <p style="margin: 0; color: #4b5563; font-style: italic; font-size: 16px; line-height: 1.5;">
+                  "${messageContent}"
+                </p>
+              </div>
+
+              <div style="text-align: center; margin-bottom: 20px;">
+                <a href="https://comores-market.com/messages" 
+                   style="background-color: #16a34a; color: white; padding: 14px 28px; border-radius: 10px; text-decoration: none; font-weight: bold; display: inline-block; box-shadow: 0 4px 6px rgba(22, 163, 74, 0.2);">
+                  Répondre maintenant
+                </a>
+              </div>
+              
+              <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 20px;">
+                Si le lien ne fonctionne pas, rendez-vous sur : comores-market.com/messages
+              </p>
+            </div>
+            
+            <div style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+              <p style="margin: 0; font-size: 12px; color: #9ca3af;">
+                &copy; ${new Date().getFullYear()} Comores Market. Tous droits réservés.
+              </p>
             </div>
           </div>
-          <p style="text-align: center; font-size: 12px; color: #9ca3af; margin-top: 20px;">
-            Si le bouton ne fonctionne pas, copiez ce lien : https://comores-market.com/messages
-          </p>
-        </div>
+        </body>
+        </html>
       `
     })
 
     if (error) {
-      console.error("Erreur Resend:", error)
+      console.error("❌ Erreur Resend:", error)
       return { success: false, error }
     }
 
+    console.log("✅ Email envoyé avec succès !", data)
     return { success: true, data }
 
   } catch (err) {
-    console.error("Erreur serveur email:", err)
+    console.error("❌ Erreur Critique Serveur:", err)
     return { success: false }
   }
 }
