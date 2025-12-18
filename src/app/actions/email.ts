@@ -29,7 +29,7 @@ export async function sendNewMessageEmail(
     // 2. Préparer l'adresse d'expédition
     // ⚠️ TANT QUE LE DOMAINE N'EST PAS VÉRIFIÉ SUR RESEND : Utilise 'onboarding@resend.dev'
     // ✅ UNE FOIS LE DOMAINE VÉRIFIÉ : Remplace par 'notifications@comores-market.com'
-    const FROM_EMAIL = 'Comores Market <onboarding@resend.dev>' 
+    const FROM_EMAIL = 'Comores Market <ne-pas-repondre@comores-market.com>'
     
     // 3. Envoyer l'email
     const { data, error } = await resend.emails.send({
