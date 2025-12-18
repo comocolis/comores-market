@@ -54,9 +54,18 @@ export default function BottomNav() {
         }, 
         (payload) => {
             fetchUnreadCount(userId)
+            
+            // Ne pas afficher de toast si on est déjà sur la page des messages
             if (!window.location.pathname.includes('/messages')) {
+                const content = payload.new.content || ''
+                
+                // CORRECTION ICI : Si c'est une image, on affiche un texte propre
+                const displayText = (content.includes('messages_images') && content.startsWith('http'))
+                    ? '📷 Photo reçue'
+                    : content
+
                 toast.message('Nouveau message !', {
-                    description: payload.new.content,
+                    description: displayText,
                     action: { label: 'Voir', onClick: () => router.push('/messages') },
                     duration: 4000,
                 })
@@ -78,13 +87,11 @@ export default function BottomNav() {
   if (isChatOpen || isAuthPage) return null
 
   return (
-    // AJOUT : backdrop-blur pour un effet "verre" moderne
     <nav className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
-        {/* BOUTON CENTRAL + AJUSTÉ */}
         <div className="flex justify-center relative -top-5">
           <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
             <Plus strokeWidth={3} size={28} />

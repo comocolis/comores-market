@@ -1,181 +1,166 @@
 'use client'
 
-import { useState } from 'react'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { 
-  ArrowLeft, Smartphone, CreditCard, ShieldCheck, 
-  Camera, MessageCircle, Mail, Crown, BarChart3, Share2 
+  Check, Crown, ShieldCheck, TrendingUp, BarChart3, 
+  MessageCircle, Loader2, ArrowLeft, Camera, Facebook 
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function ProPage() {
-  const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
+  const supabase = createClient()
+  const router = useRouter()
+  const [loading, setLoading] = useState(false)
+  const [user, setUser] = useState<any>(null)
 
-  // 1. Numéro Mvola (Pour le paiement) - Reste un numéro local
-  const MVOLA_NUMBER = "434 20 63"
-  
-  // 2. Numéro WhatsApp (Pour la réception de preuve)
-  const WHATSAPP_CONTACT = "33758760743"
-  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
-  
-  const whatsappMessage = encodeURIComponent(`Bonjour, je viens d'envoyer 2500 KMF par Mvola au ${MVOLA_NUMBER}. Voici mon ID de transaction pour activer mon compte PRO.`)
-  const whatsappLink = `https://wa.me/${WHATSAPP_CONTACT}?text=${whatsappMessage}`
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+    }
+    getUser()
+  }, [supabase])
+
+  const handleSubscribe = async () => {
+    if (!user) return router.push('/auth')
+    
+    setLoading(true)
+    // Simulation d'abonnement (Pour la V1, on active juste le statut)
+    // Dans le futur, ici on redirigerait vers Stripe ou Holo
+    try {
+        const endDate = new Date()
+        endDate.setMonth(endDate.getMonth() + 1) // +1 Mois
+
+        const { error } = await supabase.from('profiles').update({
+            is_pro: true,
+            subscription_end_date: endDate.toISOString()
+        }).eq('id', user.id)
+
+        if (error) throw error
+
+        toast.success("Félicitations ! Vous êtes maintenant Vendeur PRO.")
+        router.push('/compte')
+        router.refresh()
+    } catch (e) {
+        toast.error("Erreur lors de l'activation")
+    } finally {
+        setLoading(false)
+    }
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-24">
+    <div className="min-h-screen bg-gray-50 pb-10 font-sans">
       
       {/* HEADER */}
-      <div className="bg-brand pt-14 px-4 pb-24 rounded-b-[2.5rem] shadow-sm relative">
-        <Link href="/compte" className="absolute top-14 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition">
+      <div className="bg-gray-900 text-white p-6 pt-safe rounded-b-[3rem] shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+        
+        <Link href="/compte" className="inline-block p-2 bg-white/10 rounded-full mb-4 hover:bg-white/20 transition backdrop-blur-md">
             <ArrowLeft size={20} />
         </Link>
-        <div className="text-center mt-4">
-            <h1 className="text-white font-bold opacity-90 tracking-widest uppercase text-xs mb-1">Offre Mensuelle</h1>
-            
-            <div className="flex items-center justify-center gap-2">
-                <span className="text-6xl font-extrabold text-white tracking-tighter">2500</span>
-                <div className="flex flex-col items-start leading-none pt-2">
-                    <span className="text-lg font-bold text-white">KMF</span>
-                    <span className="text-xs font-medium text-white/80">/ mois</span>
-                </div>
+        
+        <div className="text-center relative z-10 mb-6">
+            <div className="w-16 h-16 bg-mustard rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-mustard/20 rotate-3 transform transition hover:rotate-6">
+                <Crown size={32} className="text-gray-900" strokeWidth={2.5} />
             </div>
-            <p className="text-white/80 text-sm mt-2 font-medium">Devenez un Vendeur d'Élite 🚀</p>
+            <h1 className="text-3xl font-extrabold mb-2 tracking-tight">Devenez <span className="text-mustard">Vendeur PRO</span></h1>
+            <p className="text-gray-400 text-sm max-w-xs mx-auto">Boostez vos ventes et débloquez les outils exclusifs des meilleurs vendeurs.</p>
         </div>
       </div>
 
-      {/* CARTE DES AVANTAGES */}
-      <div className="px-4 -mt-16 relative z-10">
-        <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 space-y-5">
+      {/* AVANTAGES */}
+      <div className="px-6 -mt-8 relative z-20 space-y-4">
+        
+        {/* CARTE PRIX */}
+        <div className="bg-white p-6 rounded-3xl shadow-xl shadow-gray-200/50 border border-gray-100 text-center">
+            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Offre de lancement</p>
+            <div className="flex items-center justify-center gap-2 mb-4">
+                <span className="text-4xl font-extrabold text-gray-900">5000</span>
+                <div className="text-left leading-none">
+                    <span className="block text-xs font-bold text-brand">KMF</span>
+                    <span className="block text-xs text-gray-400">/ mois</span>
+                </div>
+            </div>
+            <button 
+                onClick={handleSubscribe} 
+                disabled={loading}
+                className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-lg shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2"
+            >
+                {loading ? <Loader2 className="animate-spin" /> : "Activer mon Pack PRO"}
+            </button>
+            <p className="text-[10px] text-gray-400 mt-3">Sans engagement. Annulable à tout moment.</p>
+        </div>
+
+        {/* LISTE BÉNÉFICES */}
+        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 space-y-6">
+            <h3 className="font-bold text-lg text-gray-900 mb-4">Tout ce qui est inclus :</h3>
             
-            {/* Boost Visibilité */}
-            <div className="flex items-center gap-3">
-                <div className="bg-yellow-100 p-2.5 rounded-full text-yellow-600 shrink-0"><Crown size={20} /></div>
-                <div>
-                    <p className="font-bold text-gray-900 text-sm">Visibilité Boostée ⚡</p>
-                    <p className="text-xs text-gray-500">Vos annonces apparaissent en premier avec un design Gold distinctif.</p>
-                </div>
-            </div>
+            <Benefit 
+                icon={ShieldCheck} 
+                color="text-green-500" 
+                title="Badge de Confiance" 
+                desc="Rassurez vos clients avec le badge PRO officiel à côté de votre nom." 
+            />
+            
+            <Benefit 
+                icon={TrendingUp} 
+                color="text-blue-500" 
+                title="Visibilité Boostée" 
+                desc="Vos annonces apparaissent en priorité et avec une bordure dorée." 
+            />
+            
+            {/* NOUVEAU : PHOTOS DANS LE CHAT */}
+            <Benefit 
+                icon={Camera} 
+                color="text-purple-500" 
+                title="Photos dans le Chat" 
+                desc="Envoyez des photos en privé pour conclure la vente plus vite."
+                isNew
+            />
 
-            {/* Stats */}
-            <div className="flex items-center gap-3">
-                <div className="bg-blue-100 p-2.5 rounded-full text-blue-600 shrink-0"><BarChart3 size={20} /></div>
-                <div>
-                    <p className="font-bold text-gray-900 text-sm">Statistiques de Vues 📈</p>
-                    <p className="text-xs text-gray-500">Sachez exactement combien de clients consultent vos produits.</p>
-                </div>
-            </div>
+            <Benefit 
+                icon={BarChart3} 
+                color="text-orange-500" 
+                title="Statistiques Avancées" 
+                desc="Voyez combien de personnes visitent vos annonces chaque jour." 
+            />
 
-            {/* Réseaux Sociaux */}
-            <div className="flex items-center gap-3">
-                <div className="bg-purple-100 p-2.5 rounded-full text-purple-600 shrink-0"><Share2 size={20} /></div>
-                <div>
-                    <p className="font-bold text-gray-900 text-sm">Réseaux Sociaux 🌐</p>
-                    <p className="text-xs text-gray-500">Affichez vos liens Facebook & Instagram sur votre profil public.</p>
-                </div>
-            </div>
+            <Benefit 
+                icon={MessageCircle} 
+                color="text-[#25D366]" 
+                title="Lien WhatsApp Direct" 
+                desc="Les acheteurs peuvent vous contacter sur WhatsApp en 1 clic." 
+            />
 
-            <div className="h-px bg-gray-50 w-full" />
-
-            {/* WhatsApp */}
-            <div className="flex items-center gap-3">
-                <div className="bg-green-100 p-2 rounded-full text-green-600 shrink-0"><MessageCircle size={18} /></div>
-                <span className="text-gray-700 font-medium text-sm">Lien WhatsApp Direct</span>
-            </div>
-
-            {/* Badge */}
-            <div className="flex items-center gap-3">
-                <div className="bg-gray-100 p-2 rounded-full text-gray-600 shrink-0"><ShieldCheck size={18} /></div>
-                <span className="text-gray-700 font-medium text-sm">Badge Certifié "PRO"</span>
-            </div>
-
-            {/* Photos */}
-            <div className="flex items-center gap-3">
-                <div className="bg-orange-100 p-2 rounded-full text-orange-600 shrink-0"><Camera size={18} /></div>
-                <span className="text-gray-700 font-medium text-sm">10 photos / annonce</span>
-            </div>
-
-        </div>
-      </div>
-
-      {/* ZONE DE PAIEMENT */}
-      <div className="px-4 mt-8">
-        <h3 className="font-bold text-gray-900 mb-3 ml-1">Moyen de paiement</h3>
-        <div className="bg-gray-200 p-1 rounded-xl flex mb-6">
-            <button 
-                onClick={() => setActiveTab('mvola')}
-                className={`flex-1 py-3 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${activeTab === 'mvola' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-            >
-                <Smartphone size={16} /> Mvola (Mobile)
-            </button>
-            <button 
-                onClick={() => setActiveTab('cb')}
-                className={`flex-1 py-3 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2 ${activeTab === 'cb' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
-            >
-                <CreditCard size={16} /> Carte Bancaire
-            </button>
+            <Benefit 
+                icon={Facebook} 
+                color="text-[#1877F2]" 
+                title="Réseaux Sociaux" 
+                desc="Affichez vos liens Facebook et Instagram sur votre profil." 
+            />
         </div>
 
-        {activeTab === 'mvola' ? (
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 space-y-6 animate-in fade-in slide-in-from-bottom-2">
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="bg-brand text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">1</span>
-                        <h3 className="font-bold text-gray-900">Envoyez le paiement</h3>
-                    </div>
-                    
-                    <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-100 flex items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0">
-                            <div className="w-12 h-12 bg-[#FFD700] rounded-xl flex items-center justify-center text-white font-bold text-xl shrink-0 shadow-sm">M</div>
-                            <div className="truncate">
-                                <p className="font-bold text-gray-900 text-sm">Mvola</p>
-                                <p className="text-xs text-gray-500 truncate">Comores Telma</p>
-                            </div>
-                        </div>
-                        <div className="text-right whitespace-nowrap">
-                             <p className="font-bold text-xl text-gray-900 tracking-wide">{MVOLA_NUMBER}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <div className="flex items-center gap-2 mb-3">
-                        <span className="bg-brand text-white w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold">2</span>
-                        <h3 className="font-bold text-gray-900">Confirmez l'activation</h3>
-                    </div>
-                    <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                        Une fois envoyé, cliquez ci-dessous pour nous envoyer la preuve (ID de transaction) sur WhatsApp.
-                    </p>
-                    
-                    <a 
-                        href={whatsappLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95"
-                    >
-                        <MessageCircle size={20} /> Envoyer la preuve
-                    </a>
-                </div>
-
-                <div className="border-t border-gray-100 pt-6 mt-2 text-center">
-                    <p className="text-xs text-gray-400 mb-2 font-medium">Besoin d'aide ou autre moyen de paiement ?</p>
-                    <a 
-                        href={`mailto:${CONTACT_EMAIL}`}
-                        className="inline-flex items-center gap-2 text-brand font-bold text-sm bg-brand/5 px-4 py-2 rounded-full hover:bg-brand/10 transition"
-                    >
-                        <Mail size={16} /> {CONTACT_EMAIL}
-                    </a>
-                </div>
-
-            </div>
-        ) : (
-            <div className="bg-white p-10 rounded-2xl shadow-sm border border-gray-100 text-center animate-in fade-in slide-in-from-bottom-2">
-                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
-                    <CreditCard size={32} />
-                </div>
-                <h3 className="font-bold text-gray-900 mb-2">Bientôt disponible</h3>
-                <p className="text-gray-500 text-sm">Le paiement par carte bancaire sera activé prochainement. Veuillez utiliser Mvola.</p>
-            </div>
-        )}
       </div>
     </div>
   )
+}
+
+function Benefit({ icon: Icon, color, title, desc, isNew }: any) {
+    return (
+        <div className="flex gap-4 items-start">
+            <div className={`p-3 rounded-2xl bg-gray-50 ${color} shrink-0`}>
+                <Icon size={24} />
+            </div>
+            <div>
+                <h4 className="font-bold text-gray-900 flex items-center gap-2">
+                    {title}
+                    {isNew && <span className="bg-brand text-white text-[9px] px-1.5 py-0.5 rounded uppercase font-black tracking-wide">Nouveau</span>}
+                </h4>
+                <p className="text-xs text-gray-500 leading-relaxed mt-1">{desc}</p>
+            </div>
+        </div>
+    )
 }
