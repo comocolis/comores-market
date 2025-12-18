@@ -1,6 +1,5 @@
 'use client'
 
-import { sendNewMessageEmail } from '@/app/actions/email'
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
@@ -11,8 +10,8 @@ import {
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle 
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { sendNewMessageEmail } from '@/app/actions/email' // IMPORT DE L'ACTION EMAIL
 
-// ... (Types Message et Conversation restent identiques)
 type Message = { id: string, content: string, sender_id: string, created_at: string, is_read: boolean, pending?: boolean, sender_avatar?: string | null }
 type Conversation = { id: string, productId: string, productTitle: string, productImage: string | null, productPhone: string | null, counterpartId: string, counterpartName: string, counterpartAvatar: string | null, counterpartIsPro: boolean, lastMessage: string, lastDate: string, unreadCount: number, messages: Message[] }
 
@@ -45,7 +44,7 @@ function MessagesContent() {
   const [showMenu, setShowMenu] = useState(false)
   const [replyContent, setReplyContent] = useState('')
   
-  // NOUVEAU : Modale de suppression
+  // ETAT POUR LA MODALE DE SUPPRESSION
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -70,7 +69,6 @@ function MessagesContent() {
     }
   }, [searchParams, conversations])
 
-  // ... (fetchAndGroupMessages et markAsRead restent identiques) ...
   const fetchAndGroupMessages = async (userId: string) => {
     const { data, error } = await supabase.from('messages').select(`*, sender:profiles!sender_id(full_name, avatar_url, is_pro), receiver:profiles!receiver_id(full_name, avatar_url, is_pro), product:products(title, images, whatsapp_number)`).or(`sender_id.eq.${userId},receiver_id.eq.${userId}`).order('created_at', { ascending: true })
     if (error || !data) { setLoading(false); return }
@@ -129,8 +127,8 @@ function MessagesContent() {
   const handleCall = () => { if (!activeConv?.productPhone) { toast.error("Aucun numéro disponible."); return }; const cleanNumber = activeConv.productPhone.replace(/\D/g, ''); window.open(`tel:${cleanNumber}`, '_self') }
   
   const confirmDeleteConversation = () => {
-      setShowMenu(false) // Fermer le menu dropdown
-      setShowDeleteModal(true) // Ouvrir la modale
+      setShowMenu(false)
+      setShowDeleteModal(true)
   }
 
   const handleDeleteConversation = async () => { 
@@ -146,37 +144,37 @@ function MessagesContent() {
       } 
   }
 
-  // ... (Code existant du début de handleSend)
-
+  // --- FONCTION D'ENVOI ACTUALISÉE (AVEC EMAIL) ---
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
-    // ... (Vérifications bannissement et numéro de téléphone)
+    if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
+    
+    const myHistory = activeConv.messages.filter(m => m.sender_id === currentUser.id).slice(-5).map(m => textToDigits(m.content)).join("")
+    if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { toast.error("Interdit : Échange de coordonnées bloqué."); return }
 
     const tempId = Date.now().toString()
     const content = replyContent
-    // ... (Optimistic UI updates) ...
+    setReplyContent(''); inputRef.current?.focus() 
     
-    // 1. Envoi Supabase (Existant)
-    const { error } = await supabase.from('messages').insert({ 
-        content: content, 
-        sender_id: currentUser.id, 
-        receiver_id: activeConv.counterpartId, 
-        product_id: activeConv.productId 
-    })
+    const optimisticMsg: Message = { id: tempId, content: content, sender_id: currentUser.id, created_at: new Date().toISOString(), is_read: false, pending: true }
+    setActiveConv(prev => { if(!prev) return null; return { ...prev, messages: [...prev.messages, optimisticMsg], lastMessage: content, lastDate: new Date().toISOString() } })
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    
+    // 1. Envoi Supabase (Base de données)
+    const { error } = await supabase.from('messages').insert({ content: content, sender_id: currentUser.id, receiver_id: activeConv.counterpartId, product_id: activeConv.productId })
     
     if (error) {
         toast.error("Échec envoi")
     } else {
-        // 2. NOUVEAU : Envoi de l'Email de notification (En tâche de fond, sans attendre)
-        // On n'attend pas (await) pour ne pas ralentir l'interface
+        // 2. Envoi Email via Resend (Action Serveur)
+        // On le lance sans 'await' pour ne pas bloquer l'UI
         sendNewMessageEmail(
-            activeConv.counterpartId,      // ID du destinataire
-            currentUser.user_metadata?.full_name || 'Un utilisateur', // Nom de l'expéditeur
-            content,                       // Contenu du message
-            activeConv.productId           // ID du produit
+            activeConv.counterpartId, 
+            currentUser.user_metadata?.full_name || 'Utilisateur',
+            content,
+            activeConv.productId
         )
     }
-  
   }
 
   if (view === 'list') {
@@ -220,7 +218,6 @@ function MessagesContent() {
                 {showMenu && (
                     <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border border-gray-100 w-48 py-2 z-50 animate-in fade-in slide-in-from-top-2">
                         <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 transition"><ExternalLink size={16} /> Voir l'annonce</Link>
-                        {/* Bouton qui déclenche la modale */}
                         <button onClick={confirmDeleteConversation} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition text-left"><Trash2 size={16} /> Supprimer</button>
                     </div>
                 )}
