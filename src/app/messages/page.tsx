@@ -45,10 +45,9 @@ function MessagesContent() {
   const [showMenu, setShowMenu] = useState(false)
   const [replyContent, setReplyContent] = useState('')
   
-  // ETATS POUR IMAGE, PREVIEW & DELETE
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [previewImage, setPreviewImage] = useState<string | null>(null) // <-- NOUVEAU
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -227,14 +226,14 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* --- LIGHTBOX (IMAGE PLEIN ECRAN) --- */}
+        {/* LIGHTBOX */}
         {previewImage && (
-            <div className="fixed inset-0 z-120g-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+            <div className="fixed inset-0 z-120 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
                 <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md z-50">
                     <X size={24} />
                 </button>
-                <div className="relative w-full h-full max-w-4xl max-h-[85vh] pointer-events-none">
-                    <Image src={previewImage} alt="Zoom" fill className="object-contain" />
+                <div className="relative w-full h-full max-w-4xl max-h-[85vh] pointer-events-none flex items-center justify-center">
+                    <Image src={previewImage} alt="Zoom" width={1000} height={1000} className="object-contain max-h-full max-w-full" />
                 </div>
             </div>
         )}
@@ -289,12 +288,18 @@ function MessagesContent() {
                             
                             <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
                                 {isImg ? (
-                                    // IMAGE DANS LE CHAT (CLICKABLE)
+                                    // CORRECTION ICI : On utilise width/height au lieu de fill/aspect-square pour la stabilité
                                     <div 
-                                        className="relative w-48 sm:w-64 aspect-square bg-gray-100 cursor-pointer hover:opacity-90 transition"
+                                        className="cursor-pointer hover:opacity-90 transition bg-gray-100"
                                         onClick={() => setPreviewImage(msg.content)}
                                     >
-                                        <Image src={msg.content} alt="Photo" fill className="object-cover" />
+                                        <Image 
+                                            src={msg.content} 
+                                            alt="Photo" 
+                                            width={300} 
+                                            height={300}
+                                            className="object-cover w-64 h-64" // Taille fixe carrée
+                                        />
                                     </div>
                                 ) : (
                                     <div className="px-4 py-2.5">
@@ -317,7 +322,6 @@ function MessagesContent() {
         <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50">
             <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
                 
-                {/* BOUTON PHOTO */}
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                 <button 
                     onClick={() => fileInputRef.current?.click()} 
