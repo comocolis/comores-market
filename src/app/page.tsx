@@ -139,7 +139,7 @@ export default function Home() {
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-gray-400"><Package /></div>
-                                )}
+                               )}
                                 
                                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
                                     <MapPin size={10} /> {product.location_island}
