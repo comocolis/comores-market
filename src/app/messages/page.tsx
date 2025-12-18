@@ -7,10 +7,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
-  ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle 
+  ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
+  Camera, X // Ajout de Camera et X pour la preview
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { sendNewMessageEmail } from '@/app/actions/email' // IMPORT DE L'ACTION EMAIL
+import { sendNewMessageEmail } from '@/app/actions/email'
 
 type Message = { id: string, content: string, sender_id: string, created_at: string, is_read: boolean, pending?: boolean, sender_avatar?: string | null }
 type Conversation = { id: string, productId: string, productTitle: string, productImage: string | null, productPhone: string | null, counterpartId: string, counterpartName: string, counterpartAvatar: string | null, counterpartIsPro: boolean, lastMessage: string, lastDate: string, unreadCount: number, messages: Message[] }
@@ -44,8 +45,10 @@ function MessagesContent() {
   const [showMenu, setShowMenu] = useState(false)
   const [replyContent, setReplyContent] = useState('')
   
-  // ETAT POUR LA MODALE DE SUPPRESSION
+  // NOUVEAU : ETATS POUR IMAGE & DELETE
   const [showDeleteModal, setShowDeleteModal] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -81,7 +84,9 @@ function MessagesContent() {
         let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0] } } catch {}
         if (!groups[key]) groups[key] = { id: key, productId: msg.product_id, productTitle: msg.product?.title || 'Produit', productImage: img, productPhone: msg.product?.whatsapp_number || null, counterpartId: otherId, counterpartName: otherProfile?.full_name || 'Utilisateur', counterpartAvatar: otherProfile?.avatar_url, counterpartIsPro: otherProfile?.is_pro || false, lastMessage: '', lastDate: '', unreadCount: 0, messages: [] }
         groups[key].messages.push({ ...msg, sender_avatar: msg.sender?.avatar_url })
-        groups[key].lastMessage = msg.content
+        // On met "Photo" comme dernier message si c'est une image
+        const content = msg.content.includes('messages_images') ? '📷 Photo' : msg.content
+        groups[key].lastMessage = content
         groups[key].lastDate = msg.created_at
         if (!isMe && !msg.is_read) groups[key].unreadCount++
     })
@@ -144,7 +149,57 @@ function MessagesContent() {
       } 
   }
 
-  // --- FONCTION D'ENVOI ACTUALISÉE (AVEC EMAIL) ---
+  // --- GESTION ENVOI IMAGE ---
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    const file = e.target.files[0]
+    
+    // 1. VERIFICATION PRO
+    const { data: profile } = await supabase.from('profiles').select('is_pro').eq('id', currentUser.id).single()
+    if (!profile?.is_pro) {
+        toast.error("Réservé aux membres PRO", {
+            description: "Devenez PRO pour envoyer des photos.",
+            action: { label: "Voir l'offre", onClick: () => router.push('/pro') },
+            duration: 5000
+        })
+        if(fileInputRef.current) fileInputRef.current.value = '' // Reset input
+        return
+    }
+
+    // 2. UPLOAD
+    setIsUploading(true)
+    try {
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${currentUser.id}/${Date.now()}.${fileExt}`
+        
+        const { error: uploadError } = await supabase.storage.from('messages_images').upload(fileName, file)
+        if (uploadError) throw uploadError
+        
+        const { data: { publicUrl } } = supabase.storage.from('messages_images').getPublicUrl(fileName)
+        
+        // 3. INSERTION DB
+        const { error: msgError } = await supabase.from('messages').insert({
+            content: publicUrl, // L'URL est le contenu
+            sender_id: currentUser.id,
+            receiver_id: activeConv?.counterpartId,
+            product_id: activeConv?.productId,
+        })
+
+        if (msgError) throw msgError
+        
+        // 4. NOTIFICATION
+        sendNewMessageEmail(activeConv!.counterpartId, currentUser.user_metadata?.full_name, "📷 A envoyé une photo", activeConv!.productId)
+        toast.success("Photo envoyée !")
+
+    } catch (error) {
+        console.error(error)
+        toast.error("Erreur lors de l'envoi de l'image")
+    } finally {
+        setIsUploading(false)
+        if(fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
@@ -152,22 +207,16 @@ function MessagesContent() {
     const myHistory = activeConv.messages.filter(m => m.sender_id === currentUser.id).slice(-5).map(m => textToDigits(m.content)).join("")
     if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { toast.error("Interdit : Échange de coordonnées bloqué."); return }
 
-    const tempId = Date.now().toString()
     const content = replyContent
     setReplyContent(''); inputRef.current?.focus() 
     
-    const optimisticMsg: Message = { id: tempId, content: content, sender_id: currentUser.id, created_at: new Date().toISOString(), is_read: false, pending: true }
-    setActiveConv(prev => { if(!prev) return null; return { ...prev, messages: [...prev.messages, optimisticMsg], lastMessage: content, lastDate: new Date().toISOString() } })
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50)
+    // Optimistic UI (Optionnel, simplifié ici pour la clarté)
     
-    // 1. Envoi Supabase (Base de données)
     const { error } = await supabase.from('messages').insert({ content: content, sender_id: currentUser.id, receiver_id: activeConv.counterpartId, product_id: activeConv.productId })
     
     if (error) {
         toast.error("Échec envoi")
     } else {
-        // 2. Envoi Email via Resend (Action Serveur)
-        // On le lance sans 'await' pour ne pas bloquer l'UI
         sendNewMessageEmail(
             activeConv.counterpartId, 
             currentUser.user_metadata?.full_name || 'Utilisateur',
@@ -175,6 +224,11 @@ function MessagesContent() {
             activeConv.productId
         )
     }
+  }
+
+  // Helper pour savoir si c'est une image
+  const isImageMessage = (content: string) => {
+      return content.includes('messages_images') && content.startsWith('http')
   }
 
   if (view === 'list') {
@@ -223,10 +277,64 @@ function MessagesContent() {
                 )}
             </div>
         </div>
+        
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
-            <div className="flex flex-col justify-end min-h-full gap-2 pb-20"><div className="flex justify-center my-2"><span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span></div>{activeConv?.messages.map((msg, i) => { const isMe = msg.sender_id === currentUser?.id; return (<div key={msg.id || i} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-200`}>{!isMe && (<div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">{msg.sender_avatar ? (<Image src={msg.sender_avatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><User size={14} /></div>)}</div>)}<div className={`max-w-[70%] px-4 py-2.5 shadow-sm text-[14px] leading-relaxed relative group ${isMe ? 'bg-brand text-white rounded-2xl' : 'bg-white text-gray-800 rounded-2xl'}`}><p className="whitespace-pre-wrap">{msg.content}</p><div className={`flex items-center justify-end gap-1 mt-1 text-[9px] ${isMe ? 'text-white/70' : 'text-gray-400'}`}><span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>{isMe && (msg.pending ? <Loader2 size={10} className="animate-spin" /> : (msg.is_read ? <CheckCheck size={12} strokeWidth={2} /> : <Check size={12} strokeWidth={2} />))}</div></div></div>) })}<div ref={messagesEndRef} /></div>
+            <div className="flex flex-col justify-end min-h-full gap-2 pb-20">
+                <div className="flex justify-center my-2"><span className="text-[10px] font-bold text-gray-400 bg-gray-200/50 px-3 py-1 rounded-full">Aujourd'hui</span></div>
+                {activeConv?.messages.map((msg, i) => { 
+                    const isMe = msg.sender_id === currentUser?.id; 
+                    const isImg = isImageMessage(msg.content);
+
+                    return (
+                        <div key={msg.id || i} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 fade-in duration-200`}>
+                            {!isMe && (
+                                <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">
+                                    {msg.sender_avatar ? (<Image src={msg.sender_avatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-400"><User size={14} /></div>)}
+                                </div>
+                            )}
+                            
+                            <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
+                                {isImg ? (
+                                    <div className="relative w-48 sm:w-64 aspect-square bg-gray-100">
+                                        <Image src={msg.content} alt="Photo" fill className="object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="px-4 py-2.5">
+                                        <p className="whitespace-pre-wrap text-[15px]">{msg.content}</p>
+                                    </div>
+                                )}
+                                
+                                <div className={`flex items-center justify-end gap-1 pb-1 pr-2 text-[9px] ${isImg ? 'absolute bottom-0 right-0 w-full bg-linear-to-t from-black/50 to-transparent p-2 text-white justify-end' : (isMe ? 'text-white/70' : 'text-gray-400')}`}>
+                                    <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                    {isMe && (msg.pending ? <Loader2 size={10} className="animate-spin" /> : (msg.is_read ? <CheckCheck size={12} strokeWidth={2} /> : <Check size={12} strokeWidth={2} />))}
+                                </div>
+                            </div>
+                        </div>
+                    ) 
+                })}
+                <div ref={messagesEndRef} />
+            </div>
         </div>
-        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50"><div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200"><button className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50"><Plus size={20} /></button><textarea ref={inputRef} className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] max-h-32 min-h-11 py-2.5 px-1 resize-none placeholder:text-gray-400" placeholder="Message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} /><button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-2.5 rounded-full shadow-md hover:bg-brand-dark transition disabled:opacity-50 disabled:scale-90 active:scale-95 mb-0.5"><Send size={18} className="ml-0.5" /></button></div></div>
+
+        {/* INPUT BARRE */}
+        <div className="bg-white p-2 pb-safe border-t border-gray-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] fixed bottom-0 left-0 w-full z-50">
+            <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border border-transparent focus-within:border-brand/20 focus-within:bg-white focus-within:shadow-md transition-all duration-200">
+                
+                {/* BOUTON PHOTO */}
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                <button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="p-2.5 text-gray-400 hover:text-brand transition rounded-full hover:bg-gray-200/50 flex items-center justify-center"
+                    disabled={isUploading}
+                >
+                    {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
+                </button>
+
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] max-h-32 min-h-11 py-2.5 px-1 resize-none placeholder:text-gray-400" placeholder="Message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                
+                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-2.5 rounded-full shadow-md hover:bg-brand-dark transition disabled:opacity-50 disabled:scale-90 active:scale-95 mb-0.5"><Send size={18} className="ml-0.5" /></button>
+            </div>
+        </div>
     </div>
   )
 }
