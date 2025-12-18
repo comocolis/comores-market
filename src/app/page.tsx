@@ -4,29 +4,51 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { MapPin, Search, SlidersHorizontal, ShieldCheck, Crown, Loader2, Package } from 'lucide-react'
+import { MapPin, Search, SlidersHorizontal, ShieldCheck, Crown, Loader2, Package, Car, Home as HomeIcon, Smartphone, Shirt, Sofa, Bike } from 'lucide-react'
+
+// Liste des catégories avec icônes
+const CATEGORIES = [
+  { id: 'Tout', label: 'Tout', icon: null },
+  { id: 'Véhicules', label: 'Véhicules', icon: Car },
+  { id: 'Immobilier', label: 'Immobilier', icon: HomeIcon },
+  { id: 'Multimédia', label: 'Multimédia', icon: Smartphone },
+  { id: 'Mode', label: 'Mode', icon: Shirt },
+  { id: 'Maison', label: 'Maison', icon: Sofa },
+  { id: 'Loisirs', label: 'Loisirs', icon: Bike },
+]
 
 export default function Home() {
   const supabase = createClient()
+  
   const [products, setProducts] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [selectedCategory, setSelectedCategory] = useState('Tout')
 
   useEffect(() => {
     const fetchProducts = async () => {
-      // On récupère les produits actifs, triés par date (et on pourrait prioriser les PROs)
-      const { data, error } = await supabase
+      setLoading(true)
+      
+      let query = supabase
         .from('products')
         .select('*, profiles(full_name, is_pro, avatar_url)')
         .eq('status', 'active')
         .order('created_at', { ascending: false })
+
+      // FILTRE PAR CATEGORIE
+      if (selectedCategory !== 'Tout') {
+        query = query.eq('category', selectedCategory)
+      }
+      
+      const { data, error } = await query
       
       if (error) console.error(error)
       else setProducts(data || [])
+      
       setLoading(false)
     }
 
     fetchProducts()
-  }, [])
+  }, [selectedCategory]) // Relance la requête quand la catégorie change
 
   return (
     <div className="pb-24 bg-gray-50 min-h-screen font-sans">
@@ -54,10 +76,34 @@ export default function Home() {
         </Link>
       </div>
 
+      {/* BARRE DE FILTRES HORIZONTALE (Restaurée) */}
+      <div className="mt-4 pl-4 overflow-x-auto scrollbar-hide flex gap-3 pb-2">
+        {CATEGORIES.map((cat) => {
+            const Icon = cat.icon
+            const isActive = selectedCategory === cat.id
+            return (
+                <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-full whitespace-nowrap text-sm font-bold transition-all shadow-sm ${
+                        isActive 
+                        ? 'bg-brand text-white shadow-brand/30 scale-105' 
+                        : 'bg-white text-gray-600 border border-gray-100'
+                    }`}
+                >
+                    {Icon && <Icon size={16} />}
+                    {cat.label}
+                </button>
+            )
+        })}
+      </div>
+
       {/* LISTE DES PRODUITS */}
-      <div className="px-4 mt-6">
+      <div className="px-4 mt-2">
         <div className="flex items-center justify-between mb-4 px-2">
-            <h2 className="font-bold text-lg text-gray-900">Dernières Annonces</h2>
+            <h2 className="font-bold text-lg text-gray-900">
+                {selectedCategory === 'Tout' ? 'Dernières Annonces' : selectedCategory}
+            </h2>
             <span className="text-xs text-brand font-bold bg-brand/10 px-2 py-1 rounded-full">{products.length} offres</span>
         </div>
 
@@ -66,7 +112,7 @@ export default function Home() {
         ) : products.length === 0 ? (
             <div className="text-center py-20 text-gray-400">
                 <Package size={48} className="mx-auto mb-2 opacity-20" />
-                <p>Aucune annonce pour le moment.</p>
+                <p>Aucune annonce dans cette catégorie.</p>
             </div>
         ) : (
             <div className="grid grid-cols-2 gap-4">
@@ -88,7 +134,6 @@ export default function Home() {
                                         src={img} 
                                         alt={product.title} 
                                         fill 
-                                        // Optimisation performance image
                                         sizes="(max-width: 768px) 50vw, 33vw"
                                         className="object-cover transition-transform duration-700 group-hover:scale-110" 
                                     />
@@ -96,12 +141,10 @@ export default function Home() {
                                     <div className="w-full h-full flex items-center justify-center text-gray-400"><Package /></div>
                                 )}
                                 
-                                {/* Badge Localisation */}
                                 <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-md text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 font-medium">
                                     <MapPin size={10} /> {product.location_island}
                                 </div>
 
-                                {/* Badge PRO sur l'image */}
                                 {isPro && (
                                     <div className="absolute top-2 right-2 bg-mustard text-white text-[9px] font-bold px-2 py-0.5 rounded shadow-sm flex items-center gap-1">
                                         <Crown size={10} /> PRO
@@ -109,9 +152,8 @@ export default function Home() {
                                 )}
                             </div>
 
-                            {/* CONTENU TEXTE */}
+                            {/* CONTENU TEXTE (Avec correction Truncate) */}
                             <div className="p-3 flex flex-col flex-1">
-                                {/* TITRE CORRIGÉ : truncate pour rester sur 1 ligne */}
                                 <h3 className="font-bold text-gray-900 text-sm mb-1 truncate" title={product.title}>
                                     {product.title}
                                 </h3>
@@ -121,7 +163,6 @@ export default function Home() {
                                         {new Intl.NumberFormat('fr-KM').format(product.price)} <span className="text-[10px] font-normal">KMF</span>
                                     </p>
                                     
-                                    {/* Petit avatar vendeur si on veut, ou juste PRO */}
                                     {isPro && <ShieldCheck size={14} className="text-mustard" />}
                                 </div>
                             </div>
