@@ -4,12 +4,27 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check, RefreshCw } from 'lucide-react'
+import { 
+  MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check, RefreshCw,
+  // NOUVELLES ICONES "LUXUEUSES"
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
+// Remplacement des émojis par des composants Lucide pour un look Premium
 const CATEGORIES = [
-  { id: 0, label: 'Tout', icon: '🔍' }, { id: 1, label: 'Véhicules', icon: '🚗' }, { id: 2, label: 'Immobilier', icon: '🏠' }, { id: 3, label: 'Mode', icon: '👕' }, { id: 4, label: 'Tech', icon: '📱' }, { id: 5, label: 'Maison', icon: '🪑' }, { id: 6, label: 'Loisirs', icon: '⚽' }, { id: 7, label: 'Alimentation', icon: '🥕' }, { id: 8, label: 'Services', icon: '🛠️' }, { id: 9, label: 'Beauté', icon: '💄' }, { id: 10, label: 'Emploi', icon: '💼' },
+  { id: 0, label: 'Tout', icon: LayoutGrid }, 
+  { id: 1, label: 'Véhicules', icon: Car }, 
+  { id: 2, label: 'Immobilier', icon: Home }, 
+  { id: 3, label: 'Mode', icon: Shirt }, 
+  { id: 4, label: 'Tech', icon: Smartphone }, 
+  { id: 5, label: 'Maison', icon: Sofa }, 
+  { id: 6, label: 'Loisirs', icon: Ticket }, 
+  { id: 7, label: 'Miam', icon: Utensils }, 
+  { id: 8, label: 'Services', icon: Wrench }, 
+  { id: 9, label: 'Beauté', icon: Sparkles }, 
+  { id: 10, label: 'Emploi', icon: Briefcase },
 ]
 
 const SUB_CATEGORIES: { [key: number]: string[] } = {
@@ -27,7 +42,6 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
 
 const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion']
 
-// NOUVEAU : Suggestions de budget rapide
 const BUDGET_CHIPS = [
     { label: '< 10k', min: '', max: '10000' },
     { label: '10k - 50k', min: '10000', max: '50000' },
@@ -46,7 +60,6 @@ export default function HomePage() {
   
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   
-  // -- FILTRES --
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(0)
   const [selectedSubCategory, setSelectedSubCategory] = useState('Tout')
@@ -78,7 +91,6 @@ export default function HomePage() {
       if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
       if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
 
-      // Application des filtres PRIX
       if (priceMin) query = query.gte('price', parseInt(priceMin))
       if (priceMax) query = query.lte('price', parseInt(priceMax))
 
@@ -110,7 +122,6 @@ export default function HomePage() {
     setPreviewImage(img)
   }
 
-  // Appliquer un budget rapide
   const applyBudget = (min: string, max: string) => {
       setPriceMin(min)
       setPriceMax(max)
@@ -121,16 +132,12 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
-      {/* --- LIGHTBOX --- */}
       {previewImage && (
         <div 
             className="fixed inset-0 z-100 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
             onClick={() => setPreviewImage(null)}
         >
-            <button 
-                onClick={() => setPreviewImage(null)} 
-                className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md"
-            >
+            <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md">
                 <X size={24} />
             </button>
             <div className="relative w-full max-w-4xl h-full max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
@@ -139,12 +146,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* --- MODALE FILTRES (NOUVEAU DESIGN) --- */}
       {showFilters && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300" onClick={() => setShowFilters(false)}>
             <div className="bg-white w-full max-w-md rounded-t-4xl sm:rounded-3xl p-6 shadow-2xl space-y-6 animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
-                
-                {/* Header Modale */}
                 <div className="flex justify-between items-center border-b border-gray-50 pb-4">
                     <div>
                         <h3 className="font-extrabold text-xl text-gray-900 tracking-tight">Filtrer par prix</h3>
@@ -155,49 +159,27 @@ export default function HomePage() {
                     </button>
                 </div>
                 
-                {/* Inputs Unifiés */}
                 <div>
                     <div className="flex items-center bg-gray-50 rounded-2xl p-2 border border-gray-200 focus-within:border-mustard focus-within:ring-4 focus-within:ring-mustard/10 transition-all">
                         <div className="flex-1 px-3">
                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Minimum</span>
-                            <input 
-                                type="number" 
-                                className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300" 
-                                placeholder="0" 
-                                value={priceMin} 
-                                onChange={e => setPriceMin(e.target.value)} 
-                            />
+                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300" placeholder="0" value={priceMin} onChange={e => setPriceMin(e.target.value)} />
                         </div>
                         <div className="w-px h-8 bg-gray-200 mx-2"></div>
                         <div className="flex-1 px-3 text-right">
                             <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Maximum</span>
-                            <input 
-                                type="number" 
-                                className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300 text-right" 
-                                placeholder="Illimité" 
-                                value={priceMax} 
-                                onChange={e => setPriceMax(e.target.value)} 
-                            />
+                            <input type="number" className="w-full bg-transparent outline-none font-bold text-gray-900 text-lg placeholder:text-gray-300 text-right" placeholder="Illimité" value={priceMax} onChange={e => setPriceMax(e.target.value)} />
                         </div>
                     </div>
                 </div>
 
-                {/* Chips de Sélection Rapide */}
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">Suggestions rapides</label>
                     <div className="flex flex-wrap gap-2">
                         {BUDGET_CHIPS.map((chip, idx) => {
                             const isActive = priceMin === chip.min && priceMax === chip.max
                             return (
-                                <button 
-                                    key={idx}
-                                    onClick={() => applyBudget(chip.min, chip.max)}
-                                    className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${
-                                        isActive 
-                                        ? 'bg-mustard text-white border-mustard shadow-md shadow-mustard/30' 
-                                        : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                                    }`}
-                                >
+                                <button key={idx} onClick={() => applyBudget(chip.min, chip.max)} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${isActive ? 'bg-mustard text-white border-mustard shadow-md shadow-mustard/30' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
                                     {chip.label}
                                 </button>
                             )
@@ -205,7 +187,6 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                {/* Bouton Valider */}
                 <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
                     <Check size={20} /> Voir les annonces
                 </button>
@@ -213,7 +194,6 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* HEADER */}
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="font-extrabold text-2xl tracking-tight">
@@ -232,7 +212,6 @@ export default function HomePage() {
             )}
         </div>
         
-        {/* BARRE RECHERCHE + FILTRE */}
         <div className="flex gap-2">
             <div className="relative flex-1">
                 <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-mustard/50 transition shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
@@ -240,25 +219,40 @@ export default function HomePage() {
                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"><X size={18} /></button>}
             </div>
             
-            {/* BOUTON FILTRE AVEC INDICATEUR ACTIF */}
             <button 
                 onClick={() => setShowFilters(true)} 
                 className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border relative ${
-                    (priceMin || priceMax) 
-                    ? 'bg-mustard text-gray-900 border-mustard' 
-                    : 'bg-white/20 text-white border-white/10 hover:bg-white/30'
+                    (priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'
                 }`}
             >
                 <SlidersHorizontal size={20} />
-                {/* Petit point rouge si un filtre est actif */}
                 {(priceMin || priceMax) && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-mustard"></span>}
             </button>
         </div>
       </div>
 
+      {/* BARRE DE CATEGORIES LUXUEUSE */}
       <div className="bg-white border-b border-gray-100 py-3 sticky top-30 z-20 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
-            {CATEGORIES.map(cat => (<button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1 min-w-17.5 p-2 rounded-xl transition active:scale-95 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand font-bold border border-brand/20' : 'text-gray-500 hover:bg-gray-50'}`}><span className="text-2xl">{cat.icon}</span><span className="text-[10px] whitespace-nowrap">{cat.label}</span></button>))}
+            {CATEGORIES.map(cat => (
+                <button 
+                    key={cat.id} 
+                    onClick={() => setSelectedCategory(cat.id)} 
+                    className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group ${
+                        selectedCategory === cat.id 
+                        ? 'bg-brand/10 text-brand border border-brand/20' 
+                        : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
+                    }`}
+                >
+                    {/* ICONE VECTORIELLE */}
+                    <cat.icon 
+                        size={24} 
+                        strokeWidth={1.5} // Trait fin pour l'élégance
+                        className={`transition-colors duration-300 ${selectedCategory === cat.id ? 'text-brand drop-shadow-sm' : 'text-gray-400 group-hover:text-gray-600'}`} 
+                    />
+                    <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
+                </button>
+            ))}
         </div>
         {currentSubCats && currentSubCats.length > 0 && (
             <div className="flex gap-2 overflow-x-auto px-4 mt-3 pb-1 scrollbar-hide animate-in slide-in-from-top-2 fade-in">
@@ -284,7 +278,6 @@ export default function HomePage() {
                         <Link 
                             key={product.id} 
                             href={`/annonce/${product.id}`} 
-                            // UTILISATION DE LA COULEUR "MUSTARD" (Moutarde)
                             className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                                 isPro 
                                 ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
@@ -297,7 +290,6 @@ export default function HomePage() {
                                         src={img} 
                                         alt={product.title} 
                                         fill 
-                                        // ✅ OPTIMISATION IMAGE : Chargement léger sur mobile
                                         sizes="(max-width: 768px) 50vw, 33vw"
                                         className="object-cover transition-transform duration-500 group-hover:scale-110" 
                                     />
@@ -305,7 +297,6 @@ export default function HomePage() {
                                     <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
                                 )}
                                 
-                                {/* BADGE PRO : MOUTARDE */}
                                 {isPro && (
                                     <div className="absolute top-2 left-2 bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
                                         <Crown size={10} strokeWidth={3} /> PRO
@@ -317,10 +308,7 @@ export default function HomePage() {
                                 </button>
                                 
                                 {img && (
-                                    <button 
-                                        onClick={(e) => openPreview(e, img)}
-                                        className="absolute bottom-2 left-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white text-gray-700 transition active:scale-90 z-10 hover:text-brand"
-                                    >
+                                    <button onClick={(e) => openPreview(e, img)} className="absolute bottom-2 left-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white text-gray-700 transition active:scale-90 z-10 hover:text-brand">
                                         <ZoomIn size={14} />
                                     </button>
                                 )}
@@ -331,13 +319,11 @@ export default function HomePage() {
                             </div>
                             
                             <div className="p-3">
-                                {/* ✅ CORRECTION TITRE : 'truncate' pour empêcher l'agrandissement de la carte */}
                                 <h3 className="font-bold text-gray-900 text-sm mb-1 truncate flex items-center gap-1" title={product.title}>
                                     {product.title}
                                     {isPro && <ShieldCheck size={12} className="text-mustard fill-mustard/20 shrink-0" />}
                                 </h3>
                                 
-                                {/* PRIX EN MOUTARDE FONCÉ POUR LES PROS */}
                                 <p className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                                     {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                                 </p>
