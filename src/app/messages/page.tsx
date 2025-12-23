@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image' // Next Image pour les miniatures
+import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
@@ -12,8 +12,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
-
-// NOUVEAU : Import pour le Zoom Pro
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 type Message = { id: string, content: string, sender_id: string, created_at: string, is_read: boolean, pending?: boolean, sender_avatar?: string | null }
@@ -51,7 +49,6 @@ function MessagesContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   
-  // ETATS POUR PREVIEW
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -245,7 +242,7 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* --- LIGHTBOX PRO (LEBONCOIN STYLE) --- */}
+        {/* --- LIGHTBOX PRO (CORRIGÉE : CENTRAGE AU CHARGEMENT) --- */}
         {previewImage && (
             <div className="fixed inset-0 z-[120] bg-black animate-in fade-in duration-300">
                 
@@ -259,29 +256,29 @@ function MessagesContent() {
                     </button>
                 </div>
 
-                {/* Composant de Zoom Pro */}
                 <TransformWrapper
                     initialScale={1}
                     minScale={1}
-                    maxScale={4} // Zoom maximum x4
+                    maxScale={4}
                     centerOnInit={true}
-                    wheel={{ disabled: true }} // Désactive le zoom molette pour le scroll page
+                    wheel={{ disabled: true }}
                 >
+                    {/* On récupère resetTransform pour forcer le centrage */}
                     {({ zoomIn, zoomOut, resetTransform }) => (
                         <>
                             <TransformComponent 
                                 wrapperClass="w-screen h-screen flex items-center justify-center"
                                 contentClass="w-full h-full flex items-center justify-center"
                             >
-                                {/* IMAGE SIMPLE (Pas de Next/Image ici pour éviter les conflits de style) */}
                                 <img 
                                     src={previewImage} 
                                     alt="Zoom" 
                                     className="max-h-screen max-w-full object-contain"
+                                    // LA CORRECTION EST ICI : On force le centrage une fois l'image chargée
+                                    onLoad={() => resetTransform()}
                                 />
                             </TransformComponent>
 
-                            {/* Contrôles flottants en bas (Optionnel, comme LeBonCoin) */}
                             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-4 pointer-events-auto">
                                 <button onClick={() => zoomOut()} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/20 transition">
                                     <ZoomOut size={20} />
@@ -346,7 +343,6 @@ function MessagesContent() {
                             
                             <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
                                 {isImg ? (
-                                    // MINIATURE IMAGE DANS CHAT
                                     <div 
                                         className="cursor-pointer hover:opacity-90 transition bg-gray-100"
                                         onClick={() => openPreview(msg.content)}
