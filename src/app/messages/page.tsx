@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
+import Image from 'next/image' // Gardé pour les avatars et le chat
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
@@ -231,7 +231,6 @@ function MessagesContent() {
   
   const handleTouchStart = (e: React.TouchEvent) => {
     if (e.touches.length === 2) {
-      // Calcul distance initiale entre les deux doigts
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
@@ -243,18 +242,12 @@ function MessagesContent() {
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (e.touches.length === 2 && touchStartDist.current) {
-      // Empêcher le zoom natif du navigateur si possible
-      // e.preventDefault() // Note: peut nécessiter passive: false dans certains cas, mais React gère ça.
-      
       const dist = Math.hypot(
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       )
       
-      // Calcul du nouveau zoom basé sur le ratio de distance
       const newZoom = startZoomLevel.current * (dist / touchStartDist.current)
-      
-      // Limites : Min 1x, Max 5x
       setZoomLevel(Math.max(1, Math.min(newZoom, 5)))
     }
   }
@@ -263,14 +256,14 @@ function MessagesContent() {
     touchStartDist.current = null
   }
 
-  // Double tap pour reset ou zoomer
-  const toggleZoom = () => {
+  const toggleZoom = (e: React.MouseEvent) => {
+      e.stopPropagation()
       setZoomLevel(prev => prev > 1.5 ? 1 : 2.5)
   }
 
   const openPreview = (url: string) => {
       setPreviewImage(url)
-      setZoomLevel(1) // Reset zoom à l'ouverture
+      setZoomLevel(1) 
   }
 
   if (view === 'list') {
@@ -287,16 +280,15 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* --- LIGHTBOX AVEC ZOOM MANUEL --- */}
+        {/* --- LIGHTBOX (CORRIGÉE : ZOOM ET SCROLL NATIF) --- */}
         {previewImage && (
             <div 
-                className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 overflow-hidden" 
-                // Note : On gère la fermeture sur le bouton X uniquement pour éviter de fermer en zoomant
+                className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm flex flex-col animate-in fade-in duration-200"
             >
                 {/* Header Lightbox */}
-                <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-linear-to-b from-black/50 to-transparent pointer-events-none">
+                <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
                     <span className="text-white/80 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
-                        Pincez pour zoomer
+                        Pincez ou double-cliquez
                     </span>
                     <button 
                         onClick={() => setPreviewImage(null)} 
@@ -306,33 +298,28 @@ function MessagesContent() {
                     </button>
                 </div>
 
-                {/* Conteneur Image Scrollable */}
+                {/* Container Scrollable pour le Pan */}
                 <div 
-                    className="w-full h-full overflow-auto flex items-center justify-center touch-none" // touch-none aide à gérer les gestes
+                    className="flex-1 w-full h-full overflow-auto flex items-center justify-center"
                     onTouchStart={handleTouchStart}
                     onTouchMove={handleTouchMove}
                     onTouchEnd={handleTouchEnd}
                 >
-                    <div 
-                        className="relative transition-all duration-75 ease-linear" // Transition très rapide pour suivre les doigts
+                    {/* UTILISATION DE LA BALISE IMG STANDARD POUR EVITER LES CONFLITS NEXT.JS */}
+                    <img 
+                        src={previewImage} 
+                        alt="Zoom" 
+                        onDoubleClick={toggleZoom}
+                        className="transition-all duration-75 ease-linear object-contain"
                         style={{ 
-                            // L'astuce : la largeur change dynamiquement
-                            width: `${zoomLevel * 100}%`, 
+                            // Le zoom contrôle la taille réelle, ce qui active le scroll
+                            width: `${zoomLevel * 100}%`,
                             height: 'auto',
-                            minWidth: '100%', 
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
+                            maxHeight: zoomLevel <= 1 ? '100vh' : 'none', // Fit screen si pas de zoom
+                            maxWidth: 'none', // IMPORTANT : Permet de dépasser l'écran
+                            cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
                         }}
-                    >
-                        {/* Image Haute Qualité */}
-                        <img 
-                            src={previewImage} 
-                            alt="Zoom" 
-                            className="object-contain w-full h-auto max-h-none"
-                            onDoubleClick={toggleZoom} // Fallback double clic
-                        />
-                    </div>
+                    />
                 </div>
                 
                 {/* Indicateur de Zoom */}
@@ -399,6 +386,7 @@ function MessagesContent() {
                                         className="cursor-pointer hover:opacity-90 transition bg-gray-100"
                                         onClick={() => openPreview(msg.content)}
                                     >
+                                        {/* Image miniature dans le chat */}
                                         <Image 
                                             src={msg.content} 
                                             alt="Photo" 
