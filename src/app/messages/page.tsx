@@ -194,8 +194,19 @@ function MessagesContent() {
   const handleSend = async () => {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
-    const myHistory = activeConv.messages.filter(m => m.sender_id === currentUser.id).slice(-5).map(m => textToDigits(m.content)).join("")
-    if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { toast.error("Interdit : Échange de coordonnées bloqué."); return }
+    
+    // CORRECTION ICI : On exclut les images de l'analyse de texte
+    const myHistory = activeConv.messages
+        .filter(m => m.sender_id === currentUser.id)
+        .filter(m => !m.content.includes('messages_images')) // Ignorer les URLs d'images
+        .slice(-5)
+        .map(m => textToDigits(m.content))
+        .join("")
+
+    if (containsPhoneNumber(myHistory + textToDigits(replyContent))) { 
+        toast.error("Interdit : Échange de coordonnées bloqué."); 
+        return 
+    }
 
     const content = replyContent
     setReplyContent(''); inputRef.current?.focus() 
@@ -288,7 +299,6 @@ function MessagesContent() {
                             
                             <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
                                 {isImg ? (
-                                    // CORRECTION ICI : On utilise width/height au lieu de fill/aspect-square pour la stabilité
                                     <div 
                                         className="cursor-pointer hover:opacity-90 transition bg-gray-100"
                                         onClick={() => setPreviewImage(msg.content)}
@@ -298,7 +308,7 @@ function MessagesContent() {
                                             alt="Photo" 
                                             width={300} 
                                             height={300}
-                                            className="object-cover w-64 h-64" // Taille fixe carrée
+                                            className="object-cover w-64 h-64"
                                         />
                                     </div>
                                 ) : (
