@@ -3,15 +3,28 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
-import InstallBanner from '@/components/InstallBanner'; // <-- 1. IMPORT DU COMPOSANT
+import InstallBanner from '@/components/InstallBanner';
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
+// 1. CONFIGURATION SEO GLOBALE AMÉLIORÉE
 export const metadata: Metadata = {
-  title: "Comores Market",
-  description: "Achat et vente aux Comores",
-  manifest: '/manifest.json', // Assure-toi que c'est bien référencé
+  metadataBase: new URL('https://comores-market.com'), // IMPORTANT: Ton vrai domaine
+  title: {
+    default: "Comores Market - Achat et Vente aux Comores",
+    template: "%s | Comores Market" // Permet d'avoir "Titre Annonce | Comores Market"
+  },
+  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
+  openGraph: {
+    title: "Comores Market",
+    description: "Les meilleures affaires des îles sont ici.",
+    url: 'https://comores-market.com',
+    siteName: 'Comores Market',
+    locale: 'fr_KM',
+    type: 'website',
+  },
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -30,8 +43,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a", // Couleur Brand
-  viewportFit: "cover", 
+  themeColor: "#16a34a",
+  viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -47,10 +60,9 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
         
-        {/* 2. AJOUT DU BANDEAU D'INSTALLATION (Global) */}
         <InstallBanner />
 
-        <div className="w-full max-w-125 min-h-screen bg-white shadow-2xl relative">
+        <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative">
           <Toaster richColors position="top-center" duration={3000} />
           
           <main className="min-h-screen">
