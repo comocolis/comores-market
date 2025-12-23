@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, CheckCircle, Flag, AlertTriangle, X } from 'lucide-react'
+import { Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, User, Ban, CheckCircle, Flag, AlertTriangle, X, Star, MessageSquare } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -15,12 +15,14 @@ export default function AdminPage() {
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports' | 'reviews'>('dashboard')
   
-  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0, reports: 0 })
+  // Ajout de 'reviews' dans les stats et les données
+  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0 })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
+  const [reviewsList, setReviewsList] = useState<any[]>([]) // Liste des avis
   const [searchTerm, setSearchTerm] = useState('')
 
   // ETAT POUR LA MODALE DE CONFIRMATION
@@ -28,7 +30,7 @@ export default function AdminPage() {
     isOpen: boolean;
     title: string;
     message: string;
-    action: () => void; // La fonction à exécuter si on confirme
+    action: () => void;
     isDanger: boolean;
   }>({
     isOpen: false, title: '', message: '', action: () => {}, isDanger: false
@@ -60,16 +62,25 @@ export default function AdminPage() {
         .select('*, product:products(*), reporter:profiles(*)')
         .order('created_at', { ascending: false })
 
+    // Récupération des avis avec les infos du noté (target) et du noteur (reviewer)
+    const { data: reviewsData } = await supabase
+        .from('reviews')
+        .select('*, reviewer:profiles!reviewer_id(full_name), target:profiles!target_id(full_name)')
+        .order('created_at', { ascending: false })
+
     if (profiles && items) {
         setUsers(profiles)
         setProducts(items)
         setReports(reportsData || [])
+        setReviewsList(reviewsData || [])
+        
         setStats({
             users: profiles.length,
             products: items.length,
             pro: profiles.filter(p => p.is_pro).length,
             banned: profiles.filter(p => p.is_banned).length,
-            reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0
+            reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
+            reviews: reviewsData?.length || 0
         })
     }
   }
@@ -88,7 +99,7 @@ export default function AdminPage() {
       closeConfirm()
   }
 
-  // --- ACTIONS LOGIQUES (SANS CONFIRM NATIVE) ---
+  // --- ACTIONS LOGIQUES ---
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
     const now = new Date()
@@ -129,6 +140,13 @@ export default function AdminPage() {
       if(!error) { toast.success("Signalement traité"); fetchData() }
   }
 
+  // NOUVEAU : Supprimer un avis
+  const deleteReview = async (reviewId: string) => {
+      const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
+      if (error) toast.error("Erreur suppression avis")
+      else { toast.success("Avis supprimé"); fetchData() }
+  }
+
   const getDaysRemaining = (dateString: string | null) => {
     if (!dateString) return 0
     const end = new Date(dateString)
@@ -144,7 +162,7 @@ export default function AdminPage() {
       
       {/* MODALE DE CONFIRMATION GLOBALE */}
       {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={closeConfirm}>
+        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={closeConfirm}>
             <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200 border-t-4 border-transparent" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
                 <div className="flex items-center gap-3">
                     <div className={`p-3 rounded-full ${confirmModal.isDanger ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'}`}>
@@ -156,18 +174,8 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-500 leading-relaxed">{confirmModal.message}</p>
                 
                 <div className="flex gap-3 pt-2">
-                    <button 
-                        onClick={closeConfirm} 
-                        className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
-                    >
-                        Annuler
-                    </button>
-                    <button 
-                        onClick={() => executeAction(async () => confirmModal.action())}
-                        className={`flex-1 py-3 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2 ${confirmModal.isDanger ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}
-                    >
-                        Confirmer
-                    </button>
+                    <button onClick={closeConfirm} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition">Annuler</button>
+                    <button onClick={() => executeAction(async () => confirmModal.action())} className={`flex-1 py-3 rounded-xl font-bold text-white transition shadow-lg flex items-center justify-center gap-2 ${confirmModal.isDanger ? 'bg-red-600 hover:bg-red-700 shadow-red-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-500/20'}`}>Confirmer</button>
                 </div>
             </div>
         </div>
@@ -189,6 +197,10 @@ export default function AdminPage() {
             </button>
             <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
             <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'products' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
+            {/* NOUVEL ONGLET AVIS */}
+            <button onClick={() => setActiveTab('reviews')} className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+                <Star size={14} /> Avis ({stats.reviews})
+            </button>
         </div>
       </div>
 
@@ -200,7 +212,49 @@ export default function AdminPage() {
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p></div><div className="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={20} /></div></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs text-gray-500 font-bold uppercase">Alertes</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reviews}</p><p className="text-xs text-gray-500 font-bold uppercase">Avis totaux</p></div><div className="bg-orange-100 w-10 h-10 rounded-full flex items-center justify-center text-orange-600"><Star size={20} /></div></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between col-span-2"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs text-gray-500 font-bold uppercase text-red-500">Alertes en cours</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
+            </div>
+        )}
+
+        {/* NOUVEAU : GESTION DES AVIS */}
+        {activeTab === 'reviews' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                {reviewsList.length === 0 ? <p className="text-center text-gray-400 mt-10">Aucun avis.</p> : reviewsList.map(review => (
+                    <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex justify-between items-start mb-2">
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold text-gray-900">{review.reviewer?.full_name || 'Anonyme'}</span>
+                                <span className="text-gray-400 text-xs">➔</span>
+                                <span className="text-sm font-bold text-gray-900">{review.target?.full_name || 'Vendeur inconnu'}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400">{new Date(review.created_at).toLocaleDateString()}</span>
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mb-2">
+                            {[...Array(5)].map((_, i) => (
+                                <Star key={i} size={12} className={i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-200"} />
+                            ))}
+                            <span className="text-xs font-bold text-gray-600 ml-1">({review.rating}/5)</span>
+                        </div>
+
+                        {review.comment && (
+                            <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 italic mb-3 flex gap-2">
+                                <MessageSquare size={16} className="text-gray-400 shrink-0 mt-0.5" />
+                                "{review.comment}"
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-end">
+                            <button 
+                                onClick={() => askConfirm("Supprimer cet avis ?", "Cette action est irréversible.", () => deleteReview(review.id))} 
+                                className="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg font-bold hover:bg-red-100 flex items-center gap-1 transition"
+                            >
+                                <Trash2 size={14}/> Supprimer
+                            </button>
+                        </div>
+                    </div>
+                ))}
             </div>
         )}
 
@@ -271,7 +325,6 @@ export default function AdminPage() {
                                 {u.is_banned && <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded">BANNI</span>}
                             </div>
                             <div className="grid grid-cols-4 gap-2">
-                                {/* PAS DE CONFIRMATION POUR L'AJOUT DE TEMPS, C'EST POSITIF */}
                                 <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="col-span-1 bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-blue-100">+1 Mois</button>
                                 <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="col-span-1 bg-purple-50 text-purple-700 py-1.5 rounded-lg text-[10px] font-bold hover:bg-purple-100">+1 An</button>
                                 
@@ -286,7 +339,7 @@ export default function AdminPage() {
                                         u.is_banned ? "Débannir l'utilisateur ?" : "Bannir l'utilisateur ?", 
                                         u.is_banned ? "Il pourra de nouveau accéder à son compte." : "Il ne pourra plus se connecter.", 
                                         () => toggleBanUser(u.id, u.is_banned),
-                                        !u.is_banned // Danger si on bannit, pas danger si on débannit
+                                        !u.is_banned
                                     )} 
                                     className={`col-span-1 py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}
                                 >
