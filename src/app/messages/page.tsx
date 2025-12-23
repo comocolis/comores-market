@@ -242,7 +242,7 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* --- LIGHTBOX PRO (CORRIGÉE : CENTRAGE AU CHARGEMENT) --- */}
+        {/* --- LIGHTBOX PRO (CORRIGÉE : CENTRAGE FORCÉ) --- */}
         {previewImage && (
             <div className="fixed inset-0 z-[120] bg-black animate-in fade-in duration-300">
                 
@@ -263,22 +263,22 @@ function MessagesContent() {
                     centerOnInit={true}
                     wheel={{ disabled: true }}
                 >
-                    {/* On récupère resetTransform pour forcer le centrage */}
                     {({ zoomIn, zoomOut, resetTransform }) => (
                         <>
                             <TransformComponent 
-                                wrapperClass="w-screen h-screen flex items-center justify-center"
-                                contentClass="w-full h-full flex items-center justify-center"
+                                // CORRECTION : On force le wrapper et le contenu à prendre 100% de la fenêtre et à centrer
+                                wrapperStyle={{ width: "100vw", height: "100vh" }}
+                                contentStyle={{ display: "flex", alignItems: "center", justifyContent: "center", width: "100%", height: "100%" }}
                             >
                                 <img 
                                     src={previewImage} 
                                     alt="Zoom" 
                                     className="max-h-screen max-w-full object-contain"
-                                    // LA CORRECTION EST ICI : On force le centrage une fois l'image chargée
                                     onLoad={() => resetTransform()}
                                 />
                             </TransformComponent>
 
+                            {/* Contrôles flottants */}
                             <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-4 pointer-events-auto">
                                 <button onClick={() => zoomOut()} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/20 transition">
                                     <ZoomOut size={20} />
