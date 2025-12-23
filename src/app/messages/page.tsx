@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import Image from 'next/image' // Gardé pour les avatars et le chat
+import Image from 'next/image' // Next Image pour les miniatures
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
@@ -12,6 +12,9 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
+
+// NOUVEAU : Import pour le Zoom Pro
+import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
 type Message = { id: string, content: string, sender_id: string, created_at: string, is_read: boolean, pending?: boolean, sender_avatar?: string | null }
 type Conversation = { id: string, productId: string, productTitle: string, productImage: string | null, productPhone: string | null, counterpartId: string, counterpartName: string, counterpartAvatar: string | null, counterpartIsPro: boolean, lastMessage: string, lastDate: string, unreadCount: number, messages: Message[] }
@@ -48,11 +51,8 @@ function MessagesContent() {
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   
-  // --- ETATS ZOOM & PREVIEW ---
+  // ETATS POUR PREVIEW
   const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const [zoomLevel, setZoomLevel] = useState(1) // 1 = 100%, 2 = 200%...
-  const touchStartDist = useRef<number | null>(null)
-  const startZoomLevel = useRef<number>(1)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -227,43 +227,8 @@ function MessagesContent() {
       return content.includes('messages_images') && content.startsWith('http')
   }
 
-  // --- LOGIQUE ZOOM MANUEL (PINCH) ---
-  
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      )
-      touchStartDist.current = dist
-      startZoomLevel.current = zoomLevel
-    }
-  }
-
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2 && touchStartDist.current) {
-      const dist = Math.hypot(
-        e.touches[0].clientX - e.touches[1].clientX,
-        e.touches[0].clientY - e.touches[1].clientY
-      )
-      
-      const newZoom = startZoomLevel.current * (dist / touchStartDist.current)
-      setZoomLevel(Math.max(1, Math.min(newZoom, 5)))
-    }
-  }
-
-  const handleTouchEnd = () => {
-    touchStartDist.current = null
-  }
-
-  const toggleZoom = (e: React.MouseEvent) => {
-      e.stopPropagation()
-      setZoomLevel(prev => prev > 1.5 ? 1 : 2.5)
-  }
-
   const openPreview = (url: string) => {
       setPreviewImage(url)
-      setZoomLevel(1) 
   }
 
   if (view === 'list') {
@@ -280,55 +245,54 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* --- LIGHTBOX (CORRIGÉE : ZOOM ET SCROLL NATIF) --- */}
+        {/* --- LIGHTBOX PRO (LEBONCOIN STYLE) --- */}
         {previewImage && (
-            <div 
-                className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm flex flex-col animate-in fade-in duration-200"
-            >
-                {/* Header Lightbox */}
-                <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
-                    <span className="text-white/80 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
-                        Pincez ou double-cliquez
-                    </span>
+            <div className="fixed inset-0 z-[120] bg-black animate-in fade-in duration-300">
+                
+                {/* Header (Fermeture) */}
+                <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 pointer-events-none">
                     <button 
                         onClick={() => setPreviewImage(null)} 
-                        className="text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md pointer-events-auto"
+                        className="text-white p-3 bg-black/50 rounded-full hover:bg-black/70 transition pointer-events-auto"
                     >
                         <X size={24} />
                     </button>
                 </div>
 
-                {/* Container Scrollable pour le Pan */}
-                <div 
-                    className="flex-1 w-full h-full overflow-auto flex items-center justify-center"
-                    onTouchStart={handleTouchStart}
-                    onTouchMove={handleTouchMove}
-                    onTouchEnd={handleTouchEnd}
+                {/* Composant de Zoom Pro */}
+                <TransformWrapper
+                    initialScale={1}
+                    minScale={1}
+                    maxScale={4} // Zoom maximum x4
+                    centerOnInit={true}
+                    wheel={{ disabled: true }} // Désactive le zoom molette pour le scroll page
                 >
-                    {/* UTILISATION DE LA BALISE IMG STANDARD POUR EVITER LES CONFLITS NEXT.JS */}
-                    <img 
-                        src={previewImage} 
-                        alt="Zoom" 
-                        onDoubleClick={toggleZoom}
-                        className="transition-all duration-75 ease-linear object-contain"
-                        style={{ 
-                            // Le zoom contrôle la taille réelle, ce qui active le scroll
-                            width: `${zoomLevel * 100}%`,
-                            height: 'auto',
-                            maxHeight: zoomLevel <= 1 ? '100vh' : 'none', // Fit screen si pas de zoom
-                            maxWidth: 'none', // IMPORTANT : Permet de dépasser l'écran
-                            cursor: zoomLevel > 1 ? 'grab' : 'zoom-in'
-                        }}
-                    />
-                </div>
-                
-                {/* Indicateur de Zoom */}
-                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-                    <div className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
-                        {zoomLevel > 1 ? <ZoomOut size={16} /> : <ZoomIn size={16} />}
-                        <span className="text-xs font-bold">{Math.round(zoomLevel * 100)}%</span>
-                    </div>
-                </div>
+                    {({ zoomIn, zoomOut, resetTransform }) => (
+                        <>
+                            <TransformComponent 
+                                wrapperClass="w-screen h-screen flex items-center justify-center"
+                                contentClass="w-full h-full flex items-center justify-center"
+                            >
+                                {/* IMAGE SIMPLE (Pas de Next/Image ici pour éviter les conflits de style) */}
+                                <img 
+                                    src={previewImage} 
+                                    alt="Zoom" 
+                                    className="max-h-screen max-w-full object-contain"
+                                />
+                            </TransformComponent>
+
+                            {/* Contrôles flottants en bas (Optionnel, comme LeBonCoin) */}
+                            <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 flex gap-4 pointer-events-auto">
+                                <button onClick={() => zoomOut()} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/20 transition">
+                                    <ZoomOut size={20} />
+                                </button>
+                                <button onClick={() => zoomIn()} className="bg-white/10 backdrop-blur-md p-3 rounded-full text-white hover:bg-white/20 transition">
+                                    <ZoomIn size={20} />
+                                </button>
+                            </div>
+                        </>
+                    )}
+                </TransformWrapper>
             </div>
         )}
 
@@ -382,11 +346,11 @@ function MessagesContent() {
                             
                             <div className={`max-w-[70%] shadow-sm relative group overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm'}`}>
                                 {isImg ? (
+                                    // MINIATURE IMAGE DANS CHAT
                                     <div 
                                         className="cursor-pointer hover:opacity-90 transition bg-gray-100"
                                         onClick={() => openPreview(msg.content)}
                                     >
-                                        {/* Image miniature dans le chat */}
                                         <Image 
                                             src={msg.content} 
                                             alt="Photo" 
