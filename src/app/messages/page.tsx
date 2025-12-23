@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
-  Camera, X 
+  Camera, X, ZoomIn, ZoomOut 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
@@ -47,9 +47,14 @@ function MessagesContent() {
   
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
-  const [previewImage, setPreviewImage] = useState<string | null>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   
+  // --- ETATS ZOOM & PREVIEW ---
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [zoomLevel, setZoomLevel] = useState(1) // 1 = 100%, 2 = 200%...
+  const touchStartDist = useRef<number | null>(null)
+  const startZoomLevel = useRef<number>(1)
+  
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const activeConvRef = useRef<Conversation | null>(null)
@@ -195,10 +200,9 @@ function MessagesContent() {
     if (!replyContent.trim() || !activeConv || !currentUser) return
     if (isBanned) { toast.error("Votre compte est suspendu.", { style: { background: '#FEF2F2', color: '#B91C1C' } }); return }
     
-    // CORRECTION ICI : On exclut les images de l'analyse de texte
     const myHistory = activeConv.messages
         .filter(m => m.sender_id === currentUser.id)
-        .filter(m => !m.content.includes('messages_images')) // Ignorer les URLs d'images
+        .filter(m => !m.content.includes('messages_images'))
         .slice(-5)
         .map(m => textToDigits(m.content))
         .join("")
@@ -223,6 +227,52 @@ function MessagesContent() {
       return content.includes('messages_images') && content.startsWith('http')
   }
 
+  // --- LOGIQUE ZOOM MANUEL (PINCH) ---
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // Calcul distance initiale entre les deux doigts
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      touchStartDist.current = dist
+      startZoomLevel.current = zoomLevel
+    }
+  }
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchStartDist.current) {
+      // Empêcher le zoom natif du navigateur si possible
+      // e.preventDefault() // Note: peut nécessiter passive: false dans certains cas, mais React gère ça.
+      
+      const dist = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      )
+      
+      // Calcul du nouveau zoom basé sur le ratio de distance
+      const newZoom = startZoomLevel.current * (dist / touchStartDist.current)
+      
+      // Limites : Min 1x, Max 5x
+      setZoomLevel(Math.max(1, Math.min(newZoom, 5)))
+    }
+  }
+
+  const handleTouchEnd = () => {
+    touchStartDist.current = null
+  }
+
+  // Double tap pour reset ou zoomer
+  const toggleZoom = () => {
+      setZoomLevel(prev => prev > 1.5 ? 1 : 2.5)
+  }
+
+  const openPreview = (url: string) => {
+      setPreviewImage(url)
+      setZoomLevel(1) // Reset zoom à l'ouverture
+  }
+
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans">
@@ -237,21 +287,67 @@ function MessagesContent() {
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans">
         
-        {/* LIGHTBOX */}
+        {/* --- LIGHTBOX AVEC ZOOM MANUEL --- */}
         {previewImage && (
-            <div className="fixed inset-0 z-120 bg-black/95 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
-                <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md z-50">
-                    <X size={24} />
-                </button>
-                <div className="relative w-full h-full max-w-4xl max-h-[85vh] pointer-events-none flex items-center justify-center">
-                    <Image src={previewImage} alt="Zoom" width={1000} height={1000} className="object-contain max-h-full max-w-full" />
+            <div 
+                className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-200 overflow-hidden" 
+                // Note : On gère la fermeture sur le bouton X uniquement pour éviter de fermer en zoomant
+            >
+                {/* Header Lightbox */}
+                <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-center z-50 bg-linear-to-b from-black/50 to-transparent pointer-events-none">
+                    <span className="text-white/80 text-xs font-medium bg-black/40 px-3 py-1 rounded-full backdrop-blur-md">
+                        Pincez pour zoomer
+                    </span>
+                    <button 
+                        onClick={() => setPreviewImage(null)} 
+                        className="text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md pointer-events-auto"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Conteneur Image Scrollable */}
+                <div 
+                    className="w-full h-full overflow-auto flex items-center justify-center touch-none" // touch-none aide à gérer les gestes
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                >
+                    <div 
+                        className="relative transition-all duration-75 ease-linear" // Transition très rapide pour suivre les doigts
+                        style={{ 
+                            // L'astuce : la largeur change dynamiquement
+                            width: `${zoomLevel * 100}%`, 
+                            height: 'auto',
+                            minWidth: '100%', 
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}
+                    >
+                        {/* Image Haute Qualité */}
+                        <img 
+                            src={previewImage} 
+                            alt="Zoom" 
+                            className="object-contain w-full h-auto max-h-none"
+                            onDoubleClick={toggleZoom} // Fallback double clic
+                        />
+                    </div>
+                </div>
+                
+                {/* Indicateur de Zoom */}
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
+                    <div className="bg-black/60 backdrop-blur-md text-white px-4 py-2 rounded-full flex items-center gap-2 shadow-lg border border-white/10">
+                        {zoomLevel > 1 ? <ZoomOut size={16} /> : <ZoomIn size={16} />}
+                        <span className="text-xs font-bold">{Math.round(zoomLevel * 100)}%</span>
+                    </div>
                 </div>
             </div>
         )}
 
         {/* MODALE SUPPRESSION */}
         {showDeleteModal && (
-            <div className="fixed inset-0 z-110 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowDeleteModal(false)}>
+            <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setShowDeleteModal(false)}>
                 <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
                     <div className="flex items-center gap-3 text-red-600">
                         <div className="bg-red-100 p-2 rounded-full"><AlertTriangle size={24} /></div>
@@ -301,7 +397,7 @@ function MessagesContent() {
                                 {isImg ? (
                                     <div 
                                         className="cursor-pointer hover:opacity-90 transition bg-gray-100"
-                                        onClick={() => setPreviewImage(msg.content)}
+                                        onClick={() => openPreview(msg.content)}
                                     >
                                         <Image 
                                             src={msg.content} 
