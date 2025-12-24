@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
+import SplashScreen from '@/components/SplashScreen'; // AJOUT IMPORT
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -60,6 +61,9 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
         
+        {/* AJOUT DU SPLASH SCREEN ANIMÉ ICI */}
+        <SplashScreen />
+
         <InstallBanner />
 
         <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative">

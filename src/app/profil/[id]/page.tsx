@@ -178,6 +178,16 @@ export default function PublicProfilePage() {
             <span className="flex items-center gap-1"><Calendar size={14} /> Membre depuis {new Date(profile.created_at).getFullYear()}</span>
         </div>
 
+        {/* NOUVEAU : DESCRIPTION VENDEUR */}
+        {profile.description && (
+            <div className="px-4 py-4 bg-white mt-2 mb-4 w-full text-left border-t border-gray-100 pt-4">
+                <h3 className="font-bold text-gray-900 text-sm mb-2">À propos</h3>
+                <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">
+                    {profile.description}
+                </p>
+            </div>
+        )}
+
         {/* LIENS RESEAUX SOCIAUX */}
         {profile.is_pro && (profile.facebook_url || profile.instagram_url) && (
             <div className="flex gap-3 mb-6 w-full justify-center">

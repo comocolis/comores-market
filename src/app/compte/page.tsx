@@ -44,7 +44,8 @@ export default function ComptePage() {
     island: 'Ngazidja',
     phone_number: '',
     facebook_url: '',
-    instagram_url: ''
+    instagram_url: '',
+    description: '' // NOUVEAU CHAMP
   })
 
   useEffect(() => {
@@ -64,7 +65,8 @@ export default function ComptePage() {
             island: data.island || 'Ngazidja',
             phone_number: data.phone_number || '',
             facebook_url: data.facebook_url || '',
-            instagram_url: data.instagram_url || ''
+            instagram_url: data.instagram_url || '',
+            description: data.description || '' // CHARGEMENT DESCRIPTION
         })
       }
       setLoading(false)
@@ -149,7 +151,8 @@ export default function ComptePage() {
         island: profile?.island || 'Ngazidja',
         phone_number: profile?.phone_number || '',
         facebook_url: profile?.facebook_url || '',
-        instagram_url: profile?.instagram_url || ''
+        instagram_url: profile?.instagram_url || '',
+        description: profile?.description || ''
     })
     setIsEditingInfo(false)
   }
@@ -300,6 +303,23 @@ export default function ComptePage() {
                     {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} /> : <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50">{profile?.full_name}</p>}
                 </div>
                 
+                {/* --- NOUVEAU : DESCRIPTION --- */}
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase ml-1">À propos de vous</label>
+                    {isEditingInfo ? (
+                        <textarea 
+                            className="w-full bg-gray-50 p-3 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-brand/20 transition border border-gray-200 min-h-24 resize-none" 
+                            placeholder="Présentez-vous, votre activité, vos horaires..."
+                            value={formData.description} 
+                            onChange={e => setFormData({...formData, description: e.target.value})} 
+                        />
+                    ) : (
+                        <p className="p-3 text-gray-900 font-medium text-sm border-b border-gray-50 whitespace-pre-line">
+                            {profile?.description || <span className="text-gray-400 italic">Aucune description</span>}
+                        </p>
+                    )}
+                </div>
+
                 <div className="grid grid-cols-2 gap-3">
                     <div>
                         <label className="text-xs font-bold text-gray-400 uppercase ml-1">Île</label>
