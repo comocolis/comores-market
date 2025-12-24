@@ -4,17 +4,16 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
-import SplashScreen from '@/components/SplashScreen'; // AJOUT IMPORT
+import SplashScreen from '@/components/SplashScreen'; // <-- IMPORT NOUVEAU
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
-// 1. CONFIGURATION SEO GLOBALE AMÉLIORÉE
 export const metadata: Metadata = {
-  metadataBase: new URL('https://comores-market.com'), // IMPORTANT: Ton vrai domaine
+  metadataBase: new URL('https://comores-market.com'),
   title: {
     default: "Comores Market - Achat et Vente aux Comores",
-    template: "%s | Comores Market" // Permet d'avoir "Titre Annonce | Comores Market"
+    template: "%s | Comores Market"
   },
   description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
   openGraph: {
@@ -44,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: "#16a34a", // Vert Comores Market
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -61,7 +60,7 @@ export default function RootLayout({
     <html lang="fr">
       <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
         
-        {/* AJOUT DU SPLASH SCREEN ANIMÉ ICI */}
+        {/* LE SPLASH SCREEN DOIT ÊTRE ICI */}
         <SplashScreen />
 
         <InstallBanner />
