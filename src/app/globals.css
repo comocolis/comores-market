@@ -15,14 +15,6 @@
   background-color: #16a34a;
 }
 
-html, body {
-  background-color: #16a34a !important;
-  margin: 0;
-  padding: 0;
-  overflow-x: hidden;
-  color: #1f2937;
-  /* On retire le fond gris d'ici pour qu'il ne s'affiche pas avant le Splash Screen */
-}
 
 /* 2. STYLES DU CONTENU */
 /* Une fois l'application chargée, le fond gris s'applique uniquement au contenu */
