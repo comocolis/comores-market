@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
-import SplashScreen from '@/components/SplashScreen'; // <-- IMPORT NOUVEAU
+import SplashScreen from '@/components/SplashScreen';
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -15,6 +15,7 @@ export const metadata: Metadata = {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
   },
+  
   description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
   openGraph: {
     title: "Comores Market",
@@ -24,11 +25,18 @@ export const metadata: Metadata = {
     locale: 'fr_KM',
     type: 'website',
   },
+  
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Comores Market",
+    // AJOUT : Image de démarrage pour iOS pour éviter l'écran blanc
+    startupImage: [
+      {
+        url: '/android-chrome-192x192.png',
+      },
+    ],
   },
   icons: {
     icon: [
@@ -43,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a", // Vert Comores Market
+  themeColor: "#16a34a",
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -58,17 +66,22 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
+      {/* CRUCIAL : On ajoute bg-[#16a34a] sur le body. 
+          Si le JS met du temps à charger, le fond sera vert par défaut au lieu de blanc.
+      */}
+      <body className={`${inter.className} bg-[#16a34a] min-h-screen flex justify-center overflow-x-hidden`}>
         
-        {/* LE SPLASH SCREEN DOIT ÊTRE ICI */}
         <SplashScreen />
 
         <InstallBanner />
 
+        {/* On garde le fond blanc uniquement pour le conteneur de l'application.
+            On remet bg-gray-50 sur le <main> pour le design habituel.
+        */}
         <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative">
           <Toaster richColors position="top-center" duration={3000} />
           
-          <main className="min-h-screen">
+          <main className="min-h-screen bg-gray-50">
             {children}
           </main>
 

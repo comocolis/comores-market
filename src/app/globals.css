@@ -1,24 +1,50 @@
 @import "tailwindcss";
 
 @theme {
-  /* Vert Comores : Plus profond et riche */
+  /* Variables de thème : Uniquement des définitions ici */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
   
-  /* Jaune Moutarde : Chaud et distinctif */
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
 }
 
-body {
-  background-color: #f3f4f6;
-  color: #1f2937;
+/* 1. STYLES DE BASE POUR ÉLIMINER LE FLASH BLANC */
+/* On force le fond vert sur les couches les plus basses du navigateur */
+:root {
+  background-color: #16a34a;
 }
 
-/* Masquer la barre de défilement mais garder le scroll */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+html, body {
+  background-color: #16a34a !important;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  color: #1f2937;
+  /* On retire le fond gris d'ici pour qu'il ne s'affiche pas avant le Splash Screen */
+}
 
-/* Zones de sécurité mobiles */
-.pt-safe { padding-top: env(safe-area-inset-top); }
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+/* 2. STYLES DU CONTENU */
+/* Une fois l'application chargée, le fond gris s'applique uniquement au contenu */
+main {
+  background-color: #f3f4f6; /* bg-gray-100 */
+}
+
+/* 3. UTILITAIRES SPÉCIFIQUES */
+
+/* Masquer la barre de défilement mais garder le scroll */
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+/* Zones de sécurité mobiles (encoches iPhone/Android) */
+.pt-safe { 
+  padding-top: env(safe-area-inset-top); 
+}
+.pb-safe { 
+  padding-bottom: env(safe-area-inset-bottom); 
+}
