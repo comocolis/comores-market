@@ -1,104 +1,137 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useState, useEffect, ChangeEvent } from 'react'
-import { Loader2, Camera, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { ArrowLeft, Camera, Loader2, Save, X, AlertTriangle } from 'lucide-react'
+import { toast } from 'sonner'
 import Image from 'next/image'
-import { toast } from 'sonner' // Ajout de Sonner
 
-export default function ModifierPage({ params }: { params: Promise<{ id: string }> }) {
+export default function ModifierAnnoncePage() {
   const supabase = createClient()
+  const params = useParams()
   const router = useRouter()
   const [loading, setLoading] = useState(true)
-  const [uploading, setUploading] = useState(false)
-  const [files, setFiles] = useState<File[]>([])
-  const [previews, setPreviews] = useState<string[]>([])
-  const [existingImages, setExistingImages] = useState<string[]>([])
-  const [formData, setFormData] = useState<any>(null)
-  const [productId, setProductId] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [formData, setFormData] = useState<any>({
+    title: '',
+    price: '',
+    description: '',
+    category: '',
+    location_city: '',
+    location_island: 'Ngazidja',
+    images: []
+  })
 
   useEffect(() => {
-    const init = async () => {
-      const { id } = await params
-      setProductId(id)
+    const fetchProduct = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/publier'); return }
-      const { data: product } = await supabase.from('products').select('*').eq('id', id).single()
+      const { data, error } = await supabase.from('products').select('*').eq('id', params.id).single()
       
-      // Sécurité : Vérifier le propriétaire
-      if (product.user_id !== user.id) { 
-          toast.error("Accès refusé. Ce n'est pas votre annonce.") // Remplacé alert
-          router.push('/')
-          return 
+      if (data) {
+        if (data.user_id !== user?.id) {
+            router.push('/mes-annonces')
+            return
+        }
+        let parsedImages = []
+        try { parsedImages = JSON.parse(data.images) } catch { parsedImages = [data.images] }
+        setFormData({ ...data, images: parsedImages })
       }
-      
-      setFormData({
-        title: product.title, price: product.price, category: 'Véhicules',
-        island: product.location_island, city: product.location_city, 
-        description: product.description, phone: product.whatsapp_number
-      })
-      let imgs = []; try { imgs = JSON.parse(product.images) } catch {}
-      setExistingImages(imgs)
       setLoading(false)
     }
-    init()
-  }, [params, supabase, router])
+    fetchProduct()
+  }, [params.id, supabase, router])
 
-  const handleImageChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    const selected = Array.from(e.target.files)
-    setFiles([...files, ...selected])
-    setPreviews([...previews, ...selected.map(f => URL.createObjectURL(f))])
-  }
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSaving(true)
+    
+    const { error } = await supabase
+        .from('products')
+        .update({
+            title: formData.title,
+            price: parseFloat(formData.price),
+            description: formData.description,
+            category: formData.category,
+            location_city: formData.location_city,
+            location_island: formData.location_island,
+            updated_at: new Date()
+        })
+        .eq('id', params.id)
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); setUploading(true)
-    try {
-      let newUrls = []
-      for (const file of files) {
-        const fileName = `${productId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${file.name.split('.').pop()}`
-        await supabase.storage.from('products').upload(fileName, file)
-        const { data } = supabase.storage.from('products').getPublicUrl(fileName)
-        newUrls.push(data.publicUrl)
-      }
-      const finalImages = [...existingImages, ...newUrls]
-      const { error } = await supabase.from('products').update({
-        title: formData.title, price: parseInt(formData.price),
-        location_island: formData.island, location_city: formData.city,
-        description: formData.description, whatsapp_number: formData.phone,
-        images: JSON.stringify(finalImages)
-      }).eq('id', productId)
-      
-      if (error) throw error
-      
-      toast.success("Annonce modifiée avec succès !") // Remplacé alert
-      router.push('/compte')
-      
-    } catch (e: any) { 
-        toast.error("Erreur : " + e.message) // Remplacé alert
-    } finally { 
-        setUploading(false) 
+    if (error) toast.error("Erreur lors de la mise à jour")
+    else {
+        toast.success("Annonce mise à jour !")
+        router.push('/mes-annonces')
     }
+    setSaving(false)
   }
 
-  if (loading || !formData) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 p-4 font-sans">
-       <h1 className="font-bold text-lg mb-4">Modifier l'annonce</h1>
-       <div className="bg-white p-6 rounded-xl shadow-sm space-y-4">
-          <div><label className="block text-sm font-bold mb-1">Titre</label><input type="text" className="w-full p-3 border rounded-lg" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div>
-          <div><label className="block text-sm font-bold mb-1">Prix</label><input type="number" className="w-full p-3 border rounded-lg" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></div>
-          
-          <div className="grid grid-cols-3 gap-2">
-            {existingImages.map((src, i) => (<div key={i} className="relative aspect-square"><Image src={src} alt="" fill className="object-cover rounded-lg" /><button onClick={() => setExistingImages(existingImages.filter((_, idx) => idx !== i))} className="absolute top-0 right-0 bg-red-500 text-white p-1 rounded-full"><X size={12}/></button></div>))}
-            {previews.map((src, i) => (<div key={i} className="relative aspect-square"><Image src={src} alt="" fill className="object-cover rounded-lg opacity-50" /></div>))}
-            <label className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed"><Camera /><input type="file" multiple hidden onChange={handleImageChange} /></label>
-          </div>
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+      <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex items-center justify-between">
+        <div className="flex items-center gap-3">
+            <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600"><ArrowLeft size={22} /></button>
+            <h1 className="text-xl font-bold text-gray-900">Modifier l'annonce</h1>
+        </div>
+      </div>
 
-          <button onClick={handleSubmit} disabled={uploading} className="w-full bg-brand text-white font-bold py-3 rounded-lg">{uploading ? '...' : 'Sauvegarder'}</button>
-       </div>
+      <form onSubmit={handleUpdate} className="p-4 space-y-6">
+        {/* APERÇU PHOTOS (Lecture seule pour la modification simple ici) */}
+        <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl flex gap-3 items-center text-amber-700 text-xs">
+            <AlertTriangle size={16} />
+            <p>La modification des photos n'est pas encore disponible ici.</p>
+        </div>
+
+        <div className="grid grid-cols-4 gap-2">
+            {formData.images.map((img: string, i: number) => (
+                <div key={i} className="aspect-square relative rounded-xl overflow-hidden bg-gray-200">
+                    <Image src={img} alt="" fill className="object-cover" />
+                </div>
+            ))}
+        </div>
+
+        <div className="space-y-4">
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Titre de l'annonce</label>
+                <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-white p-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand/20 transition shadow-sm" />
+            </div>
+
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Prix (KMF)</label>
+                <input required type="number" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} className="w-full bg-white p-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand/20 transition shadow-sm font-bold text-brand" />
+            </div>
+
+            <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-500 uppercase ml-1">Description (max. 500)</label>
+                <textarea maxLength={500} required rows={5} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-white p-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand/20 transition shadow-sm resize-none" />
+                <p className="text-right text-[10px] text-gray-400 font-bold">{formData.description.length} / 500</p>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Île</label>
+                    <select value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})} className="w-full bg-white p-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand/20 shadow-sm appearance-none">
+                        <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option>
+                    </select>
+                </div>
+                <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1">Ville</label>
+                    <input required type="text" value={formData.location_city} onChange={e => setFormData({...formData, location_city: e.target.value})} className="w-full bg-white p-4 rounded-2xl border border-gray-200 outline-none focus:ring-2 focus:ring-brand/20 shadow-sm" />
+                </div>
+            </div>
+        </div>
+
+        <button 
+            type="submit" 
+            disabled={saving}
+            className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-xl shadow-brand/20 flex items-center justify-center gap-2 active:scale-95 transition disabled:opacity-50"
+        >
+            {saving ? <Loader2 className="animate-spin" /> : <><Save size={20} /> Enregistrer les modifications</>}
+        </button>
+      </form>
     </div>
   )
 }
