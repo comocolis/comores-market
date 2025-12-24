@@ -12,7 +12,6 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 
-// J'ai renommé le composant en "AnnonceClient" pour éviter la confusion
 export default function AnnonceClient() {
   const supabase = createClient()
   const router = useRouter()
@@ -41,9 +40,6 @@ export default function AnnonceClient() {
 
   const viewLogged = useRef(false)
 
-  // ... (LE RESTE DE TON CODE EST IDENTIQUE, JE LE GARDE TEL QUEL POUR LA LOGIQUE) ...
-  // Je remets tout ton code de logique ici pour être sûr que ça marche copier-coller
-  
   useEffect(() => {
     const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -76,20 +72,24 @@ export default function AnnonceClient() {
     getData()
   }, [supabase, params.id])
 
+  // --- ACTUALISATION : LOGIQUE DE VUES AMÉLIORÉE ---
   useEffect(() => {
     const logView = async () => {
-        if (viewLogged.current) return
+        if (viewLogged.current || !product) return
         viewLogged.current = true
+
         const { data: { user } } = await supabase.auth.getUser()
-        await supabase.from('product_views').insert({
-            product_id: params.id,
-            viewer_id: user?.id || null
-        })
+        
+        // On n'enregistre la vue que si le visiteur n'est PAS le propriétaire
+        if (user?.id !== product.user_id) {
+            await supabase.from('product_views').insert({
+                product_id: product.id,
+                viewer_id: user?.id || null // On garde null si c'est un visiteur non connecté
+            })
+        }
     }
-    if (product) {
-        logView()
-    }
-  }, [product, params.id, supabase])
+    logView()
+  }, [product, supabase])
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -188,7 +188,7 @@ export default function AnnonceClient() {
   const onTouchMove = (e: TouchEvent) => {
     setTouchEnd(e.targetTouches[0].clientX)
   }
-  const onTouchEnd = () => {
+  const onTouchEndAction = () => {
     if (!touchStart || !touchEnd) return
     const distance = touchStart - touchEnd
     if (distance > minSwipeDistance && images.length > 1) nextImage()
@@ -213,7 +213,7 @@ export default function AnnonceClient() {
                     <h3 className="font-bold text-lg text-gray-900">Signaler l'annonce</h3>
                 </div>
                 
-                <p className="text-sm text-gray-500">Aidez-nous à modérer la communauté. Pourquoi signalez-vous ce contenu ?</p>
+                <p className="text-sm text-gray-500">Pourquoi signalez-vous ce contenu ?</p>
                 
                 <textarea 
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none min-h-24 resize-none"
@@ -224,17 +224,8 @@ export default function AnnonceClient() {
                 />
 
                 <div className="flex gap-3 pt-2">
-                    <button 
-                        onClick={() => setShowReportModal(false)} 
-                        className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100 hover:bg-gray-200 transition"
-                    >
-                        Annuler
-                    </button>
-                    <button 
-                        onClick={submitReport} 
-                        disabled={reporting || !reportReason.trim()}
-                        className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 hover:bg-red-700 transition shadow-lg shadow-red-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
+                    <button onClick={() => setShowReportModal(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
+                    <button onClick={submitReport} disabled={reporting || !reportReason.trim()} className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 disabled:opacity-50">
                         {reporting ? <Loader2 size={18} className="animate-spin" /> : "Envoyer"}
                     </button>
                 </div>
@@ -244,12 +235,7 @@ export default function AnnonceClient() {
 
       {/* HEADER IMAGE */}
       <div className="relative w-full h-96 bg-gray-200 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
-        <Image 
-            src={images[selectedImageIndex] || '/placeholder.png'} 
-            alt={product.title} 
-            fill 
-            className="object-cover transition duration-300" 
-        />
+        <Image src={images[selectedImageIndex] || '/placeholder.png'} alt={product.title} fill className="object-cover transition duration-300" />
         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition flex items-center justify-center">
             <span className="bg-black/50 text-white px-3 py-1 rounded-full text-xs opacity-0 group-hover:opacity-100 transition backdrop-blur-md flex items-center gap-1">
                 <ZoomIn size={14} /> Agrandir
@@ -262,7 +248,7 @@ export default function AnnonceClient() {
             </button>
             
             <div className="flex gap-2 pointer-events-auto">
-                <button onClick={(e) => {e.stopPropagation(); openReportModal()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-red-500 hover:text-white transition" title="Signaler">
+                <button onClick={(e) => {e.stopPropagation(); openReportModal()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-red-500 transition">
                     <Flag size={20} />
                 </button>
                 <button onClick={(e) => {e.stopPropagation(); handleShare()}} className="bg-white/20 backdrop-blur-md p-2 rounded-full text-white hover:bg-white/40 transition">
@@ -277,11 +263,7 @@ export default function AnnonceClient() {
         {images.length > 1 && (
             <div className="absolute bottom-4 left-4 right-4 flex gap-2 overflow-x-auto pb-1 scrollbar-hide pointer-events-auto justify-center">
                 {images.map((img: string, i: number) => (
-                    <button 
-                        key={i} 
-                        onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
-                        className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition ${selectedImageIndex === i ? 'border-brand scale-110 shadow-lg' : 'border-white/60 opacity-80'}`}
-                    >
+                    <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} className={`w-12 h-12 rounded-lg overflow-hidden border-2 shrink-0 transition ${selectedImageIndex === i ? 'border-brand scale-110 shadow-lg' : 'border-white/60 opacity-80'}`}>
                         <Image src={img} alt="" width={48} height={48} className="object-cover w-full h-full" />
                     </button>
                 ))}
@@ -291,34 +273,29 @@ export default function AnnonceClient() {
 
       {/* LIGHTBOX */}
       {lightboxIndex !== null && (
-        <div 
-            className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in duration-200"
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
-        >
-            <button onClick={() => setLightboxIndex(null)} className="absolute top-4 right-4 z-50 text-white p-3 bg-black/50 rounded-full hover:bg-black/70 backdrop-blur-md transition"><X size={28} /></button>
-            <div className="relative w-full h-full max-h-[85vh] aspect-square md:aspect-auto pointer-events-none p-2">
+        <div className="fixed inset-0 z-100 bg-black flex items-center justify-center animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
+            <button onClick={() => setLightboxIndex(null)} className="absolute top-4 right-4 z-50 text-white p-3 bg-black/50 rounded-full backdrop-blur-md"><X size={28} /></button>
+            <div className="relative w-full h-full max-h-[85vh] p-2">
                 <Image src={images[lightboxIndex]} alt="Plein écran" fill className="object-contain" priority />
             </div>
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-4 text-white hover:text-gray-300 hover:bg-white/10 rounded-full transition z-20"><ChevronLeft size={40} /></button>
-                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-4 text-white hover:text-gray-300 hover:bg-white/10 rounded-full transition z-20"><ChevronRight size={40} /></button>
+                    <button onClick={prevImage} className="absolute left-2 top-1/2 -translate-y-1/2 p-4 text-white z-20"><ChevronLeft size={40} /></button>
+                    <button onClick={nextImage} className="absolute right-2 top-1/2 -translate-y-1/2 p-4 text-white z-20"><ChevronRight size={40} /></button>
                     <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-black/60 px-4 py-1 rounded-full text-white text-sm font-bold backdrop-blur-md z-20">{lightboxIndex + 1} / {images.length}</div>
                 </>
             )}
         </div>
       )}
 
-      <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[50vh] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+      <div className="px-5 py-6 -mt-6 bg-white rounded-t-3xl relative z-10 min-h-[50vh] shadow-sm text-gray-900">
         <div className="flex justify-between items-start mb-4">
             <div>
-                <h1 className="text-xl font-bold text-gray-900 leading-tight mb-1 flex items-center gap-1">
+                <h1 className="text-xl font-bold leading-tight mb-1 flex items-center gap-1">
                     {product.title}
                     {isPro && <ShieldCheck size={18} className="text-mustard fill-mustard/20" />}
                 </h1>
-                <div className="flex items-center gap-1 text-gray-400 text-xs">
+                <div className="flex items-center gap-1 text-gray-400 text-xs font-medium">
                     <MapPin size={12} /> {product.location_city}, {product.location_island}
                 </div>
             </div>
@@ -326,11 +303,11 @@ export default function AnnonceClient() {
                 <p className={`text-xl font-extrabold ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                     {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                 </p>
-                <span className="text-[10px] text-gray-400">{new Date(product.created_at).toLocaleDateString()}</span>
+                <span className="text-[10px] text-gray-400 font-bold uppercase">{new Date(product.created_at).toLocaleDateString()}</span>
             </div>
         </div>
 
-        <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6 active:scale-[0.98] transition hover:bg-gray-100 cursor-pointer">
+        <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-between mb-6 active:scale-[0.98] transition hover:bg-gray-100">
             <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-full flex items-center justify-center text-gray-500 overflow-hidden relative border shadow-sm ${isPro ? 'border-mustard ring-1 ring-mustard/30' : 'bg-gray-200 border-white'}`}>
                     {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={20} />}
@@ -340,46 +317,33 @@ export default function AnnonceClient() {
                         {product.profiles?.full_name || "Utilisateur"}
                         {isPro && <Crown size={12} className="text-mustard fill-mustard" />}
                     </p>
-                    <p className={`text-xs ${isPro ? 'text-mustard-dark font-bold' : 'text-gray-400'}`}>{isPro ? 'Vendeur PRO' : 'Particulier'}</p>
+                    <p className={`text-[10px] font-bold uppercase ${isPro ? 'text-mustard-dark' : 'text-gray-400'}`}>{isPro ? 'Vendeur PRO' : 'Particulier'}</p>
                 </div>
             </div>
-            <div className="bg-white p-2 rounded-full text-gray-400 shadow-sm">
+            <div className="bg-white p-2 rounded-full text-gray-400 shadow-sm border border-gray-100">
                 <ChevronRightIcon size={16} />
             </div>
         </Link>
 
         <div className="mb-8">
-            <h3 className="font-bold text-gray-900 mb-2 text-sm uppercase tracking-wide">Description</h3>
-            <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
+            <h3 className="font-bold text-gray-900 mb-2 text-[10px] uppercase tracking-widest opacity-50">Description</h3>
+            <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
         </div>
 
         {!isOwner ? (
             currentUser ? (
                 <div className="space-y-3 pb-8">
                     {isPro && (
-                        <button 
-                            onClick={handleWhatsAppClick}
-                            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95"
-                        >
+                        <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 active:scale-95 transition">
                             <Phone size={20} /> Discuter sur WhatsApp
                         </button>
                     )}
 
                     <div className={`${isPro ? 'border-t border-gray-100 pt-4 mt-4' : ''}`}>
-                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-sm"><Send size={14} className="text-brand" /> Message privé</h4>
+                        <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2 text-xs uppercase opacity-50"><Send size={12} /> Message privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
-                            <textarea 
-                                className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand focus:border-transparent outline-none pr-12 transition-all min-h-12.5"
-                                rows={1}
-                                placeholder="Votre message..."
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                            <button 
-                                type="submit" 
-                                disabled={sending || !message.trim()}
-                                className="absolute right-2 bottom-2 bg-brand text-white p-2 rounded-lg hover:bg-brand-dark transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-                            >
+                            <textarea className="w-full bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-brand outline-none pr-12 transition-all min-h-12.5" rows={1} placeholder="Écrire au vendeur..." value={message} onChange={(e) => setMessage(e.target.value)} />
+                            <button type="submit" disabled={sending || !message.trim()} className="absolute right-2 bottom-2 bg-brand text-white p-2 rounded-lg shadow-md disabled:opacity-50">
                                 {sending ? <Loader2 size={16} className="animate-spin" /> : <ArrowRight size={16} />}
                             </button>
                         </form>
@@ -388,7 +352,7 @@ export default function AnnonceClient() {
             ) : (
                 <div className="p-6 bg-gray-50 rounded-2xl text-center border border-gray-100 mb-8">
                     <p className="text-gray-600 text-sm mb-4">Connectez-vous pour contacter le vendeur.</p>
-                    <Link href="/auth" className="inline-block bg-brand text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand/20 hover:bg-brand-dark transition transform active:scale-95">
+                    <Link href="/auth" className="inline-block bg-brand text-white font-bold py-3 px-6 rounded-xl shadow-lg shadow-brand/20 active:scale-95 transition">
                         Se connecter
                     </Link>
                 </div>

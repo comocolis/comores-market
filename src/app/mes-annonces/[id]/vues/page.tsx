@@ -17,31 +17,36 @@ export default function ProductViewersPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-        // 1. Infos produit
-        const { data: product } = await supabase.from('products').select('title').eq('id', params.id).single()
-        if (product) setProductTitle(product.title)
+        // 1. Titre du produit
+        const { data: prod } = await supabase.from('products').select('title').eq('id', params.id).single()
+        if (prod) setProductTitle(prod.title)
 
-        // 2. Visiteurs (Uniques par viewer_id, avec profil)
+        // 2. Récupérer les vues avec les profils associés
         const { data, error } = await supabase
             .from('product_views')
             .select(`
                 created_at,
-                viewer:profiles!viewer_id (
+                viewer_id,
+                profiles (
                     id, full_name, avatar_url, city, is_pro
                 )
             `)
             .eq('product_id', params.id)
-            .not('viewer_id', 'is', null) // Uniquement ceux avec un compte
+            .not('viewer_id', 'is', null) // Uniquement les utilisateurs connectés
             .order('created_at', { ascending: false })
 
         if (data) {
-            // Filtrer les doublons manuellement (le premier clic de chaque utilisateur)
             const uniqueViewers: any[] = []
             const seenIds = new Set()
+            
             data.forEach((entry: any) => {
-                if (entry.viewer && !seenIds.has(entry.viewer.id)) {
-                    seenIds.add(entry.viewer.id)
-                    uniqueViewers.push(entry)
+                // On vérifie que le profil existe et qu'on ne l'a pas déjà ajouté
+                if (entry.profiles && !seenIds.has(entry.viewer_id)) {
+                    seenIds.add(entry.viewer_id)
+                    uniqueViewers.push({
+                        created_at: entry.created_at,
+                        profile: entry.profiles
+                    })
                 }
             })
             setViewers(uniqueViewers)
@@ -52,12 +57,12 @@ export default function ProductViewersPage() {
   }, [params.id, supabase])
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
       <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex items-center gap-3">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600"><ArrowLeft size={22} /></button>
-        <div>
-            <h1 className="text-lg font-bold text-gray-900 leading-tight">Visiteurs</h1>
-            <p className="text-[10px] text-brand font-bold uppercase truncate max-w-[200px]">{productTitle}</p>
+        <div className="min-w-0">
+            <h1 className="text-lg font-bold truncate">Visiteurs uniques</h1>
+            <p className="text-[10px] text-brand font-bold uppercase truncate">{productTitle}</p>
         </div>
       </div>
 
@@ -71,28 +76,29 @@ export default function ProductViewersPage() {
             </div>
         ) : (
             <div className="space-y-3">
-                <p className="text-xs text-gray-500 mb-4 font-medium px-1">Ils ont consulté votre annonce récemment :</p>
+                <p className="text-xs text-gray-500 mb-4 font-medium px-1">Personnes ayant consulté votre annonce :</p>
                 {viewers.map((entry) => (
                     <Link 
-                        key={entry.viewer.id} 
-                        href={`/profil/${entry.viewer.id}`}
+                        key={entry.profile.id} 
+                        href={`/profil/${entry.profile.id}`}
                         className="bg-white p-3 rounded-2xl flex items-center gap-3 border border-gray-100 shadow-sm active:scale-[0.98] transition group"
                     >
                         <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden relative border-2 border-white shadow-sm">
-                            {entry.viewer.avatar_url ? (
-                                <Image src={entry.viewer.avatar_url} alt="" fill className="object-cover" />
+                            {entry.profile.avatar_url ? (
+                                <Image src={entry.profile.avatar_url} alt="" fill className="object-cover" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>
                             )}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                                <h3 className="font-bold text-gray-900 text-sm truncate">{entry.viewer.full_name}</h3>
-                                {entry.viewer.is_pro && <div className="w-2 h-2 bg-brand rounded-full shadow-[0_0_5px_rgba(22,163,74,0.5)]" />}
-                            </div>
-                            <div className="flex items-center gap-3 text-[10px] text-gray-400 font-medium">
+                            <h3 className="font-bold text-sm truncate flex items-center gap-1">
+                                {entry.profile.full_name}
+                                {entry.profile.is_pro && <div className="w-2 h-2 bg-brand rounded-full" />}
+                            </h3>
+                            <div className="flex items-center gap-2 text-[10px] text-gray-400">
+                                <span>{entry.profile.city}</span>
+                                <span>•</span>
                                 <span className="flex items-center gap-0.5"><Calendar size={10}/> {new Date(entry.created_at).toLocaleDateString()}</span>
-                                <span>{entry.viewer.city}</span>
                             </div>
                         </div>
                         <ChevronRight size={16} className="text-gray-300 group-hover:text-brand transition" />
