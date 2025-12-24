@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
-import SplashScreen from '@/components/SplashScreen';
+import SplashScreen from '@/components/SplashScreen'; 
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Comores Market",
-    // AJOUT : Image de démarrage pour iOS pour éviter l'écran blanc
+    // Configuration pour éviter le flash blanc sur iPhone
     startupImage: [
       {
         url: '/android-chrome-192x192.png',
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: "#16a34a", // Couleur de la barre d'état mobile
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -66,18 +66,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      {/* CRUCIAL : On ajoute bg-[#16a34a] sur le body. 
-          Si le JS met du temps à charger, le fond sera vert par défaut au lieu de blanc.
-      */}
+      <head>
+        {/* LE SECRET DU ZÉRO FLASH BLANC : 
+            On injecte le CSS critique ici pour qu'il s'exécute AVANT le JS. */}
+        <style>{`
+          html, body { 
+            background-color: #16a34a !important; 
+            margin: 0; 
+            padding: 0; 
+          }
+        `}</style>
+      </head>
       <body className={`${inter.className} bg-[#16a34a] min-h-screen flex justify-center overflow-x-hidden`}>
         
+        {/* 1. On affiche le Splash Screen en tout premier */}
         <SplashScreen />
 
+        {/* 2. Le reste de l'application */}
         <InstallBanner />
 
-        {/* On garde le fond blanc uniquement pour le conteneur de l'application.
-            On remet bg-gray-50 sur le <main> pour le design habituel.
-        */}
         <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative">
           <Toaster richColors position="top-center" duration={3000} />
           

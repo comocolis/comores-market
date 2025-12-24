@@ -1,3 +1,4 @@
+// src/components/SplashScreen.tsx
 'use client'
 
 import { useEffect, useState } from 'react'
@@ -8,11 +9,8 @@ export default function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
-    // L'écran reste affiché 2.5 secondes
-    const timer = setTimeout(() => {
-      setIsVisible(false)
-    }, 2500)
-
+    // Temps d'affichage total : 2.2 secondes
+    const timer = setTimeout(() => setIsVisible(false), 2200)
     return () => clearTimeout(timer)
   }, [])
 
@@ -22,65 +20,41 @@ export default function SplashScreen() {
         <motion.div
           key="splash"
           initial={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
+          exit={{ 
+            y: '-100%', // Rideau qui monte
+            transition: { duration: 0.8, ease: [0.45, 0, 0.55, 1] } 
+          }}
           className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#16a34a]"
         >
           <div className="flex flex-col items-center">
-            
-            {/* LOGO ANIMÉ (Effet Rebond) */}
+            {/* LOGO : Apparition "Spring" minimale */}
             <motion.div
-              initial={{ scale: 0.5, opacity: 0 }}
+              initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              transition={{ 
-                type: "spring", 
-                stiffness: 260, 
-                damping: 20, 
-                duration: 1.5 
-              }}
-              className="relative w-36 h-36 bg-white rounded-[2rem] shadow-2xl flex items-center justify-center p-4 mb-6 overflow-hidden"
+              transition={{ duration: 1, ease: "easeOut" }}
+              className="relative w-32 h-32 bg-white rounded-[2.5rem] shadow-2xl flex items-center justify-center p-5 mb-6"
             >
-              {/* On utilise l'image que je vois dans votre Explorer */}
               <Image 
                 src="/android-chrome-192x192.png" 
                 alt="Logo" 
-                width={120} 
-                height={120} 
+                width={100} 
+                height={100} 
                 className="object-contain"
                 priority
               />
             </motion.div>
 
-            {/* TEXTE (Glissement vers le haut) */}
+            {/* NOM : Minimaliste */}
             <motion.div
-              initial={{ y: 20, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ delay: 0.5, duration: 0.8 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
               className="text-center"
             >
-              <h1 className="text-white font-extrabold text-3xl tracking-tight mb-1">
+              <h1 className="text-white font-bold text-3xl tracking-tight">
                 Comores<span className="text-yellow-400">Market</span>
               </h1>
-              <p className="text-white/80 text-xs font-medium tracking-widest uppercase">
-                Chargement...
-              </p>
             </motion.div>
-
-            {/* BARRE DE CHARGEMENT */}
-            <motion.div 
-                className="mt-8 h-1 bg-white/20 w-32 rounded-full overflow-hidden"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.8 }}
-            >
-                <motion.div 
-                    className="h-full bg-white"
-                    initial={{ width: "0%" }}
-                    animate={{ width: "100%" }}
-                    transition={{ duration: 2, ease: "easeInOut" }}
-                />
-            </motion.div>
-
           </div>
         </motion.div>
       )}
