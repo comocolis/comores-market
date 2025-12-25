@@ -34,7 +34,6 @@ export default function PublicProfilePage() {
   // --- LOGIQUE DE CALCUL DE RÉACTIVITÉ ---
   const calculateResponseTime = async (userId: string) => {
     try {
-      // On récupère les 50 derniers messages impliquant cet utilisateur
       const { data: msgs } = await supabase
         .from('messages')
         .select('created_at, sender_id, receiver_id, product_id')
@@ -53,13 +52,11 @@ export default function PublicProfilePage() {
         if (!convs[key]) convs[key] = { lastReceivedAt: null };
 
         if (m.receiver_id === userId) {
-          // Le vendeur reçoit un message
           convs[key].lastReceivedAt = new Date(m.created_at).getTime();
         } else if (m.sender_id === userId && convs[key].lastReceivedAt) {
-          // Le vendeur répond
           const delay = new Date(m.created_at).getTime() - convs[key].lastReceivedAt;
           responseDelays.push(delay);
-          convs[key].lastReceivedAt = null; // On reset pour la prochaine question
+          convs[key].lastReceivedAt = null;
         }
       });
 
@@ -134,12 +131,29 @@ export default function PublicProfilePage() {
         )}
       </AnimatePresence>
 
-      {/* COUVERTURE */}
-      <div className="relative h-64 w-full bg-brand overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-brand via-brand-dark to-black opacity-40" />
+      {/* --- SECTION COUVERTURE AVEC IMAGE LOCALE --- */}
+      <div className="relative h-72 w-full overflow-hidden bg-gray-900">
+        {/* IMPORTANT : Assurez-vous d'avoir placé votre image (ex: "cover-default.jpg") 
+            dans le dossier "public" de votre projet.
+        */}
+        <Image
+            src={profile.cover_url || "/cover-default.jpg"}
+            alt="Couverture"
+            fill
+            className="object-cover opacity-90"
+            priority
+        />
+        {/* Filtre dégradé pour la lisibilité */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-brand-dark/40 to-black/30 mix-blend-multiply" />
+
+        {/* BOUTONS ACTIONS HEADER */}
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
-            <button onClick={() => router.back()} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20"><ArrowLeft size={22} /></button>
-            <button onClick={handleShare} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20"><Share2 size={22} /></button>
+            <button onClick={() => router.back()} className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition hover:bg-white/20">
+              <ArrowLeft size={22} />
+            </button>
+            <button onClick={handleShare} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition hover:bg-white/20">
+              <Share2 size={22} />
+            </button>
         </div>
       </div>
 
@@ -176,6 +190,14 @@ export default function PublicProfilePage() {
             </div>
             {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic">"{profile.description}"</p>}
           </div>
+
+          {/* Réseaux Sociaux */}
+          {profile.is_pro && (profile.facebook_url || profile.instagram_url) && (
+              <div className="flex gap-4 mt-8">
+                  {profile.facebook_url && <a href={profile.facebook_url} target="_blank" className="p-3 bg-blue-50 text-[#1877F2] rounded-2xl transition hover:scale-110 shadow-sm"><Facebook size={20} fill="currentColor" /></a>}
+                  {profile.instagram_url && <a href={profile.instagram_url} target="_blank" className="p-3 bg-pink-50 text-[#D800B9] rounded-2xl transition hover:scale-110 shadow-sm"><Instagram size={20} /></a>}
+              </div>
+          )}
 
           <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-50 rounded-[1.8rem]">
               <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase rounded-[1.4rem] transition-all ${activeTab === 'listings' ? 'bg-white text-brand shadow-sm' : 'text-gray-400'}`}>Showroom</button>
