@@ -16,7 +16,9 @@ export default function BottomNav() {
   const [unreadCount, setUnreadCount] = useState(0)
   const [userId, setUserId] = useState<string | null>(null)
 
-  const isChatOpen = pathname === '/messages' && searchParams.get('id')
+  // LOGIQUE DE MASQUAGE MISE À JOUR : 
+  // On cache si on est sur /messages ET qu'il y a une conversation (id) OU un prospect (user)
+  const isChatOpen = pathname === '/messages' && (searchParams.get('id') || searchParams.get('user'))
   const isAuthPage = pathname === '/auth'
 
   useEffect(() => {
@@ -59,7 +61,6 @@ export default function BottomNav() {
             if (!window.location.pathname.includes('/messages')) {
                 const content = payload.new.content || ''
                 
-                // CORRECTION ICI : Si c'est une image, on affiche un texte propre
                 const displayText = (content.includes('messages_images') && content.startsWith('http'))
                     ? '📷 Photo reçue'
                     : content
@@ -84,11 +85,12 @@ export default function BottomNav() {
     }
   }, [userId, router])
 
+  // Si on est dans un chat ou sur la page de connexion, on ne renvoie rien (le footer disparaît)
   if (isChatOpen || isAuthPage) return null
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
-      <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative">
+      <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative text-gray-900">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
