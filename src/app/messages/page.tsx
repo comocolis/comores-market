@@ -57,7 +57,7 @@ function MessagesContent() {
 
   useEffect(() => { activeConvRef.current = activeConv }, [activeConv])
 
-  // GESTION DE L'OUVERTURE DES CONVERSATIONS (PARAMÈTRES URL)
+  // GESTION DES PARAMÈTRES (ID OU RELANCE PROSPECT)
   useEffect(() => {
     const handleParams = async () => {
         const convId = searchParams.get('id')
@@ -74,7 +74,6 @@ function MessagesContent() {
             }
         } 
         
-        // Relance prospect (si on vient de la page des vues)
         if (targetUserId && targetProductId) {
             const compositeKey = `${targetProductId}-${targetUserId}`
             const existing = conversations.find(c => c.id === compositeKey)
@@ -160,7 +159,6 @@ function MessagesContent() {
       if (!activeConv || !currentUser) return; 
       
       try {
-          // 1. On cherche s'il y a des photos à supprimer du stockage
           const { data: messagesWithImages } = await supabase
             .from('messages')
             .select('content')
@@ -173,7 +171,6 @@ function MessagesContent() {
               if (pathsToDelete.length > 0) await supabase.storage.from('messages_images').remove(pathsToDelete);
           }
 
-          // 2. Suppression des messages en base (deux sens pour être exhaustif)
           const deleteSent = supabase.from('messages').delete().match({ product_id: activeConv.productId, sender_id: currentUser.id, receiver_id: activeConv.counterpartId });
           const deleteReceived = supabase.from('messages').delete().match({ product_id: activeConv.productId, sender_id: activeConv.counterpartId, receiver_id: currentUser.id });
 
@@ -181,7 +178,6 @@ function MessagesContent() {
           
           if (res1.error || res2.error) throw new Error("Erreur serveur");
 
-          // 3. Mise à jour immédiate de l'interface
           setConversations(prev => prev.filter(c => c.id !== activeConv.id));
           toast.success("Discussion et photos supprimées");
           setShowDeleteModal(false);
@@ -230,7 +226,8 @@ function MessagesContent() {
 
   return (
     <div className="flex flex-col h-dvh bg-[#F7F8FA] font-sans text-gray-900 overflow-hidden">
-        {/* LIGHTBOX ET MODALES */}
+        
+        {/* MODALE SUPPRESSION ET LIGHTBOX (Gardés au sommet du DOM de la vue chat) */}
         {previewImage && (
             <div className="fixed inset-0 z-[120] bg-black animate-in fade-in">
                 <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-black/50 rounded-full z-50"><X size={24} /></button>
@@ -251,21 +248,29 @@ function MessagesContent() {
             </div>
         )}
 
-        {/* HEADER CHAT - AVEC LIEN PROFIL */}
-        <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 sticky top-0 z-40 text-white min-h-20 shrink-0">
-            <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 hover:bg-white/20 rounded-full transition"><ArrowLeft size={22} /></button>
+        {/* --- HEADER CHAT (FIXÉ PAR FLEX-COL) --- */}
+        <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 z-40 text-white min-h-[80px] shrink-0">
+            <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 active:scale-90 transition"><ArrowLeft size={22} /></button>
+            
             <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden relative border shrink-0">{activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center"><User size={20} /></div>)}</div>
+                <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden relative border shrink-0">
+                    {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center"><User size={20} /></div>)}
+                </div>
                 <div className="flex-1 min-w-0">
-                    <h2 className="font-bold truncate text-sm flex items-center gap-1">{activeConv?.counterpartName} {activeConv?.counterpartIsPro && <ShieldCheck size={12} className="text-white" />}</h2>
-                    <div className="flex items-center gap-1.5 opacity-90"><p className="text-xs font-medium truncate">{activeConv?.productTitle}</p></div>
+                    <h2 className="font-bold truncate text-sm flex items-center gap-1">
+                        {activeConv?.counterpartName} {activeConv?.counterpartIsPro && <ShieldCheck size={12} className="text-white" />}
+                    </h2>
+                    <div className="flex items-center gap-1.5 opacity-90">
+                        <p className="text-xs font-medium truncate">{activeConv?.productTitle}</p>
+                    </div>
                 </div>
             </Link>
+
             <div className="flex gap-1 relative">
-                {activeConv?.counterpartIsPro && (<button onClick={handleCall} className="p-2 text-white/80"><Phone size={20} /></button>)}
-                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/80"><MoreVertical size={20} /></button>
+                {activeConv?.counterpartIsPro && (<button onClick={handleCall} className="p-2 text-white/80 active:scale-90 transition"><Phone size={20} /></button>)}
+                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/80 active:scale-90 transition"><MoreVertical size={20} /></button>
                 {showMenu && (
-                    <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border w-48 py-2 z-50 animate-in fade-in">
+                    <div className="absolute top-12 right-0 bg-white shadow-xl rounded-xl border w-48 py-2 z-50 animate-in fade-in slide-in-from-top-1">
                         <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"><ExternalLink size={16} /> Voir l'annonce</Link>
                         <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 text-left"><Trash2 size={16} /> Supprimer</button>
                     </div>
@@ -273,14 +278,14 @@ function MessagesContent() {
             </div>
         </div>
         
-        {/* MESSAGES */}
+        {/* --- MESSAGES (SCROLLABLE) --- */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-2 pb-24">
                 {activeConv?.messages.length === 0 && (
                     <div className="text-center py-10">
                         <div className="bg-brand/5 border border-brand/10 p-6 rounded-3xl max-w-xs mx-auto">
                             <MessageCircle size={32} className="text-brand mx-auto mb-3 opacity-40" />
-                            <p className="text-sm text-gray-600 font-medium">L'occasion rêvée d'écrire à <strong>{activeConv.counterpartName}</strong> !</p>
+                            <p className="text-sm text-gray-600 font-medium tracking-tight">C'est le moment d'engager la discussion avec <strong>{activeConv.counterpartName}</strong> !</p>
                         </div>
                     </div>
                 )}
@@ -304,9 +309,9 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* BARRE D'ENVOI FIXE - Z-INDEX ÉLEVÉ */}
+        {/* --- BARRE D'ENVOI (FIXE EN BAS) --- */}
         <div className="bg-white p-2 pb-safe border-t fixed bottom-0 left-0 w-full z-[100] shadow-2xl">
-            <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border focus-within:border-brand/30 focus-within:bg-white transition-all">
+            <div className="max-w-md mx-auto flex items-end gap-2 bg-[#F2F4F7] p-1.5 rounded-3xl border focus-within:border-brand/30 focus-within:bg-white transition-all duration-200">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                 <button onClick={() => fileInputRef.current?.click()} className="p-2.5 text-gray-400 hover:text-brand" disabled={isUploading}>{isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}</button>
                 <textarea ref={inputRef} className="flex-1 bg-transparent border-none focus:ring-0 text-[15px] max-h-32 min-h-11 py-2.5 px-1 resize-none" placeholder="Message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
