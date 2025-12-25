@@ -112,7 +112,7 @@ function MessagesContent() {
         const otherId = isMe ? msg.receiver_id : msg.sender_id
         const otherProfile = isMe ? msg.receiver : msg.sender
         const key = `${msg.product_id}-${otherId}`
-        let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0] } } catch {}
+        let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); img = Array.isArray(parsed) ? parsed[0] : parsed } } catch {}
         if (!groups[key]) groups[key] = { id: key, productId: msg.product_id, productTitle: msg.product?.title || 'Produit', productImage: img, productPhone: msg.product?.whatsapp_number || null, counterpartId: otherId, counterpartName: otherProfile?.full_name || 'Utilisateur', counterpartAvatar: otherProfile?.avatar_url, counterpartIsPro: otherProfile?.is_pro || false, lastMessage: '', lastDate: '', unreadCount: 0, messages: [] }
         groups[key].messages.push({ ...msg, sender_avatar: msg.sender?.avatar_url })
         groups[key].lastMessage = msg.content.includes('messages_images') ? '📷 Photo' : msg.content
@@ -197,6 +197,8 @@ function MessagesContent() {
     if (!error) sendNewMessageEmail(activeConv.counterpartId, currentUser.user_metadata?.full_name || 'Utilisateur', content, activeConv.productId)
   }
 
+  const isImageMessage = (content: string) => content.includes('messages_images') && content.startsWith('http')
+
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
@@ -209,10 +211,10 @@ function MessagesContent() {
   }
 
   return (
-    <div className="flex flex-col h-dvh bg-white font-sans text-gray-900 overflow-hidden">
+    <div className="fixed inset-0 bg-white font-sans text-gray-900 overflow-hidden flex flex-col h-screen">
         
-        {/* --- HEADER CHAT (FIXE) --- */}
-        <div className="bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 z-40 text-white min-h-[75px] shrink-0">
+        {/* --- HEADER CHAT (STRICTEMENT FIXE) --- */}
+        <div className="fixed top-0 left-0 w-full bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 z-[150] text-white h-[85px] shrink-0">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 active:scale-90 transition"><ArrowLeft size={22} /></button>
             <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden relative border border-white/20 shrink-0">
@@ -227,7 +229,7 @@ function MessagesContent() {
                 {activeConv?.counterpartIsPro && (<button onClick={handleCall} className="p-2 text-white/80 active:scale-90 transition"><Phone size={20} /></button>)}
                 <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/80 active:scale-90 transition"><MoreVertical size={20} /></button>
                 {showMenu && (
-                    <div className="absolute top-14 right-4 bg-white shadow-2xl rounded-2xl border border-gray-100 w-52 py-2 z-50 animate-in fade-in zoom-in-95">
+                    <div className="absolute top-16 right-4 bg-white shadow-2xl rounded-2xl border border-gray-100 w-52 py-2 z-[200] animate-in fade-in zoom-in-95">
                         <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"><ExternalLink size={18} className="text-gray-400"/> Voir l'annonce</Link>
                         <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left font-semibold"><Trash2 size={18} /> Supprimer la discussion</button>
                     </div>
@@ -235,9 +237,9 @@ function MessagesContent() {
             </div>
         </div>
         
-        {/* --- ZONE MESSAGES --- */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50/50" onClick={() => setShowMenu(false)}>
-            <div className="flex flex-col justify-end min-h-full gap-2 pb-24">
+        {/* --- ZONE MESSAGES (SCROLLABLE AU CENTRE) --- */}
+        <div className="flex-1 overflow-y-auto px-4 pt-[95px] pb-[100px] bg-gray-50/50" onClick={() => setShowMenu(false)}>
+            <div className="flex flex-col justify-end min-h-full gap-2">
                 {activeConv?.messages.map((msg, i) => { 
                     const isMe = msg.sender_id === currentUser?.id; 
                     const isImg = msg.content.includes('messages_images');
@@ -258,52 +260,33 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* --- BARRE D'ENVOI (LUXE & SANS RECTANGLE NOIR) --- */}
-        <div className="bg-white px-3 py-3 pb-safe z-[100] shadow-[0_-8px_30px_rgb(0,0,0,0.04)]">
-            <div className="max-w-md mx-auto flex items-end gap-3 bg-gray-100/80 p-2 rounded-[2rem] transition-all">
+        {/* --- BARRE D'ENVOI (FIXE EN BAS) --- */}
+        <div className="fixed bottom-0 left-0 w-full bg-white px-3 py-3 pb-safe z-[150] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] border-t border-gray-100">
+            <div className="max-w-md mx-auto flex items-end gap-3 bg-gray-100/80 p-2 rounded-[2rem]">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                
                 <button onClick={() => fileInputRef.current?.click()} className="p-3 text-gray-500 hover:text-brand bg-white rounded-full shadow-sm active:scale-90 transition" disabled={isUploading}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
-
-                {/* SUPPRESSION DU BORD NOIR ICI : outline-none et ring-0 */}
-                <textarea 
-                    ref={inputRef} 
-                    className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] max-h-32 min-h-[44px] py-2.5 px-2 resize-none placeholder:text-gray-400" 
-                    placeholder="Écrivez votre message..." 
-                    rows={1} 
-                    value={replyContent} 
-                    onChange={e => setReplyContent(e.target.value)} 
-                    onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} 
-                />
-                
-                <button 
-                    onClick={handleSend} 
-                    disabled={!replyContent.trim()} 
-                    className="bg-brand text-white p-3 rounded-full shadow-lg shadow-brand/20 active:scale-90 disabled:opacity-30 transition"
-                >
-                    <Send size={20} />
-                </button>
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] max-h-32 min-h-[44px] py-2.5 px-2 resize-none placeholder:text-gray-400" placeholder="Écrivez..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-3 rounded-full shadow-lg active:scale-90 transition"><Send size={20} /></button>
             </div>
         </div>
 
-        {/* MODALES ET LIGHTBOX (Sommet du DOM) */}
+        {/* MODALES ET LIGHTBOX AU-DESSUS DE TOUT */}
         {previewImage && (
-            <div className="fixed inset-0 z-[200] bg-black animate-in fade-in duration-300">
-                <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-full z-50"><X size={24} /></button>
+            <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-300">
+                <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-full z-[510]"><X size={24} /></button>
                 <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}><img src={previewImage} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
             </div>
         )}
 
         {showDeleteModal && (
-            <div className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
+            <div className="fixed inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
                 <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" onClick={e => e.stopPropagation()}>
                     <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle size={40} className="text-red-500" /></div>
-                    <h3 className="font-bold text-xl mb-2 text-gray-900">Supprimer la discussion ?</h3>
-                    <p className="text-sm text-gray-500 mb-8 leading-relaxed">Cette action effacera tous vos messages et photos partagées dans ce chat.</p>
+                    <h3 className="font-bold text-xl mb-2 text-gray-900">Supprimer ?</h3>
                     <div className="flex flex-col gap-3">
-                        <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-bold text-white bg-red-600 shadow-xl shadow-red-500/20 active:scale-95 transition">Oui, supprimer</button>
+                        <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-bold text-white bg-red-600 active:scale-95 transition">Oui, supprimer</button>
                         <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-bold text-gray-500 bg-gray-100 active:scale-95 transition">Annuler</button>
                     </div>
                 </div>
