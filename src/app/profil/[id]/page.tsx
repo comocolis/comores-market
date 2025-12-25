@@ -33,9 +33,9 @@ export default function PublicProfilePage() {
   const [newComment, setNewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
 
-  // Vérifie si l'utilisateur regarde son propre profil
   const isOwner = currentUser?.id === params.id
 
+  // --- LOGIQUE DE CALCUL DE RÉACTIVITÉ ---
   const calculateResponseTime = async (userId: string) => {
     try {
       const { data: msgs } = await supabase
@@ -88,40 +88,27 @@ export default function PublicProfilePage() {
     getData()
   }, [params.id, supabase])
 
-  // --- LOGIQUE D'UPLOAD DE COUVERTURE ---
+  // --- DEFINITION DE averageRating (LA VARIABLE MANQUANTE) ---
+  const averageRating = reviews.length > 0 
+    ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
+    : null
+
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const file = e.target.files[0]
     setUploadingCover(true)
-
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${currentUser.id}/cover_${Date.now()}.${fileExt}`
-      
-      // Upload dans le bucket "avatars" (ou créez-en un spécifique "covers")
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true })
-
+      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (uploadError) throw uploadError
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName)
-
-      // Mise à jour du profil
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({ cover_url: publicUrl })
-        .eq('id', currentUser.id)
-
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+      const { error: updateError } = await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', currentUser.id)
       if (updateError) throw updateError
-
       setProfile({ ...profile, cover_url: publicUrl })
-      toast.success("Image de couverture mise à jour !")
+      toast.success("Couverture mise à jour")
     } catch (err: any) {
-      toast.error("Erreur lors de l'envoi de l'image")
-      console.error(err)
+      toast.error("Erreur d'envoi")
     } finally {
       setUploadingCover(false)
     }
@@ -137,49 +124,42 @@ export default function PublicProfilePage() {
       if (!currentUser) return router.push('/auth')
       setSubmittingReview(true)
       const { error } = await supabase.from('reviews').insert({ reviewer_id: currentUser.id, target_id: params.id, rating: newRating, comment: newComment })
-      if (error) { toast.error("Erreur ou déjà noté") } 
+      if (error) toast.error("Erreur envoi")
       else { toast.success("Avis publié !"); window.location.reload() }
       setSubmittingReview(false)
   }
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]"><Loader2 className="animate-spin text-brand" /></div>
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-24 font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900 overflow-x-hidden">
       
-      {/* SECTION COUVERTURE LUXE */}
+      {/* SECTION COUVERTURE */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
             src={profile.cover_url || "/cover-default.jpg"}
             alt="Couverture"
             fill
-            className="object-cover opacity-90 transition-transform duration-700 group-hover:scale-105"
+            className="object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
             priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F0F2F5] via-transparent to-black/40" />
 
-        {/* BOUTONS ACTIONS HEADER */}
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
-            <button onClick={() => router.back()} className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition hover:bg-white/20">
+            <button onClick={() => router.back()} className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white active:scale-90 border border-white/10 hover:bg-black/40 transition">
               <ArrowLeft size={22} />
             </button>
             <div className="flex gap-2">
-              {/* Bouton de changement de couverture (uniquement propriétaire) */}
               {isOwner && (
                 <>
                   <input type="file" ref={coverInputRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
-                  <button 
-                    onClick={() => coverInputRef.current?.click()} 
-                    disabled={uploadingCover}
-                    className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition hover:bg-brand flex items-center gap-2"
-                    title="Changer la couverture"
-                  >
+                  <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 hover:bg-brand transition">
                     {uploadingCover ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} />}
                   </button>
                 </>
               )}
-              <button onClick={handleShare} className="p-3 bg-white/10 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition hover:bg-white/20">
+              <button onClick={handleShare} className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 hover:bg-black/40 transition">
                 <Share2 size={22} />
               </button>
             </div>
@@ -187,9 +167,8 @@ export default function PublicProfilePage() {
       </div>
 
       <div className="max-w-4xl mx-auto px-5">
-        <div className="bg-white -mt-24 rounded-[3rem] shadow-xl relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white">
+        <div className="bg-white -mt-24 rounded-[3rem] shadow-[0_10px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
           
-          {/* Avatar */}
           <div className="relative -mt-16 mb-4">
             <div className="w-32 h-32 bg-gray-100 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative">
                 {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
@@ -205,71 +184,69 @@ export default function PublicProfilePage() {
             </div>
           </div>
 
-          {/* Statistiques, Bio, Réseaux, Onglets et Showroom (garder le reste du code identique)... */}
-          <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-50">
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-400 uppercase">Annonces</span></div>
-            <div className="flex flex-col items-center border-x border-gray-50 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase">Confiance</span></div>
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase">Depuis</span></div>
+          <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100">
+            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Annonces</span></div>
+            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Confiance</span></div>
+            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span></div>
           </div>
 
           <div className="mt-6 space-y-4 w-full">
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
-                <span className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
-                <span className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
+                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
+                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
             </div>
-            {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic">"{profile.description}"</p>}
+            {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic leading-relaxed">"{profile.description}"</p>}
           </div>
 
-          {/* Réseaux Sociaux */}
           {profile.is_pro && (profile.facebook_url || profile.instagram_url) && (
               <div className="flex gap-4 mt-8">
-                  {profile.facebook_url && <a href={profile.facebook_url} target="_blank" className="p-3 bg-blue-50 text-[#1877F2] rounded-2xl transition hover:scale-110 shadow-sm"><Facebook size={20} fill="currentColor" /></a>}
-                  {profile.instagram_url && <a href={profile.instagram_url} target="_blank" className="p-3 bg-pink-50 text-[#D800B9] rounded-2xl transition hover:scale-110 shadow-sm"><Instagram size={20} /></a>}
+                  {profile.facebook_url && <a href={profile.facebook_url} target="_blank" className="p-3 bg-blue-50 text-[#1877F2] rounded-2xl shadow-sm transition hover:scale-110"><Facebook size={20} fill="currentColor" /></a>}
+                  {profile.instagram_url && <a href={profile.instagram_url} target="_blank" className="p-3 bg-pink-50 text-[#D800B9] rounded-2xl shadow-sm transition hover:scale-110"><Instagram size={20} /></a>}
               </div>
           )}
 
-          <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-50 rounded-[1.8rem]">
-              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase rounded-[1.4rem] transition-all ${activeTab === 'listings' ? 'bg-white text-brand shadow-sm' : 'text-gray-400'}`}>Showroom</button>
-              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase rounded-[1.4rem] transition-all ${activeTab === 'reviews' ? 'bg-white text-brand shadow-sm' : 'text-gray-400'}`}>Avis clients</button>
+          <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-[1.8rem]">
+              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Showroom</button>
+              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Avis clients</button>
           </div>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-10">
           <AnimatePresence mode="wait">
             {activeTab === 'listings' ? (
-                <motion.div key="listings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
+                <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
                     {products.map(p => {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
                         return (
                             <Link key={p.id} href={`/annonce/${p.id}`} className="group">
-                              <div className="bg-white rounded-[2rem] p-3 shadow-sm border border-transparent hover:border-brand/20 transition-all">
-                                  <div className="relative aspect-[4/5] rounded-[1.5rem] overflow-hidden bg-gray-100">
+                              <div className="bg-white rounded-[2.2rem] p-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-white hover:border-brand/20 transition-all duration-300 hover:shadow-xl">
+                                  <div className="relative aspect-[4/5] rounded-[1.8rem] overflow-hidden bg-gray-50">
                                     {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
                                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
                                   </div>
-                                  <div className="pt-4 px-2"><h3 className="font-bold text-sm truncate">{p.title}</h3><div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-wider"><ShoppingBag size={10} /> {p.location_city}</div></div>
+                                  <div className="pt-4 px-2"><h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3><div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest"><ShoppingBag size={10} /> {p.location_city}</div></div>
                               </div>
                             </Link>
                         )
                     })}
                 </motion.div>
             ) : (
-                <motion.div key="reviews" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pb-10">
+                <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pb-10">
                     {currentUser && currentUser.id !== params.id && (
-                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-[2rem] flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
-                          <Plus size={18} /> Laisser une note au vendeur
+                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-[2.5rem] flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
+                          <Plus size={18} /> Partager un avis sur ce vendeur
                         </button>
                     )}
                     {reviews.map(r => (
-                        <div key={r.id} className="bg-white p-6 rounded-[2rem] border border-gray-50 shadow-sm space-y-4">
+                        <div key={r.id} className="bg-white p-7 rounded-[2.5rem] shadow-sm border border-white space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50">{r.reviewer?.avatar_url ? <Image src={r.reviewer.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}</div>
-                                    <div><p className="font-black text-sm">{r.reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
+                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 shadow-inner">{r.reviewer?.avatar_url ? <Image src={r.reviewer.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}</div>
+                                    <div><p className="font-black text-sm text-gray-900">{r.reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
                                 </div>
-                                <span className="text-[10px] font-bold text-gray-300 uppercase">{new Date(r.created_at).toLocaleDateString()}</span>
+                                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
                             </div>
-                            {r.comment && <div className="bg-gray-50/50 p-4 rounded-2xl"><p className="text-gray-600 text-sm leading-relaxed">{r.comment}</p></div>}
+                            {r.comment && <div className="bg-[#F5F7F9] p-5 rounded-[1.8rem]"><p className="text-gray-600 text-sm leading-relaxed">"{r.comment}"</p></div>}
                         </div>
                     ))}
                 </motion.div>
@@ -277,6 +254,20 @@ export default function PublicProfilePage() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* MODALE AVIS PRESTIGE */}
+      <AnimatePresence>
+        {showReviewModal && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[200] bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
+              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
+                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} className="p-2 bg-gray-50 rounded-full text-gray-400"><X size={20}/></button></div>
+                  <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
+                  <textarea className="w-full bg-[#F5F7F9] border-none rounded-[1.5rem] p-5 text-sm min-h-32 outline-none focus:ring-4 focus:ring-brand/5 transition" placeholder="Partagez votre expérience..." value={newComment} onChange={e => setNewComment(e.target.value)} />
+                  <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>
+              </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
