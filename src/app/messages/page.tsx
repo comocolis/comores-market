@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, Plus, ArrowLeft, Send, 
   ShoppingBag, Check, CheckCheck, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
-  Camera, X, ZoomIn, ZoomOut, ShieldCheck, Search 
+  Camera, X, ZoomIn, ZoomOut, ShieldCheck, Search, CheckCircle2, Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
@@ -26,7 +26,7 @@ const containsPhoneNumber = (cleanText: string) => /\d{7,}/.test(cleanText);
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" /></div>}>
+    <Suspense fallback={<div className="flex justify-center pt-20 bg-[#F0F2F5] h-screen"><Loader2 className="animate-spin text-brand" /></div>}>
       <MessagesContent />
     </Suspense>
   )
@@ -55,9 +55,6 @@ function MessagesContent() {
   const fileInputRef = useRef<HTMLInputElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
-  const activeConvRef = useRef<Conversation | null>(null)
-
-  useEffect(() => { activeConvRef.current = activeConv }, [activeConv])
 
   const filteredConvs = conversations.filter(conv => 
     conv.counterpartName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -196,54 +193,64 @@ function MessagesContent() {
     if (!error) sendNewMessageEmail(activeConv.counterpartId, currentUser.user_metadata?.full_name || 'Utilisateur', content, activeConv.productId)
   }
 
-  const isImageMessage = (content: string) => content.includes('messages_images') && content.startsWith('http')
-
   // --- VUE LISTE ---
   if (view === 'list') {
     return (
-        <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
-            {/* Header avec Recherche Ultra-Visible */}
-            <div className="bg-brand pt-12 px-6 pb-8 sticky top-0 z-30 shadow-lg rounded-b-[2.5rem]">
-                <h1 className="text-white font-extrabold text-2xl mb-5 tracking-tight">Discussions</h1>
-                <div className="relative group">
-                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors">
-                        <Search size={20} strokeWidth={2.5} />
+        <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900 overflow-x-hidden">
+            {/* Header Uniformisé Accueil */}
+            <div className="bg-brand pt-safe px-4 pb-8 sticky top-0 z-30 shadow-md rounded-b-[2.5rem]">
+                <div className="flex justify-between items-center mb-5 pt-2 px-2">
+                    <div>
+                        <h1 className="text-white font-black text-2xl tracking-tight">Discussions</h1>
+                        <div className="flex items-center gap-1.5 opacity-60">
+                            <Sparkles size={10} className="text-brand" fill="currentColor" />
+                            <p className="text-[10px] font-bold text-white uppercase tracking-[0.2em]">Messagerie Privée</p>
+                        </div>
+                    </div>
+                    <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
+                        <MessageCircle size={14} className="text-white" />
+                        <span className="text-xs font-black text-white">{conversations.filter(c => c.unreadCount > 0).length}</span>
+                    </div>
+                </div>
+                <div className="relative group px-2">
+                    <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors">
+                        <Search size={18} strokeWidth={2.5} />
                     </div>
                     <input 
                         type="text" 
-                        placeholder="Rechercher une personne ou un objet..." 
+                        placeholder="Rechercher une discussion..." 
                         value={searchTerm} 
                         onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="w-full bg-white border-none shadow-2xl rounded-2xl py-4 pl-12 pr-4 text-gray-900 font-bold placeholder:text-gray-400 placeholder:font-medium outline-none focus:ring-4 focus:ring-brand/10 transition-all" 
+                        className="w-full bg-[#F5F7F9] border-none rounded-2xl py-3.5 pl-12 pr-4 text-gray-900 font-bold placeholder:text-gray-400 focus:ring-4 focus:ring-brand/5 focus:bg-white transition-all shadow-sm" 
                     />
                 </div>
             </div>
 
-            <div className="px-4 py-6 space-y-4">
-                {loading ? (<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" /></div>) : filteredConvs.length === 0 ? (
-                    <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
-                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"><MessageCircle size={40} className="opacity-20" /></div>
-                        <p className="font-semibold text-sm">Aucun résultat trouvé.</p>
+            <div className="px-5 py-6 space-y-4 max-w-lg mx-auto">
+                {loading ? (<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" size={32} /></div>) : filteredConvs.length === 0 ? (
+                    <div className="text-center text-gray-300 pt-20 flex flex-col items-center">
+                        <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm"><MessageCircle size={40} className="opacity-10" /></div>
+                        <p className="font-black text-[10px] uppercase tracking-widest">Aucune discussion active</p>
                     </div>
                 ) : (
                     <AnimatePresence>
                         {filteredConvs.map((conv, idx) => (
                             <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} 
-                            className="bg-white p-4 rounded-[1.8rem] shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md group">
-                                <div className="w-16 h-16 bg-gray-100 rounded-2xl shrink-0 relative overflow-hidden border border-gray-50 shadow-inner">
-                                    {conv.productImage ? (<Image src={conv.productImage} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-500" />) : (<div className="w-full h-full flex items-center justify-center text-gray-300"><ShoppingBag size={24} /></div>)}
+                            className="bg-white p-4 rounded-[2rem] shadow-sm border border-white flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-xl hover:shadow-black/5 group">
+                                <div className="w-16 h-16 bg-gray-50 rounded-[1.4rem] shrink-0 relative overflow-hidden shadow-inner group-hover:scale-95 transition-transform duration-500">
+                                    {conv.productImage ? (<Image src={conv.productImage} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-gray-200"><ShoppingBag size={24} /></div>)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
-                                        <h3 className={`text-[15px] truncate flex items-center gap-1.5 ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>{conv.counterpartName} {conv.counterpartIsPro && <ShieldCheck size={14} className="text-brand" />}</h3>
-                                        <span className={`text-[10px] font-bold ${conv.unreadCount > 0 ? 'text-brand' : 'text-gray-400'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
+                                        <h3 className={`text-[15px] truncate flex items-center gap-1.5 ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>{conv.counterpartName} {conv.counterpartIsPro && <CheckCircle2 size={14} className="text-brand" />}</h3>
+                                        <span className={`text-[10px] font-black uppercase tracking-tighter ${conv.unreadCount > 0 ? 'text-brand' : 'text-gray-300'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
-                                            <p className="text-[10px] text-brand font-black uppercase tracking-widest truncate mb-1 opacity-70">{conv.productTitle}</p>
+                                            <p className="text-[10px] text-brand font-black uppercase tracking-[0.15em] truncate mb-0.5 opacity-60">{conv.productTitle}</p>
                                             <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>{conv.lastMessage}</p>
                                         </div>
-                                        {conv.unreadCount > 0 && (<div className="w-6 h-6 bg-brand rounded-full flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-brand/20 shrink-0 mb-1">{conv.unreadCount}</div>)}
+                                        {conv.unreadCount > 0 && (<div className="w-6 h-6 bg-brand rounded-xl flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-brand/20 shrink-0 mb-1">{conv.unreadCount}</div>)}
                                     </div>
                                 </div>
                             </motion.div>
@@ -257,44 +264,49 @@ function MessagesContent() {
 
   // --- VUE CHAT ---
   return (
-    <div className="fixed inset-0 bg-white font-sans text-gray-900 overflow-hidden flex flex-col h-screen">
-        <div className="fixed top-0 left-0 w-full bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 z-[150] text-white h-[85px] shrink-0">
-            <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 active:scale-90 transition"><ArrowLeft size={22} /></button>
-            <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-white/20 overflow-hidden relative border border-white/20 shrink-0">
-                    {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-white"><User size={20} /></div>)}
-                </div>
-                <div className="flex-1 min-w-0">
-                    <h2 className="font-bold truncate text-sm flex items-center gap-1">{activeConv?.counterpartName} {activeConv?.counterpartIsPro && <ShieldCheck size={12} className="text-white" />}</h2>
-                    <div className="flex items-center gap-1.5 opacity-90"><p className="text-[11px] font-medium truncate">{activeConv?.productTitle}</p></div>
-                </div>
-            </Link>
-            <div className="flex gap-1">
-                {activeConv?.counterpartIsPro && (<button onClick={handleCall} className="p-2 text-white/80 active:scale-90 transition"><Phone size={20} /></button>)}
-                <button onClick={() => setShowMenu(!showMenu)} className="p-2 text-white/80 active:scale-90 transition"><MoreVertical size={20} /></button>
-                {showMenu && (
-                    <div className="absolute top-16 right-4 bg-white shadow-2xl rounded-2xl border border-gray-100 w-52 py-2 z-[200] animate-in fade-in zoom-in-95">
-                        <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition"><ExternalLink size={18} className="text-gray-400"/> Voir l'annonce</Link>
-                        <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition text-left font-semibold"><Trash2 size={18} /> Supprimer la discussion</button>
+    <div className="fixed inset-0 bg-[#F0F2F5] font-sans text-gray-900 overflow-hidden flex flex-col h-screen">
+        {/* Header Uniformisé avec l'Accueil & Liste */}
+        <div className="fixed top-0 left-0 w-full bg-brand px-4 pb-8 pt-safe shadow-md z-[150] rounded-b-[2.5rem]">
+            <div className="flex items-center gap-3 pt-2">
+                <button onClick={closeConversation} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
+                    <ArrowLeft size={22} />
+                </button>
+                <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
+                    <div className="w-11 h-11 rounded-2xl bg-white/10 overflow-hidden relative border border-white/10 shrink-0 shadow-inner">
+                        {activeConv?.counterpartAvatar ? (<Image src={activeConv.counterpartAvatar} alt="" fill className="object-cover" />) : (<div className="w-full h-full flex items-center justify-center text-white/50"><User size={22} /></div>)}
                     </div>
-                )}
+                    <div className="flex-1 min-w-0">
+                        <h2 className="font-black truncate text-[15px] text-white tracking-tight flex items-center gap-1.5">{activeConv?.counterpartName} {activeConv?.counterpartIsPro && <CheckCircle2 size={14} className="text-brand fill-white" />}</h2>
+                        <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest truncate">{activeConv?.productTitle}</p>
+                    </div>
+                </Link>
+                <div className="flex gap-2">
+                    {activeConv?.productPhone && (<button onClick={handleCall} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition"><Phone size={20} /></button>)}
+                    <button onClick={() => setShowMenu(!showMenu)} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition relative"><MoreVertical size={20} /></button>
+                </div>
             </div>
+            {showMenu && (
+                <div className="absolute top-[100%] right-6 mt-2 bg-white shadow-2xl rounded-[1.8rem] border border-gray-100 w-56 py-3 z-[200] animate-in fade-in slide-in-from-top-2">
+                    <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-3 px-5 py-4 text-sm text-gray-700 font-bold hover:bg-gray-50 transition"><ExternalLink size={18} className="text-gray-400"/> Voir l'annonce</Link>
+                    <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-sm text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-tighter"><Trash2 size={18} /> Supprimer</button>
+                </div>
+            )}
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 pt-[95px] pb-[100px] bg-gray-50/50" onClick={() => setShowMenu(false)}>
-            <div className="flex flex-col justify-end min-h-full gap-2 pb-4">
+        <div className="flex-1 overflow-y-auto px-4 pt-[110px] pb-[110px]" onClick={() => setShowMenu(false)}>
+            <div className="flex flex-col justify-end min-h-full gap-3 pb-4 max-w-2xl mx-auto">
                 <AnimatePresence>
                     {activeConv?.messages.map((msg, i) => { 
                         const isMe = msg.sender_id === currentUser?.id; 
                         const isImg = msg.content.includes('messages_images');
                         return (
-                            <motion.div key={msg.id || i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-end gap-2 ${isMe ? 'justify-end' : 'justify-start'}`}>
-                                {!isMe && (<div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">{msg.sender_avatar ? (<Image src={msg.sender_avatar} alt="" fill className="object-cover" />) : (<User size={14} className="m-auto text-gray-400" />)}</div>)}
-                                <div className={`max-w-[80%] shadow-sm relative overflow-hidden ${isMe ? 'bg-brand text-white rounded-2xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-2xl rounded-tl-sm border border-gray-100'}`}>
-                                    {isImg ? (<div className="cursor-pointer bg-gray-100" onClick={() => setPreviewImage(msg.content)}><Image src={msg.content} alt="Photo" width={300} height={300} className="object-cover w-64 h-64" /></div>) : (<div className="px-4 py-3 text-[15px] whitespace-pre-wrap leading-relaxed">{msg.content}</div>)}
-                                    <div className={`flex items-center justify-end gap-1 pb-1.5 pr-2 text-[9px] ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/40 p-1 text-white' : (isMe ? 'text-white/70' : 'text-gray-400')}`}>
+                            <motion.div key={msg.id || i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex items-end gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                {!isMe && (<div className="w-8 h-8 rounded-xl bg-white overflow-hidden relative shrink-0 mb-1 shadow-sm border border-white">{msg.sender_avatar ? (<Image src={msg.sender_avatar} alt="" fill className="object-cover" />) : (<User size={14} className="m-auto text-gray-300" />)}</div>)}
+                                <div className={`max-w-[80%] shadow-sm relative overflow-hidden ${isMe ? 'bg-brand text-white rounded-3xl rounded-tr-sm' : 'bg-white text-gray-800 rounded-3xl rounded-tl-sm border border-white'}`}>
+                                    {isImg ? (<div className="cursor-pointer bg-gray-50" onClick={() => setPreviewImage(msg.content)}><Image src={msg.content} alt="Photo" width={300} height={300} className="object-cover w-64 h-64" /></div>) : (<div className="px-5 py-3.5 text-[15px] font-medium whitespace-pre-wrap leading-relaxed tracking-tight">{msg.content}</div>)}
+                                    <div className={`flex items-center justify-end gap-1.5 pb-2 pr-3 text-[9px] font-black uppercase tracking-tighter ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/40 p-2 text-white' : (isMe ? 'text-white/70' : 'text-gray-300')}`}>
                                         <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                        {isMe && (msg.pending ? <Loader2 size={10} className="animate-spin" /> : (msg.is_read ? <CheckCheck size={12} /> : <Check size={12} />))}
+                                        {isMe && (msg.pending ? <Loader2 size={10} className="animate-spin" /> : (msg.is_read ? <CheckCircle2 size={12} strokeWidth={3} /> : <Check size={12} strokeWidth={3} />))}
                                     </div>
                                 </div>
                             </motion.div>
@@ -305,32 +317,35 @@ function MessagesContent() {
             </div>
         </div>
 
-        <div className="fixed bottom-0 left-0 w-full bg-white px-3 py-3 pb-safe z-[150] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] border-t border-gray-100">
-            <div className="max-w-md mx-auto flex items-end gap-3 bg-gray-100/80 p-2 rounded-[2rem]">
+        <div className="fixed bottom-0 left-0 w-full bg-transparent px-4 pb-safe z-[150]">
+            <div className="max-w-2xl mx-auto flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
-                <button onClick={() => fileInputRef.current?.click()} className="p-3 text-gray-500 hover:text-brand bg-white rounded-full shadow-sm active:scale-90 transition" disabled={isUploading}>
+                <button onClick={() => fileInputRef.current?.click()} className="p-3.5 text-gray-400 hover:text-brand bg-[#F5F7F9] rounded-2xl active:scale-90 transition" disabled={isUploading}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
-                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] max-h-32 min-h-[44px] py-2.5 px-2 resize-none placeholder:text-gray-400" placeholder="Écrivez..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-3 rounded-full shadow-lg active:scale-90 transition"><Send size={20} /></button>
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[15px] font-medium max-h-32 min-h-[48px] py-3 px-2 resize-none placeholder:text-gray-300" placeholder="Écrivez un message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-3.5 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-30"><Send size={20} /></button>
             </div>
         </div>
 
+        {/* --- ZOOM IMAGE --- */}
         {previewImage && (
             <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-300">
-                <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-full z-[510]"><X size={24} /></button>
+                <button onClick={() => setPreviewImage(null)} className="absolute top-12 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-full z-[510]"><X size={24} /></button>
                 <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}><img src={previewImage} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
             </div>
         )}
 
+        {/* --- MODALE SUPPRESSION PRESTIGE --- */}
         {showDeleteModal && (
             <div className="fixed inset-0 z-[500] bg-black/40 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
-                <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" onClick={e => e.stopPropagation()}>
-                    <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle size={40} className="text-red-500" /></div>
-                    <h3 className="font-bold text-xl mb-2 text-gray-900">Supprimer ?</h3>
+                <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
+                    <div className="bg-red-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner"><AlertTriangle size={48} className="text-red-500" /></div>
+                    <h3 className="font-black text-2xl mb-3 text-gray-900 tracking-tight">Supprimer ?</h3>
+                    <p className="text-gray-400 text-sm mb-8 leading-relaxed font-medium">Cette action effacera toute trace de cette discussion pour vous.</p>
                     <div className="flex flex-col gap-3">
-                        <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-bold text-white bg-red-600 active:scale-95 transition shadow-lg shadow-red-500/20">Oui, supprimer</button>
-                        <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-bold text-gray-500 bg-gray-100 active:scale-95 transition">Annuler</button>
+                        <button onClick={handleDeleteConversation} className="w-full py-5 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-xl shadow-red-500/20 uppercase text-xs tracking-widest">Confirmer</button>
+                        <button onClick={() => setShowDeleteModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-400 bg-[#F5F7F9] active:scale-95 transition uppercase text-xs tracking-widest">Annuler</button>
                     </div>
                 </div>
             </div>
