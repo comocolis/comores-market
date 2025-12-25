@@ -35,7 +35,7 @@ export default function PublicProfilePage() {
 
   const isOwner = currentUser?.id === params.id
 
-  // --- LOGIQUE DE CALCUL DE RÉACTIVITÉ ---
+  // --- CALCUL DYNAMIQUE DE LA RÉACTIVITÉ ---
   const calculateResponseTime = async (userId: string) => {
     try {
       const { data: msgs } = await supabase
@@ -45,8 +45,9 @@ export default function PublicProfilePage() {
         .order('created_at', { ascending: true })
 
       if (!msgs || msgs.length < 2) return;
-      const responseDelays: number[] = [];
+      const delays: number[] = [];
       const convs: { [key: string]: any } = {};
+      
       msgs.forEach(m => {
         const otherId = m.sender_id === userId ? m.receiver_id : m.sender_id;
         const key = `${m.product_id}-${otherId}`;
@@ -54,17 +55,15 @@ export default function PublicProfilePage() {
         if (m.receiver_id === userId) {
           convs[key].lastReceivedAt = new Date(m.created_at).getTime();
         } else if (m.sender_id === userId && convs[key].lastReceivedAt) {
-          const delay = new Date(m.created_at).getTime() - convs[key].lastReceivedAt;
-          responseDelays.push(delay);
+          delays.push(new Date(m.created_at).getTime() - convs[key].lastReceivedAt);
           convs[key].lastReceivedAt = null;
         }
       });
-      if (responseDelays.length > 0) {
-        const avgMs = responseDelays.reduce((a, b) => a + b, 0) / responseDelays.length;
-        const avgMinutes = avgMs / (1000 * 60);
-        if (avgMinutes < 60) setResponseTimeLabel("Répond en quelques minutes");
-        else if (avgMinutes < 180) setResponseTimeLabel("Répond en moins de 3h");
-        else if (avgMinutes < 1440) setResponseTimeLabel("Répond dans la journée");
+      if (delays.length > 0) {
+        const avgMin = (delays.reduce((a, b) => a + b, 0) / delays.length) / 60000;
+        if (avgMin < 60) setResponseTimeLabel("Répond en quelques minutes");
+        else if (avgMin < 180) setResponseTimeLabel("Répond en moins de 3h");
+        else if (avgMin < 1440) setResponseTimeLabel("Répond dans la journée");
         else setResponseTimeLabel("Répond sous 24h à 48h");
       }
     } catch (e) { console.error(e) }
@@ -74,50 +73,52 @@ export default function PublicProfilePage() {
     const getData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       setCurrentUser(user)
-      const { data: profileData } = await supabase.from('profiles').select('*').eq('id', params.id).single()
-      setProfile(profileData)
-      if (profileData) {
-        calculateResponseTime(profileData.id);
-        const { data: productsData } = await supabase.from('products').select('*').eq('user_id', params.id).eq('status', 'active').order('created_at', { ascending: false })
-        setProducts(productsData || [])
-        const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', params.id).order('created_at', { ascending: false })
-        setReviews(reviewsData || [])
+      const { data: prof } = await supabase.from('profiles').select('*').eq('id', params.id).single()
+      setProfile(prof)
+      if (prof) {
+        calculateResponseTime(prof.id);
+        const { data: pds } = await supabase.from('products').select('*').eq('user_id', params.id).eq('status', 'active').order('created_at', { ascending: false })
+        setProducts(pds || [])
+        const { data: rvs } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', params.id).order('created_at', { ascending: false })
+        setReviews(rvs || [])
       }
       setLoading(false)
     }
     getData()
   }, [params.id, supabase])
 
-  // --- DEFINITION DE averageRating (LA VARIABLE MANQUANTE) ---
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
     : null
 
+  // --- UPLOAD AVEC NETTOYAGE AUTOMATIQUE ---
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const file = e.target.files[0]
     setUploadingCover(true)
     try {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${currentUser.id}/cover_${Date.now()}.${fileExt}`
-      const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
-      if (uploadError) throw uploadError
+      // 1. Nettoyage de l'ancien fichier
+      if (profile.cover_url && profile.cover_url.includes('avatars/')) {
+        const oldPath = profile.cover_url.split('avatars/')[1]
+        if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
+      }
+      // 2. Upload du nouveau
+      const fileName = `${currentUser.id}/cover_${Date.now()}.${file.name.split('.').pop()}`
+      const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
+      if (upErr) throw upErr
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-      const { error: updateError } = await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', currentUser.id)
-      if (updateError) throw updateError
+      // 3. Update DB
+      await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', currentUser.id)
       setProfile({ ...profile, cover_url: publicUrl })
       toast.success("Couverture mise à jour")
-    } catch (err: any) {
-      toast.error("Erreur d'envoi")
-    } finally {
-      setUploadingCover(false)
-    }
+    } catch (err) { toast.error("Erreur d'envoi") } 
+    finally { setUploadingCover(false) }
   }
 
   const handleShare = async () => {
-    const shareData = { title: `Profil de ${profile?.full_name}`, url: window.location.href }
-    if (navigator.share) { try { await navigator.share(shareData) } catch (err) {} }
-    else { navigator.clipboard.writeText(window.location.href); toast.success("Lien copié !") }
+    const data = { title: `Profil de ${profile?.full_name}`, url: window.location.href }
+    if (navigator.share) { try { await navigator.share(data) } catch (e) {} }
+    else { navigator.clipboard.writeText(window.location.href); toast.success("Lien copié") }
   }
 
   const handleAddReview = async () => {
@@ -135,19 +136,16 @@ export default function PublicProfilePage() {
   return (
     <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900 overflow-x-hidden">
       
-      {/* SECTION COUVERTURE */}
+      {/* SECTION COUVERTURE (DARK THEME) */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
             src={profile.cover_url || "/cover-default.jpg"}
-            alt="Couverture"
-            fill
-            className="object-cover opacity-80 transition-transform duration-700 group-hover:scale-105"
-            priority
+            alt="Couverture" fill className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" priority
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#F0F2F5] via-transparent to-black/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#F0F2F5] via-transparent to-black/50" />
 
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
-            <button onClick={() => router.back()} className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white active:scale-90 border border-white/10 hover:bg-black/40 transition">
+            <button onClick={() => router.back()} className="p-3 bg-black/20 backdrop-blur-md rounded-full text-white border border-white/10 active:scale-90 transition hover:bg-black/40">
               <ArrowLeft size={22} />
             </button>
             <div className="flex gap-2">
@@ -166,9 +164,9 @@ export default function PublicProfilePage() {
         </div>
       </div>
 
+      {/* CARTE PROFIL */}
       <div className="max-w-4xl mx-auto px-5">
         <div className="bg-white -mt-24 rounded-[3rem] shadow-[0_10px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
-          
           <div className="relative -mt-16 mb-4">
             <div className="w-32 h-32 bg-gray-100 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative">
                 {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
@@ -198,19 +196,13 @@ export default function PublicProfilePage() {
             {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic leading-relaxed">"{profile.description}"</p>}
           </div>
 
-          {profile.is_pro && (profile.facebook_url || profile.instagram_url) && (
-              <div className="flex gap-4 mt-8">
-                  {profile.facebook_url && <a href={profile.facebook_url} target="_blank" className="p-3 bg-blue-50 text-[#1877F2] rounded-2xl shadow-sm transition hover:scale-110"><Facebook size={20} fill="currentColor" /></a>}
-                  {profile.instagram_url && <a href={profile.instagram_url} target="_blank" className="p-3 bg-pink-50 text-[#D800B9] rounded-2xl shadow-sm transition hover:scale-110"><Instagram size={20} /></a>}
-              </div>
-          )}
-
           <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-[1.8rem]">
               <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Showroom</button>
               <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-[1.4rem] transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Avis clients</button>
           </div>
         </div>
 
+        {/* SHOWROOM / AVIS */}
         <div className="mt-10">
           <AnimatePresence mode="wait">
             {activeTab === 'listings' ? (
@@ -219,7 +211,7 @@ export default function PublicProfilePage() {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
                         return (
                             <Link key={p.id} href={`/annonce/${p.id}`} className="group">
-                              <div className="bg-white rounded-[2.2rem] p-3 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] border border-white hover:border-brand/20 transition-all duration-300 hover:shadow-xl">
+                              <div className="bg-white rounded-[2.2rem] p-3 shadow-sm border border-white hover:border-brand/20 transition-all duration-300 hover:shadow-xl">
                                   <div className="relative aspect-[4/5] rounded-[1.8rem] overflow-hidden bg-gray-50">
                                     {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
                                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-xl text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
@@ -234,7 +226,7 @@ export default function PublicProfilePage() {
                 <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4 pb-10">
                     {currentUser && currentUser.id !== params.id && (
                         <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-[2.5rem] flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
-                          <Plus size={18} /> Partager un avis sur ce vendeur
+                          <Plus size={18} /> Laisser un avis sur ce vendeur
                         </button>
                     )}
                     {reviews.map(r => (
