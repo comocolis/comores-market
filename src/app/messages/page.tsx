@@ -59,13 +59,11 @@ function MessagesContent() {
 
   useEffect(() => { activeConvRef.current = activeConv }, [activeConv])
 
-  // FILTRAGE DES CONVERSATIONS POUR LA RECHERCHE
   const filteredConvs = conversations.filter(conv => 
     conv.counterpartName.toLowerCase().includes(searchTerm.toLowerCase()) ||
     conv.productTitle.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // GESTION DES PARAMÈTRES (ID OU RELANCE PROSPECT)
   useEffect(() => {
     const handleParams = async () => {
         const convId = searchParams.get('id')
@@ -118,7 +116,7 @@ function MessagesContent() {
         const otherId = isMe ? msg.receiver_id : msg.sender_id
         const otherProfile = isMe ? msg.receiver : msg.sender
         const key = `${msg.product_id}-${otherId}`
-        let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); img = Array.isArray(parsed) ? parsed[0] : parsed } } catch {}
+        let img = null; try { if (msg.product?.images) { const parsed = JSON.parse(msg.product.images); if (Array.isArray(parsed) && parsed.length > 0) img = parsed[0] } } catch {}
         if (!groups[key]) groups[key] = { id: key, productId: msg.product_id, productTitle: msg.product?.title || 'Produit', productImage: img, productPhone: msg.product?.whatsapp_number || null, counterpartId: otherId, counterpartName: otherProfile?.full_name || 'Utilisateur', counterpartAvatar: otherProfile?.avatar_url, counterpartIsPro: otherProfile?.is_pro || false, lastMessage: '', lastDate: '', unreadCount: 0, messages: [] }
         groups[key].messages.push({ ...msg, sender_avatar: msg.sender?.avatar_url })
         groups[key].lastMessage = msg.content.includes('messages_images') ? '📷 Photo' : msg.content
@@ -204,41 +202,48 @@ function MessagesContent() {
   if (view === 'list') {
     return (
         <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
-            {/* Header avec Recherche Luxe */}
-            <div className="bg-brand pt-12 px-6 pb-6 sticky top-0 z-30 shadow-lg rounded-b-[2rem]">
-                <h1 className="text-white font-extrabold text-2xl mb-4 tracking-tight">Discussions</h1>
-                <div className="relative">
-                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-white/50"><Search size={18} /></div>
-                    <input type="text" placeholder="Rechercher un client ou un produit..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} 
-                    className="w-full bg-white/10 border border-white/20 backdrop-blur-md rounded-2xl py-3 pl-12 pr-4 text-white placeholder:text-white/50 outline-none focus:bg-white/20 transition-all" />
+            {/* Header avec Recherche Ultra-Visible */}
+            <div className="bg-brand pt-12 px-6 pb-8 sticky top-0 z-30 shadow-lg rounded-b-[2.5rem]">
+                <h1 className="text-white font-extrabold text-2xl mb-5 tracking-tight">Discussions</h1>
+                <div className="relative group">
+                    <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-gray-400 group-focus-within:text-brand transition-colors">
+                        <Search size={20} strokeWidth={2.5} />
+                    </div>
+                    <input 
+                        type="text" 
+                        placeholder="Rechercher une personne ou un objet..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        className="w-full bg-white border-none shadow-2xl rounded-2xl py-4 pl-12 pr-4 text-gray-900 font-bold placeholder:text-gray-400 placeholder:font-medium outline-none focus:ring-4 focus:ring-brand/10 transition-all" 
+                    />
                 </div>
             </div>
 
-            <div className="px-4 py-6 space-y-3">
+            <div className="px-4 py-6 space-y-4">
                 {loading ? (<div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" /></div>) : filteredConvs.length === 0 ? (
                     <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
-                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><MessageCircle size={32} className="opacity-20" /></div>
-                        <p className="text-sm">Aucune discussion trouvée.</p>
+                        <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"><MessageCircle size={40} className="opacity-20" /></div>
+                        <p className="font-semibold text-sm">Aucun résultat trouvé.</p>
                     </div>
                 ) : (
                     <AnimatePresence>
                         {filteredConvs.map((conv, idx) => (
-                            <motion.div key={idx} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} 
-                            className="bg-white p-4 rounded-[1.5rem] shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md group">
-                                <div className="w-16 h-16 bg-gray-100 rounded-2xl shrink-0 relative overflow-hidden border border-gray-50">
+                            <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} 
+                            className="bg-white p-4 rounded-[1.8rem] shadow-sm border border-gray-100 flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-md group">
+                                <div className="w-16 h-16 bg-gray-100 rounded-2xl shrink-0 relative overflow-hidden border border-gray-50 shadow-inner">
                                     {conv.productImage ? (<Image src={conv.productImage} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-500" />) : (<div className="w-full h-full flex items-center justify-center text-gray-300"><ShoppingBag size={24} /></div>)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
-                                        <h3 className={`text-[15px] truncate flex items-center gap-1 ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>{conv.counterpartName} {conv.counterpartIsPro && <ShieldCheck size={14} className="text-brand" />}</h3>
-                                        <span className={`text-[10px] ${conv.unreadCount > 0 ? 'text-brand font-bold' : 'text-gray-400'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
+                                        <h3 className={`text-[15px] truncate flex items-center gap-1.5 ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-700'}`}>{conv.counterpartName} {conv.counterpartIsPro && <ShieldCheck size={14} className="text-brand" />}</h3>
+                                        <span className={`text-[10px] font-bold ${conv.unreadCount > 0 ? 'text-brand' : 'text-gray-400'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {month:'short', day:'numeric'})}</span>
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
-                                            <p className="text-[10px] text-brand font-black uppercase tracking-widest truncate mb-0.5 opacity-70">{conv.productTitle}</p>
-                                            <p className={`text-[13px] truncate ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>{conv.lastMessage}</p>
+                                            <p className="text-[10px] text-brand font-black uppercase tracking-widest truncate mb-1 opacity-70">{conv.productTitle}</p>
+                                            <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-bold text-gray-900' : 'text-gray-500'}`}>{conv.lastMessage}</p>
                                         </div>
-                                        {conv.unreadCount > 0 && (<div className="w-6 h-6 bg-brand rounded-full flex items-center justify-center text-[10px] text-white font-black shadow-lg shrink-0 mb-1">{conv.unreadCount}</div>)}
+                                        {conv.unreadCount > 0 && (<div className="w-6 h-6 bg-brand rounded-full flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-brand/20 shrink-0 mb-1">{conv.unreadCount}</div>)}
                                     </div>
                                 </div>
                             </motion.div>
@@ -253,8 +258,6 @@ function MessagesContent() {
   // --- VUE CHAT ---
   return (
     <div className="fixed inset-0 bg-white font-sans text-gray-900 overflow-hidden flex flex-col h-screen">
-        
-        {/* HEADER CHAT (STRICTEMENT FIXE) */}
         <div className="fixed top-0 left-0 w-full bg-brand px-4 pb-3 pt-safe shadow-md flex items-center gap-3 z-[150] text-white h-[85px] shrink-0">
             <button onClick={closeConversation} className="p-2 -ml-2 text-white/80 active:scale-90 transition"><ArrowLeft size={22} /></button>
             <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
@@ -278,7 +281,6 @@ function MessagesContent() {
             </div>
         </div>
         
-        {/* ZONE MESSAGES (SCROLLABLE) */}
         <div className="flex-1 overflow-y-auto px-4 pt-[95px] pb-[100px] bg-gray-50/50" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-2 pb-4">
                 <AnimatePresence>
@@ -303,7 +305,6 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* BARRE D'ENVOI (FIXE & LUXE) */}
         <div className="fixed bottom-0 left-0 w-full bg-white px-3 py-3 pb-safe z-[150] shadow-[0_-10px_30px_rgba(0,0,0,0.05)] border-t border-gray-100">
             <div className="max-w-md mx-auto flex items-end gap-3 bg-gray-100/80 p-2 rounded-[2rem]">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
@@ -315,7 +316,6 @@ function MessagesContent() {
             </div>
         </div>
 
-        {/* MODALES & LIGHTBOX */}
         {previewImage && (
             <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-300">
                 <button onClick={() => setPreviewImage(null)} className="absolute top-6 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-full z-[510]"><X size={24} /></button>
@@ -328,7 +328,6 @@ function MessagesContent() {
                 <div className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" onClick={e => e.stopPropagation()}>
                     <div className="bg-red-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6"><AlertTriangle size={40} className="text-red-500" /></div>
                     <h3 className="font-bold text-xl mb-2 text-gray-900">Supprimer ?</h3>
-                    <p className="text-sm text-gray-500 mb-8 leading-relaxed">Cette action effacera tous vos messages et photos partagées dans ce chat.</p>
                     <div className="flex flex-col gap-3">
                         <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-bold text-white bg-red-600 active:scale-95 transition shadow-lg shadow-red-500/20">Oui, supprimer</button>
                         <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-bold text-gray-500 bg-gray-100 active:scale-95 transition">Annuler</button>
