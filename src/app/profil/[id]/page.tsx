@@ -4,16 +4,23 @@ import ProfileClient from './ProfileClient'
 import Script from 'next/script'
 
 type Props = {
-  params: { id: string }
+  params: Promise<{ id: string }> // Type asynchrone pour Next.js 15
 }
 
-// --- GÉNÉRATION DES METADATA SIMPLIFIÉE ---
+// --- GÉNÉRATION DES METADATA (SEO) ---
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
+  // CORRECTIF : On attend la résolution des paramètres
+  const { id } = await params
   const supabase = await createClient()
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', params.id).single()
+  
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .single()
 
   if (!profile) return { title: 'Profil introuvable' }
 
@@ -21,7 +28,6 @@ export async function generateMetadata(
   const city = profile.city || 'Comores'
   const isPro = profile.is_pro ? ' (Vendeur PRO)' : ''
 
-  // TITRE SIMPLIFIÉ : On retire " | Comores Market" car il est déjà dans le layout
   return {
     title: `${name}${isPro} à ${city}`,
     description: `Découvrez la boutique de ${name} sur Comores Market. ${profile.description?.substring(0, 150) || 'Membre vérifié.'}`,
@@ -32,12 +38,18 @@ export async function generateMetadata(
   }
 }
 
-// --- COMPOSANT PAGE SERVEUR ---
+// --- COMPOSANT PAGE ---
 export default async function Page({ params }: Props) {
+  // CORRECTIF : On attend la résolution des paramètres
+  const { id } = await params
   const supabase = await createClient()
   
-  // Récupération des données pour le référencement Google (JSON-LD)
-  const { data: profile } = await supabase.from('profiles').select('*').eq('id', params.id).single()
+  // Récupération des données pour le script JSON-LD
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .single()
 
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -54,14 +66,14 @@ export default async function Page({ params }: Props) {
 
   return (
     <>
-      {/* Script invisible pour que Google affiche les avis/infos dans les recherches */}
       <Script
         id="profile-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      {/* Chargement de l'interface utilisateur (Côté Client) */}
+      {/* On passe l'ID ou les données au client si nécessaire, 
+          ici ProfileClient utilise useParams() en interne donc c'est bon */}
       <ProfileClient />
     </>
   )
