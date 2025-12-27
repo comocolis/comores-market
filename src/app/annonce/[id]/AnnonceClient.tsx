@@ -41,10 +41,6 @@ export default function AnnonceClient() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
-  // --- CORRECTIF 1 : État pour le header sombre ---
-  const [isHeaderDark, setIsHeaderDark] = useState(false)
-  const headerRef = useRef<HTMLDivElement>(null)
-
   const viewLogged = useRef(false)
 
   useEffect(() => {
@@ -91,22 +87,6 @@ export default function AnnonceClient() {
     }
     logView()
   }, [product, supabase])
-
-  // --- CORRECTIF 1 : Écouteur de scroll ---
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollPosition = window.scrollY
-      // On considère que le header devient sombre après 300px de scroll (hauteur approximative de l'image)
-      if (scrollPosition > 300) {
-        setIsHeaderDark(true)
-      } else {
-        setIsHeaderDark(false)
-      }
-    }
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
-
 
   // --- LOGIQUE DE SIGNALEMENT ---
   const submitReport = async () => {
@@ -215,34 +195,32 @@ export default function AnnonceClient() {
   const isFav = favorites.has(product.id)
   const isPro = product.profiles?.is_pro
 
-  // --- CORRECTIF 1 : Styles dynamiques des boutons du header ---
-  const headerButtonStyle = isHeaderDark
-    ? 'bg-white text-gray-900 border border-gray-200 shadow-md' // Fond blanc, icône noire
-    : 'bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-lg' // Fond transparent, icône blanche
+  // Style commun pour les boutons du header : Fond blanc, icônes vertes
+  const headerButtonStyle = "p-3 bg-white rounded-2xl text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
 
   return (
     <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900 overflow-x-hidden relative">
       
-      {/* HEADER FLOTTANT (avec styles dynamiques) */}
-      <div ref={headerRef} className={`fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none transition-all duration-300 ${isHeaderDark ? 'bg-white/90 backdrop-blur-md shadow-sm' : ''}`}>
-          <button onClick={() => router.back()} className={`p-3 rounded-2xl active:scale-90 transition pointer-events-auto ${headerButtonStyle}`}>
-            <ArrowLeft size={22} />
+      {/* HEADER FLOTTANT */}
+      <div className="fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
+          <button onClick={() => router.back()} className={headerButtonStyle}>
+            <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
           
           <div className="flex gap-2 pointer-events-auto">
-              <button onClick={handleShare} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle}`}>
-                <Share2 size={20} />
+              <button onClick={handleShare} className={headerButtonStyle}>
+                <Share2 size={20} strokeWidth={2.5} />
               </button>
-              <button onClick={toggleFavorite} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle}`}>
-                <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
+              <button onClick={toggleFavorite} className={headerButtonStyle}>
+                <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand" : ""} />
               </button>
-              <button onClick={() => setShowReportModal(true)} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle} ${!isHeaderDark ? 'bg-white/10 text-white/50 border-white/10 hover:text-red-400' : ''}`}>
-                <Flag size={20} />
+              <button onClick={() => setShowReportModal(true)} className="p-3 bg-white rounded-2xl text-red-500 shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto">
+                <Flag size={20} strokeWidth={2.5} />
               </button>
           </div>
       </div>
 
-      {/* GALERIE */}
+      {/* GALERIE PRINCIPALE */}
       <div className="relative w-full h-[50vh] bg-gray-900 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image src={images[selectedImageIndex] || '/placeholder.png'} alt={product.title} fill className="object-cover opacity-90 transition duration-700 group-hover:scale-105" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -257,7 +235,7 @@ export default function AnnonceClient() {
         </div>
       </div>
 
-      {/* CARTE CONTENU */}
+      {/* CONTENU DE L'ANNONCE */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-8 -mt-8 bg-white rounded-t-[3rem] relative z-10 min-h-[50vh] shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             <div className="flex justify-between items-start mb-8">
@@ -318,29 +296,41 @@ export default function AnnonceClient() {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX (Avec CORRECTIF 2: Swipe) */}
+      {/* LIGHTBOX (Version épurée avec Swipe et flèches noires bold) */}
       {lightboxIndex !== null && (
         <div 
-          className="fixed inset-0 z-[200] bg-black animate-in fade-in" 
+          className="fixed inset-0 z-[200] bg-white animate-in fade-in" 
           onTouchStart={onTouchStart} 
           onTouchMove={onTouchMove} 
           onTouchEnd={onTouchEndAction}
         >
-            <button onClick={() => setLightboxIndex(null)} className="absolute top-10 right-6 z-[210] text-white p-3 bg-white/10 backdrop-blur-md rounded-full"><X size={28} /></button>
-            <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}><img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
-            {images.length > 1 && <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full text-white text-xs font-black tracking-widest border border-white/10 z-[210]">{lightboxIndex + 1} / {images.length}</div>}
+            <button onClick={() => setLightboxIndex(null)} className="absolute top-10 right-6 z-[210] text-black p-3 rounded-full active:scale-90 transition"><X size={32} strokeWidth={2.5} /></button>
             
-            {/* CORRECTIF 2 : Boutons de navigation (facultatifs si le swipe fonctionne) */}
+            <TransformWrapper centerOnInit={true}>
+              <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
+                <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
+              </TransformComponent>
+            </TransformWrapper>
+            
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-3 text-white bg-white/10 backdrop-blur-md rounded-full z-[210]"><ChevronLeft size={24} /></button>
-                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-3 text-white bg-white/10 backdrop-blur-md rounded-full z-[210]"><ChevronRight size={24} /></button>
+                    {/* Flèches noires, sans fond, épaisses */}
+                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition">
+                      <ChevronLeft size={44} strokeWidth={3} />
+                    </button>
+                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition">
+                      <ChevronRight size={44} strokeWidth={3} />
+                    </button>
+                    
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-2 text-black text-sm font-black tracking-widest z-[210]">
+                      {lightboxIndex + 1} / {images.length}
+                    </div>
                 </>
             )}
         </div>
       )}
 
-      {/* SIGNALEMENT */}
+      {/* SIGNALEMENT MODALE */}
       <AnimatePresence>
         {showReportModal && (
           <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
