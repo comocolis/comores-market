@@ -128,10 +128,15 @@ export default function ProfileClient() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]"><Loader2 className="animate-spin text-brand" /></div>
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
 
+  const isPro = profile?.is_pro
+
+  // Style commun pour les boutons du header (Fond blanc, icônes vertes) pour visibilité sur zones blanches
+  const headerButtonStyle = "p-3 bg-white rounded-full text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
+
   return (
     <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900 overflow-x-hidden">
       
-      {/* SECTION COUVERTURE UNIFORMISÉE */}
+      {/* SECTION COUVERTURE */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
             src={profile.cover_url || "/cover-default.jpg"}
@@ -139,22 +144,22 @@ export default function ProfileClient() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#F0F2F5] via-transparent to-black/50" />
 
-        {/* HEADER BOUTONS (Même niveau que l'Accueil) */}
+        {/* HEADER BOUTONS UNIFORMISÉS (Boutons Verts sur Blanc) */}
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
-            <button onClick={() => router.back()} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition shadow-sm">
-              <ArrowLeft size={22} />
+            <button onClick={() => router.back()} className={headerButtonStyle}>
+              <ArrowLeft size={22} strokeWidth={2.5} />
             </button>
             <div className="flex gap-2">
               {isOwner && (
                 <>
                   <input type="file" ref={coverInputRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
-                  <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 hover:bg-brand transition shadow-sm">
-                    {uploadingCover ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} />}
+                  <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className={headerButtonStyle}>
+                    {uploadingCover ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} strokeWidth={2.5} />}
                   </button>
                 </>
               )}
-              <button onClick={handleShare} className="p-3 bg-white/20 backdrop-blur-md rounded-full text-white border border-white/20 active:scale-90 transition shadow-sm">
-                <Share2 size={22} />
+              <button onClick={handleShare} className={headerButtonStyle}>
+                <Share2 size={22} strokeWidth={2.5} />
               </button>
             </div>
         </div>
@@ -164,14 +169,23 @@ export default function ProfileClient() {
         <div className="bg-white -mt-24 rounded-[3rem] shadow-[0_10px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
           
           <div className="relative -mt-16 mb-4">
-            <div className="w-32 h-32 bg-gray-100 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative">
+            <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isPro ? 'bg-amber-50' : 'bg-gray-100'}`}>
                 {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
             </div>
-            {profile.is_pro && <div className="absolute -bottom-2 -right-2 bg-brand text-white p-2.5 rounded-2xl shadow-lg border-4 border-white"><Crown size={20} fill="currentColor" /></div>}
+            {/* COURONNE PRO SUR AVATAR (Style Prestige) */}
+            {isPro && (
+              <div className="absolute -bottom-2 -right-2 bg-amber-50 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white flex items-center justify-center">
+                <Crown size={18} className="fill-amber-500 text-amber-500" />
+              </div>
+            )}
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">{profile.full_name || "Utilisateur"} {profile.is_pro && <CheckCircle2 size={18} className="text-brand" />}</h2>
+            {/* NOM AVEC COURONNE (Comme Accueil) */}
+            <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
+              {profile.full_name || "Utilisateur"} 
+              {isPro && <Crown size={22} className="text-amber-500 fill-amber-500" />}
+            </h2>
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit mx-auto mt-2">
                 <Clock size={12} strokeWidth={3} />
                 <span className="text-[10px] font-black uppercase tracking-tight">{responseTimeLabel}</span>
