@@ -274,7 +274,6 @@ export default function ComptePage() {
                     {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-200" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} /> : <p className="p-3 font-medium text-sm">{profile?.full_name}</p>}
                 </div>
 
-                {/* CHAMP DESCRIPTION AVEC LIMITE 500 */}
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase">À propos / Description</label>
                     {isEditingInfo ? (
@@ -313,7 +312,33 @@ export default function ComptePage() {
                     <label className="text-xs font-bold text-gray-400 uppercase">WhatsApp</label>
                     {isEditingInfo ? <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} /> : <p className="p-3 text-sm tracking-wide">{profile?.phone_number || "-"}</p>}
                 </div>
+
+                {/* --- RÉSEAUX SOCIAUX --- */}
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Lien Facebook</label>
+                    {isEditingInfo ? (
+                        <div className="relative">
+                            <Facebook className="absolute left-3 top-3 text-blue-600" size={18} />
+                            <input type="url" placeholder="https://facebook.com/..." className="w-full bg-gray-50 p-3 pl-10 rounded-xl text-sm outline-none border border-gray-200" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} />
+                        </div>
+                    ) : (
+                        <p className="p-3 font-medium text-sm text-blue-600 truncate">{profile?.facebook_url || "-"}</p>
+                    )}
+                </div>
+
+                <div>
+                    <label className="text-xs font-bold text-gray-400 uppercase">Lien Instagram</label>
+                    {isEditingInfo ? (
+                        <div className="relative">
+                            <Instagram className="absolute left-3 top-3 text-pink-600" size={18} />
+                            <input type="url" placeholder="https://instagram.com/..." className="w-full bg-gray-50 p-3 pl-10 rounded-xl text-sm outline-none border border-gray-200" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} />
+                        </div>
+                    ) : (
+                        <p className="p-3 font-medium text-sm text-pink-600 truncate">{profile?.instagram_url || "-"}</p>
+                    )}
+                </div>
             </div>
+
             {isEditingInfo && (
                 <div className="flex gap-2 pt-2 animate-in fade-in">
                     <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">Annuler</button>
