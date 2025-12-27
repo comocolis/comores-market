@@ -195,7 +195,6 @@ export default function AnnonceClient() {
   const isFav = favorites.has(product.id)
   const isPro = product.profiles?.is_pro
 
-  // Style commun pour les boutons du header : Fond blanc, icônes vertes
   const headerButtonStyle = "p-3 bg-white rounded-2xl text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
 
   return (
@@ -220,7 +219,7 @@ export default function AnnonceClient() {
           </div>
       </div>
 
-      {/* GALERIE PRINCIPALE */}
+      {/* GALERIE */}
       <div className="relative w-full h-[50vh] bg-gray-900 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image src={images[selectedImageIndex] || '/placeholder.png'} alt={product.title} fill className="object-cover opacity-90 transition duration-700 group-hover:scale-105" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -235,13 +234,15 @@ export default function AnnonceClient() {
         </div>
       </div>
 
-      {/* CONTENU DE L'ANNONCE */}
+      {/* CONTENU */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-8 -mt-8 bg-white rounded-t-[3rem] relative z-10 min-h-[50vh] shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             <div className="flex justify-between items-start mb-8">
                 <div className="flex-1 pr-4">
                     <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight flex items-center gap-2">
-                        {product.title} {isPro && <CheckCircle2 size={20} className="text-brand" />}
+                        {product.title} 
+                        {/* COURONNE PRO TITRE (Style Accueil) */}
+                        {isPro && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
                     <div className="flex items-center gap-1.5 text-gray-400 text-xs font-black uppercase tracking-widest">
                         <MapPin size={14} className="text-brand/50" /> {product.location_city}
@@ -259,11 +260,15 @@ export default function AnnonceClient() {
 
             <Link href={`/profil/${product.user_id}`} className="bg-[#F5F7F9] p-5 rounded-[2rem] border border-white flex items-center justify-between mb-10 active:scale-[0.98] transition-all hover:shadow-md">
                 <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-4 border-white shadow-sm ${isPro ? 'bg-brand/10' : 'bg-gray-200'}`}>
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-4 border-white shadow-sm ${isPro ? 'bg-amber-50' : 'bg-gray-200'}`}>
                         {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={24} className="text-gray-400" />}
                     </div>
                     <div>
-                        <p className="font-black text-gray-900 flex items-center gap-1.5">{product.profiles?.full_name || "Utilisateur"} {isPro && <Crown size={14} className="text-brand fill-brand" />}</p>
+                        <p className="font-black text-gray-900 flex items-center gap-1.5">
+                          {product.profiles?.full_name || "Utilisateur"} 
+                          {/* COURONNE PRO VENDEUR (Style Accueil) */}
+                          {isPro && <Crown size={14} className="text-amber-500 fill-amber-500" />}
+                        </p>
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isPro ? 'Vendeur Professionnel' : 'Vendeur Particulier'}</p>
                     </div>
                 </div>
@@ -296,7 +301,7 @@ export default function AnnonceClient() {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX (Version épurée avec Swipe et flèches noires bold) */}
+      {/* LIGHTBOX (Fond blanc, flèches noires bold) */}
       {lightboxIndex !== null && (
         <div 
           className="fixed inset-0 z-[200] bg-white animate-in fade-in" 
@@ -314,7 +319,6 @@ export default function AnnonceClient() {
             
             {images.length > 1 && (
                 <>
-                    {/* Flèches noires, sans fond, épaisses */}
                     <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition">
                       <ChevronLeft size={44} strokeWidth={3} />
                     </button>
@@ -330,7 +334,7 @@ export default function AnnonceClient() {
         </div>
       )}
 
-      {/* SIGNALEMENT MODALE */}
+      {/* MODALE SIGNALEMENT */}
       <AnimatePresence>
         {showReportModal && (
           <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
