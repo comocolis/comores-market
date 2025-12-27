@@ -41,6 +41,10 @@ export default function AnnonceClient() {
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
 
+  // --- CORRECTIF 1 : État pour le header sombre ---
+  const [isHeaderDark, setIsHeaderDark] = useState(false)
+  const headerRef = useRef<HTMLDivElement>(null)
+
   const viewLogged = useRef(false)
 
   useEffect(() => {
@@ -87,6 +91,22 @@ export default function AnnonceClient() {
     }
     logView()
   }, [product, supabase])
+
+  // --- CORRECTIF 1 : Écouteur de scroll ---
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY
+      // On considère que le header devient sombre après 300px de scroll (hauteur approximative de l'image)
+      if (scrollPosition > 300) {
+        setIsHeaderDark(true)
+      } else {
+        setIsHeaderDark(false)
+      }
+    }
+    window.addEventListener('scroll', handleScroll)
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
 
   // --- LOGIQUE DE SIGNALEMENT ---
   const submitReport = async () => {
@@ -195,23 +215,28 @@ export default function AnnonceClient() {
   const isFav = favorites.has(product.id)
   const isPro = product.profiles?.is_pro
 
+  // --- CORRECTIF 1 : Styles dynamiques des boutons du header ---
+  const headerButtonStyle = isHeaderDark
+    ? 'bg-white text-gray-900 border border-gray-200 shadow-md' // Fond blanc, icône noire
+    : 'bg-white/20 backdrop-blur-md text-white border border-white/20 shadow-lg' // Fond transparent, icône blanche
+
   return (
-    <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900 overflow-x-hidden relative">
       
-      {/* HEADER FLOTTANT */}
-      <div className="fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
-          <button onClick={() => router.back()} className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white border border-white/20 active:scale-90 transition pointer-events-auto shadow-lg">
+      {/* HEADER FLOTTANT (avec styles dynamiques) */}
+      <div ref={headerRef} className={`fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none transition-all duration-300 ${isHeaderDark ? 'bg-white/90 backdrop-blur-md shadow-sm' : ''}`}>
+          <button onClick={() => router.back()} className={`p-3 rounded-2xl active:scale-90 transition pointer-events-auto ${headerButtonStyle}`}>
             <ArrowLeft size={22} />
           </button>
           
           <div className="flex gap-2 pointer-events-auto">
-              <button onClick={handleShare} className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white border border-white/20 active:scale-90 transition shadow-lg">
+              <button onClick={handleShare} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle}`}>
                 <Share2 size={20} />
               </button>
-              <button onClick={toggleFavorite} className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white border border-white/20 active:scale-90 transition shadow-lg">
+              <button onClick={toggleFavorite} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle}`}>
                 <Heart size={20} className={isFav ? "fill-red-500 text-red-500" : ""} />
               </button>
-              <button onClick={() => setShowReportModal(true)} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white/50 border border-white/10 active:scale-90 transition shadow-lg hover:text-red-400">
+              <button onClick={() => setShowReportModal(true)} className={`p-3 rounded-2xl active:scale-90 transition ${headerButtonStyle} ${!isHeaderDark ? 'bg-white/10 text-white/50 border-white/10 hover:text-red-400' : ''}`}>
                 <Flag size={20} />
               </button>
           </div>
@@ -293,12 +318,25 @@ export default function AnnonceClient() {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX (Avec CORRECTIF 2: Swipe) */}
       {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-[200] bg-black animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
+        <div 
+          className="fixed inset-0 z-[200] bg-black animate-in fade-in" 
+          onTouchStart={onTouchStart} 
+          onTouchMove={onTouchMove} 
+          onTouchEnd={onTouchEndAction}
+        >
             <button onClick={() => setLightboxIndex(null)} className="absolute top-10 right-6 z-[210] text-white p-3 bg-white/10 backdrop-blur-md rounded-full"><X size={28} /></button>
             <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}><img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
             {images.length > 1 && <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full text-white text-xs font-black tracking-widest border border-white/10 z-[210]">{lightboxIndex + 1} / {images.length}</div>}
+            
+            {/* CORRECTIF 2 : Boutons de navigation (facultatifs si le swipe fonctionne) */}
+            {images.length > 1 && (
+                <>
+                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-3 text-white bg-white/10 backdrop-blur-md rounded-full z-[210]"><ChevronLeft size={24} /></button>
+                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-3 text-white bg-white/10 backdrop-blur-md rounded-full z-[210]"><ChevronRight size={24} /></button>
+                </>
+            )}
         </div>
       )}
 
