@@ -80,12 +80,12 @@ export default function HomePage() {
       }
 
       let query = supabase
-        .from('products_with_details')
-        .select('*')
-        // --- NOUVEL ALGORITHME DE TRI ---
-        .order('boosted_until', { ascending: false }) // 1. Boostés en premier
-        .order('is_pro', { ascending: false })        // 2. Membres PRO ensuite
-        .order('created_at', { ascending: false })    // 3. Fraîcheur chronologique
+      .from('products_with_details')
+      .select('*')
+      // On place les NULL (non-boostés) à la fin pour que seuls les boosts actifs soient en haut
+      .order('boosted_until', { ascending: false, nullsFirst: false }) 
+      .order('is_pro', { ascending: false })
+      .order('created_at', { ascending: false })
       
       if (selectedCategory !== 0) { 
         query = query.eq('category_id', selectedCategory)
