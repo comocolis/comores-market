@@ -6,13 +6,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, ZoomIn, SlidersHorizontal, Check, RefreshCw,
-  // NOUVELLES ICONES "LUXUEUSES"
-  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
-// Remplacement des émojis par des composants Lucide pour un look Premium
 const CATEGORIES = [
   { id: 0, label: 'Tout', icon: LayoutGrid }, 
   { id: 1, label: 'Véhicules', icon: Car }, 
@@ -84,10 +82,15 @@ export default function HomePage() {
       let query = supabase
         .from('products_with_details')
         .select('*')
-        .order('is_pro', { ascending: false })
-        .order('created_at', { ascending: false })
+        // --- NOUVEL ALGORITHME DE TRI ---
+        .order('boosted_until', { ascending: false }) // 1. Boostés en premier
+        .order('is_pro', { ascending: false })        // 2. Membres PRO ensuite
+        .order('created_at', { ascending: false })    // 3. Fraîcheur chronologique
       
-      if (selectedCategory !== 0) { query = query.eq('category_id', selectedCategory); if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) }
+      if (selectedCategory !== 0) { 
+        query = query.eq('category_id', selectedCategory)
+        if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) 
+      }
       if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
       if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
 
@@ -132,12 +135,10 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
+      {/* ZOOM IMAGE */}
       {previewImage && (
-        <div 
-            className="fixed inset-0 z-100 bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200"
-            onClick={() => setPreviewImage(null)}
-        >
-            <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full hover:bg-white/20 transition backdrop-blur-md">
+        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setPreviewImage(null)}>
+            <button onClick={() => setPreviewImage(null)} className="absolute top-4 right-4 text-white p-3 bg-white/10 rounded-full backdrop-blur-md transition">
                 <X size={24} />
             </button>
             <div className="relative w-full max-w-4xl h-full max-h-[85vh]" onClick={(e) => e.stopPropagation()}>
@@ -146,15 +147,16 @@ export default function HomePage() {
         </div>
       )}
 
+      {/* MODALE FILTRES */}
       {showFilters && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300" onClick={() => setShowFilters(false)}>
-            <div className="bg-white w-full max-w-md rounded-t-4xl sm:rounded-3xl p-6 shadow-2xl space-y-6 animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
+            <div className="bg-white w-full max-w-md rounded-t-[2.5rem] sm:rounded-3xl p-6 shadow-2xl space-y-6 animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
                 <div className="flex justify-between items-center border-b border-gray-50 pb-4">
                     <div>
                         <h3 className="font-extrabold text-xl text-gray-900 tracking-tight">Filtrer par prix</h3>
                         <p className="text-xs text-gray-400 font-medium mt-0.5">Définissez votre budget en KMF</p>
                     </div>
-                    <button onClick={() => {setPriceMin(''); setPriceMax('')}} className="p-2 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full transition active:scale-90" title="Réinitialiser">
+                    <button onClick={() => {setPriceMin(''); setPriceMax('')}} className="p-2 bg-gray-50 text-gray-400 hover:text-red-500 rounded-full transition active:scale-90">
                         <RefreshCw size={18} />
                     </button>
                 </div>
@@ -173,27 +175,14 @@ export default function HomePage() {
                     </div>
                 </div>
 
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase mb-3 block">Suggestions rapides</label>
-                    <div className="flex flex-wrap gap-2">
-                        {BUDGET_CHIPS.map((chip, idx) => {
-                            const isActive = priceMin === chip.min && priceMax === chip.max
-                            return (
-                                <button key={idx} onClick={() => applyBudget(chip.min, chip.max)} className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all active:scale-95 ${isActive ? 'bg-mustard text-white border-mustard shadow-md shadow-mustard/30' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}>
-                                    {chip.label}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-
-                <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
+                <button onClick={() => setShowFilters(false)} className="w-full bg-brand text-white font-bold py-4 rounded-2xl shadow-xl shadow-brand/30 transition transform active:scale-[0.98] flex items-center justify-center gap-2 text-sm uppercase tracking-wide">
                     <Check size={20} /> Voir les annonces
                 </button>
             </div>
         </div>
       )}
 
+      {/* HEADER */}
       <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-30 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="font-extrabold text-2xl tracking-tight">
@@ -202,7 +191,7 @@ export default function HomePage() {
             </h1>
             
             {userId ? (
-                <Link href="/compte" className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm hover:bg-white/30 transition shadow-sm border border-white/10">
+                <Link href={`/profil/${userId}`} className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm hover:bg-white/30 transition shadow-sm border border-white/10">
                     <User size={18} className="text-white" />
                 </Link>
             ) : (
@@ -216,126 +205,103 @@ export default function HomePage() {
             <div className="relative flex-1">
                 <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none focus:ring-4 focus:ring-mustard/50 transition shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
-                {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400 hover:text-gray-600"><X size={18} /></button>}
+                {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400"><X size={18} /></button>}
             </div>
             
-            <button 
-                onClick={() => setShowFilters(true)} 
-                className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border relative ${
-                    (priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'
-                }`}
-            >
+            <button onClick={() => setShowFilters(true)} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition shadow-sm border relative ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard' : 'bg-white/20 text-white border-white/10'}`}>
                 <SlidersHorizontal size={20} />
                 {(priceMin || priceMax) && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-mustard"></span>}
             </button>
         </div>
       </div>
 
-      {/* BARRE DE CATEGORIES LUXUEUSE */}
+      {/* CATEGORIES */}
       <div className="bg-white border-b border-gray-100 py-3 sticky top-30 z-20 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button 
-                    key={cat.id} 
-                    onClick={() => setSelectedCategory(cat.id)} 
-                    className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group ${
-                        selectedCategory === cat.id 
-                        ? 'bg-brand/10 text-brand border border-brand/20' 
-                        : 'text-gray-400 hover:bg-gray-50 hover:text-gray-600'
-                    }`}
-                >
-                    {/* ICONE VECTORIELLE */}
-                    <cat.icon 
-                        size={24} 
-                        strokeWidth={1.5} // Trait fin pour l'élégance
-                        className={`transition-colors duration-300 ${selectedCategory === cat.id ? 'text-brand drop-shadow-sm' : 'text-gray-400 group-hover:text-gray-600'}`} 
-                    />
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-[70px] p-2 rounded-2xl transition active:scale-95 group ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-400'}`}>
+                    <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-400 group-hover:text-gray-600'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
             ))}
         </div>
-        {currentSubCats && currentSubCats.length > 0 && (
-            <div className="flex gap-2 overflow-x-auto px-4 mt-3 pb-1 scrollbar-hide animate-in slide-in-from-top-2 fade-in">
-                <button onClick={() => setSelectedSubCategory('Tout')} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border whitespace-nowrap transition ${selectedSubCategory === 'Tout' ? 'bg-gray-800 text-white border-gray-800' : 'bg-gray-50 text-gray-600 border-gray-200'}`}>Tout voir</button>
-                {currentSubCats.map(sub => (<button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border whitespace-nowrap transition ${selectedSubCategory === sub ? 'bg-brand text-white border-brand' : 'bg-white text-gray-600 border-gray-200'}`}>{sub}</button>))}
-            </div>
-        )}
       </div>
 
+      {/* ILES */}
       <div className="px-4 py-3 flex gap-2 overflow-x-auto scrollbar-hide">
-        {ISLANDS.map(ile => (<button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{ile}</button>))}
+        {ISLANDS.map(ile => (<button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>{ile}</button>))}
       </div>
 
-      <div className="px-4 py-2 space-y-3">
-        {loading ? (<div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2"><Loader2 className="animate-spin text-brand" size={32} /><span className="text-xs font-medium">Chargement...</span></div>) : products.length === 0 ? (<div className="text-center text-gray-400 pt-20 flex flex-col items-center"><div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Package size={32} className="opacity-30" /></div><p>Aucune annonce trouvée.</p><button onClick={() => {setSearchTerm(''); setSelectedCategory(0); setSelectedIsland('Tout'); setPriceMin(''); setPriceMax('')}} className="mt-4 text-brand font-bold text-sm hover:underline">Tout effacer</button></div>) : (
-            <div className="grid grid-cols-2 gap-3">
-                {products.map(product => {
-                    let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
-                    const isFav = favorites.has(product.id)
-                    const isPro = product.is_pro
+      {/* GRID PRODUITS */}
+      <div className="px-4 py-2 pb-24">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center pt-20 text-gray-400 gap-2"><Loader2 className="animate-spin text-brand" size={32} /></div>
+        ) : products.length === 0 ? (
+          <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4"><Package size={32} className="opacity-30" /></div>
+            <p>Aucune annonce trouvée.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {products.map(product => {
+              let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+              const isFav = favorites.has(product.id)
+              const isPro = product.is_pro
+              // VÉRIFICATION DU BOOST ACTIF
+              const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
+              
+              return (
+                <Link key={product.id} href={`/annonce/${product.id}`} 
+                      className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
+                        isBoosted 
+                        ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-amber-50' 
+                        : isPro 
+                          ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
+                          : 'bg-white shadow-sm border border-gray-100'
+                      }`}>
+                  
+                  <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+                    {img && <Image src={img} alt={product.title} fill sizes="50vw" className="object-cover transition duration-500 group-hover:scale-110" />}
                     
-                    return (
-                        <Link 
-                            key={product.id} 
-                            href={`/annonce/${product.id}`} 
-                            className={`rounded-xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
-                                isPro 
-                                ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
-                                : 'bg-white shadow-sm border border-gray-100 hover:shadow-md'
-                            }`}
-                        >
-                            <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                                {img ? (
-                                    <Image 
-                                        src={img} 
-                                        alt={product.title} 
-                                        fill 
-                                        sizes="(max-width: 768px) 50vw, 33vw"
-                                        className="object-cover transition-transform duration-500 group-hover:scale-110" 
-                                    />
-                                ) : (
-                                    <div className="flex items-center justify-center h-full text-gray-300"><Package /></div>
-                                )}
-                                
-                                {isPro && (
-                                    <div className="absolute top-2 left-2 bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
-                                        <Crown size={10} strokeWidth={3} /> PRO
-                                    </div>
-                                )}
+                    {/* BADGES PRIORITAIRES */}
+                    <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
+                      {isBoosted && (
+                        <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-lg border border-white/20 flex items-center gap-1">
+                          <Sparkles size={10} className="animate-pulse" /> EN VEDETTE
+                        </div>
+                      )}
+                      {isPro && !isBoosted && (
+                        <div className="bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
+                          <Crown size={10} strokeWidth={3} /> PRO
+                        </div>
+                      )}
+                    </div>
 
-                                <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white transition active:scale-90 z-10 text-gray-500 hover:text-red-500">
-                                    <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
-                                </button>
-                                
-                                {img && (
-                                    <button onClick={(e) => openPreview(e, img)} className="absolute bottom-2 left-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm hover:bg-white text-gray-700 transition active:scale-90 z-10 hover:text-brand">
-                                        <ZoomIn size={14} />
-                                    </button>
-                                )}
-
-                                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-1.5 py-0.5 rounded z-10 font-medium">
-                                    {product.location_island}
-                                </div>
-                            </div>
-                            
-                            <div className="p-3">
-                                <h3 className="font-bold text-gray-900 text-sm mb-1 truncate flex items-center gap-1" title={product.title}>
-                                    {product.title}
-                                    {isPro && <ShieldCheck size={12} className="text-mustard fill-mustard/20 shrink-0" />}
-                                </h3>
-                                
-                                <p className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
-                                    {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
-                                </p>
-                                
-                                <div className="flex items-center gap-1 text-gray-400 text-[10px] mt-1">
-                                    <MapPin size={10} /> {product.location_city}
-                                </div>
-                            </div>
-                        </Link>
-                    )
-                })}
-            </div>
+                    <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm z-10 text-gray-500">
+                      <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
+                    </button>
+                    
+                    <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[8px] px-1.5 py-0.5 rounded z-10 font-bold uppercase tracking-widest">
+                      {product.location_island}
+                    </div>
+                  </div>
+                  
+                  <div className="p-3">
+                    <h3 className="font-bold text-gray-900 text-sm mb-1 truncate flex items-center gap-1">
+                      {product.title}
+                      {isPro && <ShieldCheck size={12} className="text-mustard fill-mustard/20 shrink-0" />}
+                    </h3>
+                    <p className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600' : isPro ? 'text-mustard-dark' : 'text-brand'}`}>
+                      {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
+                    </p>
+                    <div className="flex items-center gap-1 text-gray-400 text-[9px] font-bold uppercase mt-1 tracking-tight">
+                      <MapPin size={10} className="text-brand/50" /> {product.location_city}
+                    </div>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

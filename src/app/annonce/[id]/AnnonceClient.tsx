@@ -9,7 +9,8 @@ import {
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, CheckCircle, 
   User, ArrowRight, X, ChevronLeft, ChevronRight, 
   Share2, Flag, ZoomIn, Crown, ShieldCheck, AlertTriangle, 
-  Sparkles, CheckCircle2, MessageCircle
+  Sparkles, CheckCircle2, MessageCircle, Zap,
+  Clock
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -120,7 +121,7 @@ export default function AnnonceClient() {
   const prevImage = (e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
+      setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) : 0))
     } else {
       setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)
     }
@@ -194,6 +195,8 @@ export default function AnnonceClient() {
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
   const isPro = product.profiles?.is_pro
+  // VÉRIFICATION DU BOOST ACTIF
+  const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   const headerButtonStyle = "p-3 bg-white rounded-2xl text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
 
@@ -237,11 +240,22 @@ export default function AnnonceClient() {
       {/* CONTENU */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-8 -mt-8 bg-white rounded-t-[3rem] relative z-10 min-h-[50vh] shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
+            
+            {/* BADGE BOOSTÉ (SILK & STONE) */}
+            {isBoosted && (
+              <motion.div 
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] mb-6 shadow-lg shadow-amber-500/20"
+              >
+                <Sparkles size={14} className="animate-pulse" /> Annonce en Vedette
+              </motion.div>
+            )}
+
             <div className="flex justify-between items-start mb-8">
                 <div className="flex-1 pr-4">
                     <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight flex items-center gap-2">
                         {product.title} 
-                        {/* COURONNE PRO TITRE (Style Accueil) */}
                         {isPro && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
                     <div className="flex items-center gap-1.5 text-gray-400 text-xs font-black uppercase tracking-widest">
@@ -253,7 +267,7 @@ export default function AnnonceClient() {
                         {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                     </p>
                     <div className="flex items-center justify-end gap-1 text-[10px] text-gray-300 font-bold uppercase mt-1">
-                        <Sparkles size={10} /> {new Date(product.created_at).toLocaleDateString()}
+                        <Clock size={10} /> {new Date(product.created_at).toLocaleDateString()}
                     </div>
                 </div>
             </div>
@@ -266,7 +280,6 @@ export default function AnnonceClient() {
                     <div>
                         <p className="font-black text-gray-900 flex items-center gap-1.5">
                           {product.profiles?.full_name || "Utilisateur"} 
-                          {/* COURONNE PRO VENDEUR (Style Accueil) */}
                           {isPro && <Crown size={14} className="text-amber-500 fill-amber-500" />}
                         </p>
                         <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isPro ? 'Vendeur Professionnel' : 'Vendeur Particulier'}</p>
@@ -301,7 +314,7 @@ export default function AnnonceClient() {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX (Fond blanc, flèches noires bold) */}
+      {/* LIGHTBOX */}
       {lightboxIndex !== null && (
         <div 
           className="fixed inset-0 z-[200] bg-white animate-in fade-in" 

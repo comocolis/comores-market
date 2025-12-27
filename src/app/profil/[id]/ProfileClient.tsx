@@ -8,10 +8,12 @@ import Link from 'next/link'
 import { 
   MapPin, User, ShieldCheck, ArrowLeft, Loader2, 
   Facebook, Instagram, Star, Plus, X, 
-  Crown, Award, CheckCircle2, ShoppingBag, Share2, Clock, Camera
+  Crown, Award, CheckCircle2, ShoppingBag, Share2, Clock, Camera, Sparkles,
+  FileText // Ajouté pour le reçu PDF
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { generatePROReceipt } from '@/utils/generateReceipt' // Import de l'utilitaire
 
 export default function ProfileClient() {
   const supabase = createClient()
@@ -129,8 +131,6 @@ export default function ProfileClient() {
   if (!profile) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
 
   const isPro = profile?.is_pro
-
-  // Style commun pour les boutons du header (Fond blanc, icônes vertes) pour visibilité sur zones blanches
   const headerButtonStyle = "p-3 bg-white rounded-full text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
 
   return (
@@ -144,7 +144,6 @@ export default function ProfileClient() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#F0F2F5] via-transparent to-black/50" />
 
-        {/* HEADER BOUTONS UNIFORMISÉS (Boutons Verts sur Blanc) */}
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
             <button onClick={() => router.back()} className={headerButtonStyle}>
               <ArrowLeft size={22} strokeWidth={2.5} />
@@ -172,7 +171,6 @@ export default function ProfileClient() {
             <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isPro ? 'bg-amber-50' : 'bg-gray-100'}`}>
                 {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
             </div>
-            {/* COURONNE PRO SUR AVATAR (Style Prestige) */}
             {isPro && (
               <div className="absolute -bottom-2 -right-2 bg-amber-50 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white flex items-center justify-center">
                 <Crown size={18} className="fill-amber-500 text-amber-500" />
@@ -181,7 +179,6 @@ export default function ProfileClient() {
           </div>
 
           <div className="space-y-1">
-            {/* NOM AVEC COURONNE (Comme Accueil) */}
             <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
               {profile.full_name || "Utilisateur"} 
               {isPro && <Crown size={22} className="text-amber-500 fill-amber-500" />}
@@ -197,6 +194,20 @@ export default function ProfileClient() {
             <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Confiance</span></div>
             <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span></div>
           </div>
+
+          {/* BOUTON FACTURE PRESTIGE (UNIQUEMENT POUR LE PROPRIÉTAIRE PRO) */}
+          {isOwner && isPro && (
+            <button 
+              onClick={() => generatePROReceipt({ 
+                full_name: profile.full_name, 
+                email: currentUser?.email || '', 
+                date: profile.created_at 
+              })}
+              className="mt-6 flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-6 py-3 rounded-2xl shadow-sm border border-emerald-100 active:scale-95 transition-all"
+            >
+              <FileText size={14} /> Ma facture Prestige
+            </button>
+          )}
 
           <div className="mt-6 space-y-4 w-full">
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
@@ -218,16 +229,53 @@ export default function ProfileClient() {
                 <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
                     {products.map(p => {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
+                        
+                        // Détection du Boost
+                        const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date();
+
                         return (
-                            <Link key={p.id} href={`/annonce/${p.id}`} className="group">
-                              <div className="bg-white rounded-xl p-3 shadow-sm border border-white hover:border-brand/20 transition-all">
+                          <div key={p.id} className="flex flex-col gap-3">
+                            <Link href={`/annonce/${p.id}`} className="group relative">
+                              {/* Bordure Silk & Stone ambre si l'annonce est boostée */}
+                              <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
                                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
                                     {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
+                                    
+                                    {/* Badge Boosté Scintillant */}
+                                    {isBoosted && (
+                                      <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
+                                        <Sparkles size={10} className="animate-pulse" /> Boosté
+                                      </div>
+                                    )}
+
                                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
                                   </div>
-                                  <div className="pt-3 px-1"><h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3><div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest"><ShoppingBag size={10} /> {p.location_city}</div></div>
+                                  <div className="pt-3 px-1">
+                                    <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
+                                    <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                                      <ShoppingBag size={10} /> {p.location_city}
+                                    </div>
+                                  </div>
                               </div>
                             </Link>
+
+                            {/* ACTIONS PROPRIÉTAIRE (Boost) */}
+                            {isOwner && (
+                              isBoosted ? (
+                                <div className="w-full bg-amber-50 text-amber-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
+                                  <Clock size={12} /> {Math.ceil((new Date(p.boosted_until).getTime() - new Date().getTime()) / (1000 * 3600))}h rest.
+                                </div>
+                              ) : (
+                                <Link 
+                                  href={`/boost/${p.id}`}
+                                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
+                                >
+                                  <Sparkles size={12} className="group-hover:rotate-12 transition-transform" />
+                                  Booster 24h
+                                </Link>
+                              )
+                            )}
+                          </div>
                         )
                     })}
                 </motion.div>
