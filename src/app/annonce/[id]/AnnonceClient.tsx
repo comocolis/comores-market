@@ -10,7 +10,7 @@ import {
   User, ArrowRight, X, ChevronLeft, ChevronRight, 
   Share2, Flag, ZoomIn, Crown, ShieldCheck, AlertTriangle, 
   Sparkles, CheckCircle2, MessageCircle, Zap,
-  Clock
+  Clock, Facebook, Instagram // Ajout Facebook et Instagram
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -89,7 +89,6 @@ export default function AnnonceClient() {
     logView()
   }, [product, supabase])
 
-  // --- LOGIQUE DE SIGNALEMENT ---
   const submitReport = async () => {
     if (!reportReason.trim()) return toast.error("Veuillez indiquer un motif.")
     setReporting(true)
@@ -108,7 +107,6 @@ export default function AnnonceClient() {
     setReporting(false)
   }
 
-  // --- NAVIGATION IMAGES & SWIPE ---
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation()
     if (lightboxIndex !== null) {
@@ -195,7 +193,6 @@ export default function AnnonceClient() {
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
   const isPro = product.profiles?.is_pro
-  // VÉRIFICATION DU BOOST ACTIF
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   const headerButtonStyle = "p-3 bg-white rounded-2xl text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
@@ -203,7 +200,6 @@ export default function AnnonceClient() {
   return (
     <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900 overflow-x-hidden relative">
       
-      {/* HEADER FLOTTANT */}
       <div className="fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
           <button onClick={() => router.back()} className={headerButtonStyle}>
             <ArrowLeft size={22} strokeWidth={2.5} />
@@ -222,7 +218,6 @@ export default function AnnonceClient() {
           </div>
       </div>
 
-      {/* GALERIE */}
       <div className="relative w-full h-[50vh] bg-gray-900 group cursor-pointer" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image src={images[selectedImageIndex] || '/placeholder.png'} alt={product.title} fill className="object-cover opacity-90 transition duration-700 group-hover:scale-105" priority />
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -237,17 +232,11 @@ export default function AnnonceClient() {
         </div>
       </div>
 
-      {/* CONTENU */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-8 -mt-8 bg-white rounded-t-[3rem] relative z-10 min-h-[50vh] shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             
-            {/* BADGE BOOSTÉ (SILK & STONE) */}
             {isBoosted && (
-              <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] mb-6 shadow-lg shadow-amber-500/20"
-              >
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.1em] mb-6 shadow-lg shadow-amber-500/20">
                 <Sparkles size={14} className="animate-pulse" /> Annonce en Vedette
               </motion.div>
             )}
@@ -272,21 +261,40 @@ export default function AnnonceClient() {
                 </div>
             </div>
 
-            <Link href={`/profil/${product.user_id}`} className="bg-[#F5F7F9] p-5 rounded-[2rem] border border-white flex items-center justify-between mb-10 active:scale-[0.98] transition-all hover:shadow-md">
-                <div className="flex items-center gap-4">
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-4 border-white shadow-sm ${isPro ? 'bg-amber-50' : 'bg-gray-200'}`}>
-                        {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={24} className="text-gray-400" />}
-                    </div>
-                    <div>
-                        <p className="font-black text-gray-900 flex items-center gap-1.5">
-                          {product.profiles?.full_name || "Utilisateur"} 
-                          {isPro && <Crown size={14} className="text-amber-500 fill-amber-500" />}
-                        </p>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isPro ? 'Vendeur Professionnel' : 'Vendeur Particulier'}</p>
-                    </div>
+            {/* BLOC VENDEUR AVEC RÉSEAUX SOCIAUX */}
+            <div className="flex flex-col gap-4 mb-10">
+              <Link href={`/profil/${product.user_id}`} className="bg-[#F5F7F9] p-5 rounded-[2rem] border border-white flex items-center justify-between active:scale-[0.98] transition-all hover:shadow-md">
+                  <div className="flex items-center gap-4">
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-4 border-white shadow-sm ${isPro ? 'bg-amber-50' : 'bg-gray-200'}`}>
+                          {product.profiles?.avatar_url ? <Image src={product.profiles.avatar_url} alt="" fill className="object-cover" /> : <User size={24} className="text-gray-400" />}
+                      </div>
+                      <div>
+                          <p className="font-black text-gray-900 flex items-center gap-1.5">
+                            {product.profiles?.full_name || "Utilisateur"} 
+                            {isPro && <Crown size={14} className="text-amber-500 fill-amber-500" />}
+                          </p>
+                          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">{isPro ? 'Vendeur Professionnel' : 'Vendeur Particulier'}</p>
+                      </div>
+                  </div>
+                  <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
+              </Link>
+
+              {/* RESTAURATION LIENS SOCIAUX */}
+              {(product.profiles?.facebook_url || product.profiles?.instagram_url) && (
+                <div className="flex justify-center gap-3 px-2">
+                  {product.profiles.facebook_url && (
+                    <a href={product.profiles.facebook_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-blue-50 text-blue-600 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">
+                      <Facebook size={16} fill="currentColor" /> Facebook
+                    </a>
+                  )}
+                  {product.profiles.instagram_url && (
+                    <a href={product.profiles.instagram_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3 bg-white border border-pink-50 text-pink-600 rounded-2xl text-[10px] font-black uppercase tracking-widest active:scale-95 transition-all shadow-sm">
+                      <Instagram size={16} /> Instagram
+                    </a>
+                  )}
                 </div>
-                <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
-            </Link>
+              )}
+            </div>
 
             <div className="mb-12">
                 <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] mb-4">Description</h3>
@@ -316,38 +324,23 @@ export default function AnnonceClient() {
 
       {/* LIGHTBOX */}
       {lightboxIndex !== null && (
-        <div 
-          className="fixed inset-0 z-[200] bg-white animate-in fade-in" 
-          onTouchStart={onTouchStart} 
-          onTouchMove={onTouchMove} 
-          onTouchEnd={onTouchEndAction}
-        >
+        <div className="fixed inset-0 z-[200] bg-white animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
             <button onClick={() => setLightboxIndex(null)} className="absolute top-10 right-6 z-[210] text-black p-3 rounded-full active:scale-90 transition"><X size={32} strokeWidth={2.5} /></button>
-            
             <TransformWrapper centerOnInit={true}>
               <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
                 <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
               </TransformComponent>
             </TransformWrapper>
-            
             {images.length > 1 && (
                 <>
-                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition">
-                      <ChevronLeft size={44} strokeWidth={3} />
-                    </button>
-                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition">
-                      <ChevronRight size={44} strokeWidth={3} />
-                    </button>
-                    
-                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-2 text-black text-sm font-black tracking-widest z-[210]">
-                      {lightboxIndex + 1} / {images.length}
-                    </div>
+                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronLeft size={44} strokeWidth={3} /></button>
+                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronRight size={44} strokeWidth={3} /></button>
+                    <div className="absolute bottom-10 left-1/2 -translate-x-1/2 px-6 py-2 text-black text-sm font-black tracking-widest z-[210]">{lightboxIndex + 1} / {images.length}</div>
                 </>
             )}
         </div>
       )}
 
-      {/* MODALE SIGNALEMENT */}
       <AnimatePresence>
         {showReportModal && (
           <div className="fixed inset-0 z-[300] bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>

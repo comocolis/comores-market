@@ -9,11 +9,11 @@ import {
   MapPin, User, ShieldCheck, ArrowLeft, Loader2, 
   Facebook, Instagram, Star, Plus, X, 
   Crown, Award, CheckCircle2, ShoppingBag, Share2, Clock, Camera, Sparkles,
-  FileText // Ajouté pour le reçu PDF
+  FileText, Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
-import { generatePROReceipt } from '@/utils/generateReceipt' // Import de l'utilitaire
+import { generatePROReceipt } from '@/utils/generateReceipt'
 
 export default function ProfileClient() {
   const supabase = createClient()
@@ -97,10 +97,6 @@ export default function ProfileClient() {
     const file = e.target.files[0]
     setUploadingCover(true)
     try {
-      if (profile.cover_url && profile.cover_url.includes('avatars/')) {
-        const oldPath = profile.cover_url.split('avatars/')[1]
-        if (oldPath) await supabase.storage.from('avatars').remove([oldPath])
-      }
       const fileName = `${currentUser.id}/cover_${Date.now()}.${file.name.split('.').pop()}`
       const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (upErr) throw upErr
@@ -165,7 +161,7 @@ export default function ProfileClient() {
       </div>
 
       <div className="max-w-4xl mx-auto px-5">
-        <div className="bg-white -mt-24 rounded-[3rem] shadow-[0_10px_50px_-12px_rgba(0,0,0,0.1)] relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
+        <div className="bg-white -mt-24 rounded-[3rem] shadow-xl relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
           
           <div className="relative -mt-16 mb-4">
             <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isPro ? 'bg-amber-50' : 'bg-gray-100'}`}>
@@ -195,19 +191,37 @@ export default function ProfileClient() {
             <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span></div>
           </div>
 
-          {/* BOUTON FACTURE PRESTIGE (UNIQUEMENT POUR LE PROPRIÉTAIRE PRO) */}
-          {isOwner && isPro && (
-            <button 
-              onClick={() => generatePROReceipt({ 
-                full_name: profile.full_name, 
-                email: currentUser?.email || '', 
-                date: profile.created_at 
-              })}
-              className="mt-6 flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-6 py-3 rounded-2xl shadow-sm border border-emerald-100 active:scale-95 transition-all"
-            >
-              <FileText size={14} /> Ma facture Prestige
-            </button>
-          )}
+          {/* ACTIONS : FACTURE & RÉSEAUX SOCIAUX */}
+          <div className="mt-6 flex flex-col items-center gap-5 w-full">
+            {isOwner && isPro && (
+              <button 
+                onClick={() => generatePROReceipt({ 
+                  full_name: profile.full_name, 
+                  email: currentUser?.email || '', 
+                  date: profile.created_at 
+                })}
+                className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-[1.5rem] shadow-sm border border-emerald-100 active:scale-95 transition-all"
+              >
+                <FileText size={14} /> Ma facture Prestige
+              </button>
+            )}
+
+            {/* RESTAURATION DES LIENS SOCIAUX */}
+            {(profile.facebook_url || profile.instagram_url) && (
+              <div className="flex justify-center gap-3">
+                {profile.facebook_url && (
+                  <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
+                    <Facebook size={20} fill="currentColor" />
+                  </a>
+                )}
+                {profile.instagram_url && (
+                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all active:scale-90 border border-pink-100">
+                    <Instagram size={20} />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
 
           <div className="mt-6 space-y-4 w-full">
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
@@ -229,25 +243,19 @@ export default function ProfileClient() {
                 <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
                     {products.map(p => {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
-                        
-                        // Détection du Boost
                         const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date();
 
                         return (
                           <div key={p.id} className="flex flex-col gap-3">
                             <Link href={`/annonce/${p.id}`} className="group relative">
-                              {/* Bordure Silk & Stone ambre si l'annonce est boostée */}
                               <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
                                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
                                     {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
-                                    
-                                    {/* Badge Boosté Scintillant */}
                                     {isBoosted && (
                                       <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
                                         <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
                                     )}
-
                                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
                                   </div>
                                   <div className="pt-3 px-1">
@@ -259,7 +267,7 @@ export default function ProfileClient() {
                               </div>
                             </Link>
 
-                            {/* ACTIONS PROPRIÉTAIRE (Boost) */}
+                            {/* BOUTON BOOSTER (Propriétaire uniquement) */}
                             {isOwner && (
                               isBoosted ? (
                                 <div className="w-full bg-amber-50 text-amber-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
@@ -270,7 +278,7 @@ export default function ProfileClient() {
                                   href={`/boost/${p.id}`}
                                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >
-                                  <Sparkles size={12} className="group-hover:rotate-12 transition-transform" />
+                                  <Zap size={14} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
                                   Booster 24h
                                 </Link>
                               )
