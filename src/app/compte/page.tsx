@@ -8,9 +8,11 @@ import Image from 'next/image'
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
   PenSquare, X, LayoutDashboard, Pencil, Package, Heart, ChevronRight, Save,
-  Facebook, Instagram, Crown, AlertTriangle, Trash2 
+  Facebook, Instagram, Crown, AlertTriangle, Trash2, Smartphone, Settings,
+  Globe, ShieldAlert
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function ComptePage() {
   const supabase = createClient()
@@ -22,6 +24,7 @@ export default function ComptePage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [counts, setCounts] = useState({ products: 0, favorites: 0 })
   
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
@@ -48,29 +51,34 @@ export default function ComptePage() {
   })
 
   useEffect(() => {
-    const getProfile = async () => {
+    const getInitialData = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return 
-      
+      if (!user) { router.push('/auth'); return }
       setUser(user) 
 
-      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single()
-      setProfile(data)
-      
-      if (data) {
+      // Récupération simultanée du profil et des statistiques
+      const [profRes, prodRes, favRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', user.id).single(),
+        supabase.from('products').select('id', { count: 'exact' }).eq('user_id', user.id),
+        supabase.from('favorites').select('id', { count: 'exact' }).eq('user_id', user.id)
+      ])
+
+      if (profRes.data) {
+        setProfile(profRes.data)
         setFormData({
-            full_name: data.full_name || '',
-            city: data.city || '',
-            island: data.island || 'Ngazidja',
-            phone_number: data.phone_number || '',
-            facebook_url: data.facebook_url || '',
-            instagram_url: data.instagram_url || '',
-            description: data.description || '' 
+            full_name: profRes.data.full_name || '',
+            city: profRes.data.city || '',
+            island: profRes.data.island || 'Ngazidja',
+            phone_number: profRes.data.phone_number || '',
+            facebook_url: profRes.data.facebook_url || '',
+            instagram_url: profRes.data.instagram_url || '',
+            description: profRes.data.description || '' 
         })
       }
+      setCounts({ products: prodRes.count || 0, favorites: favRes.count || 0 })
       setLoading(false)
     }
-    getProfile()
+    getInitialData()
   }, [router, supabase])
 
   const handleSignOut = async () => {
@@ -80,29 +88,11 @@ export default function ComptePage() {
   }
 
   const confirmDeleteAccount = async () => {
-      if (deleteConfirmation !== 'SUPPRIMER') {
-          toast.error("Mot-clé incorrect")
-          return
-      }
+      if (deleteConfirmation !== 'SUPPRIMER') { toast.error("Mot-clé incorrect"); return }
       setDeleting(true)
       const { error } = await supabase.rpc('delete_own_account')
-      if (error) {
-          toast.error("Erreur : " + error.message)
-          setDeleting(false)
-      } else {
-          toast.success("Votre compte a été supprimé.")
-          await supabase.auth.signOut()
-          router.push('/')
-          router.refresh()
-      }
-  }
-
-  const handleAvatarClick = () => {
-    if (!isEditingInfo) {
-        toast.info("Cliquez sur le bouton 'Modifier' pour changer votre photo.")
-        return
-    }
-    fileInputRef.current?.click()
+      if (error) { toast.error(error.message); setDeleting(false) } 
+      else { toast.success("Compte supprimé."); await supabase.auth.signOut(); router.push('/') }
   }
 
   const handleAvatarChange = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -110,59 +100,35 @@ export default function ComptePage() {
     const file = e.target.files[0]
     setAvatarUploading(true)
     try {
-        const fileExt = file.name.split('.').pop()
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`
-        const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, file)
-        if (uploadError) throw uploadError
+        const fileName = `${user.id}-${Date.now()}`
+        const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file)
+        if (upErr) throw upErr
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
-        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
-        if (updateError) throw updateError
+        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         setProfile({ ...profile, avatar_url: publicUrl })
-        toast.success("Photo mise à jour !")
-    } catch (error: any) {
-        toast.error("Erreur upload")
-    } finally {
-        setAvatarUploading(false)
-    }
+        toast.success("Photo mise à jour")
+    } catch (e) { toast.error("Erreur d'envoi") } finally { setAvatarUploading(false) }
   }
 
   const handleUpdateProfile = async () => {
-    if (!user) return
     setSaving(true)
     const { error } = await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
-    if (error) toast.error("Erreur mise à jour")
+    if (error) toast.error("Erreur lors de la sauvegarde")
     else {
-        toast.success("Profil mis à jour !")
+        toast.success("Profil mis à jour")
         setIsEditingInfo(false)
         setProfile({ ...profile, ...formData })
     }
     setSaving(false)
   }
 
-  const cancelEditInfo = () => {
-    setFormData({
-        full_name: profile?.full_name || '',
-        city: profile?.city || '',
-        island: profile?.island || 'Ngazidja',
-        phone_number: profile?.phone_number || '',
-        facebook_url: profile?.facebook_url || '',
-        instagram_url: profile?.instagram_url || '',
-        description: profile?.description || ''
-    })
-    setIsEditingInfo(false)
-  }
-
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (newPassword.length < 6) return toast.warning("Minimum 6 caractères")
+    if (newPassword.length < 6) return toast.warning("6 caractères minimum")
     setPasswordLoading(true)
     const { error } = await supabase.auth.updateUser({ password: newPassword })
     if (error) toast.error(error.message)
-    else {
-        toast.success("Mot de passe modifié !")
-        setNewPassword('')
-        setIsEditingPassword(false)
-    }
+    else { toast.success("Mot de passe modifié"); setIsEditingPassword(false) }
     setPasswordLoading(false)
   }
 
@@ -171,210 +137,228 @@ export default function ComptePage() {
     : 0
   const isProActive = profile?.is_pro && daysRemaining > 0
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-white"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F8F9FB] pb-24 font-sans text-gray-900">
       
-      {/* MODALE SUPPRESSION */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-110 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-5 animate-in zoom-in-95 border-t-4 border-red-600">
-                <div className="text-center">
-                    <div className="bg-red-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600"><AlertTriangle size={32} /></div>
-                    <h3 className="font-extrabold text-xl">Êtes-vous sûr ?</h3>
-                    <p className="text-sm text-gray-500">Action irréversible. Vos données seront effacées.</p>
-                </div>
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
-                    <label className="text-xs font-bold text-gray-500 uppercase mb-2 block text-center">Tapez "SUPPRIMER"</label>
-                    <input type="text" className="w-full bg-white border border-gray-300 rounded-lg p-3 text-sm font-bold text-center outline-none uppercase" placeholder="SUPPRIMER" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
-                </div>
-                <div className="flex gap-3">
-                    <button onClick={() => setShowDeleteModal(false)} className="flex-1 py-3 rounded-xl font-bold text-gray-700 bg-gray-100">Annuler</button>
-                    <button onClick={confirmDeleteAccount} disabled={deleting || deleteConfirmation !== 'SUPPRIMER'} className="flex-1 py-3 rounded-xl font-bold text-white bg-red-600 disabled:opacity-50">Confirmer</button>
-                </div>
+      {/* HEADER : ÉLÉGANCE ET STATUT */}
+      <div className="bg-white px-6 pt-16 pb-12 rounded-b-[3.5rem] shadow-sm border-b border-gray-100 relative">
+        <div className="flex justify-between items-start mb-8">
+            <div>
+              <h1 className="text-3xl font-black tracking-tighter">Mon Espace</h1>
+              <p className="text-gray-400 text-xs font-bold uppercase tracking-widest mt-1">Tableau de bord personnel</p>
             </div>
-        </div>
-      )}
-
-      {/* HEADER */}
-      <div className="bg-white p-6 pb-8 rounded-b-4xl shadow-sm relative z-10">
-        <div className="flex justify-between items-start mb-6">
-            <h1 className="text-2xl font-bold">Mon Compte</h1>
-            <button onClick={handleSignOut} className="bg-gray-100 p-2 rounded-full text-gray-500 hover:text-red-500 transition"><LogOut size={20} /></button>
+            <button onClick={handleSignOut} className="p-3 bg-red-50 text-red-500 rounded-2xl active:scale-90 transition shadow-sm border border-red-100"><LogOut size={20} /></button>
         </div>
 
-        <div className="flex items-center gap-4">
-            <div className="relative group cursor-pointer" onClick={handleAvatarClick}>
-                <div className={`w-20 h-20 bg-brand/10 rounded-full flex items-center justify-center text-brand text-2xl font-bold overflow-hidden border-2 shadow-md relative transition-all ${isEditingInfo ? 'border-brand' : 'border-white'}`}>
-                    {avatarUploading ? <Loader2 className="animate-spin" /> : profile?.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : profile?.full_name?.[0]?.toUpperCase() || <User size={32} />}
-                    {isEditingInfo && <div className="absolute inset-0 bg-black/30 flex items-center justify-center"><Camera size={24} className="text-white" /></div>}
+        <div className="flex items-center gap-6">
+            <div className="relative group" onClick={() => isEditingInfo && fileInputRef.current?.click()}>
+                <div className={`w-24 h-24 rounded-[2.5rem] flex items-center justify-center overflow-hidden border-4 shadow-2xl transition-all duration-500 ${isEditingInfo ? 'border-brand scale-105' : 'border-white'}`}>
+                    {avatarUploading ? <Loader2 className="animate-spin" /> : profile?.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-300"><User size={40} /></div>}
+                    {isEditingInfo && <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center"><Camera size={28} className="text-white" /></div>}
                 </div>
-                <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-full border-2 border-white shadow-sm ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-100 text-gray-400'}`}>
-                    <Pencil size={12} strokeWidth={3} />
-                </div>
+                {isEditingInfo && <div className="absolute -bottom-1 -right-1 p-2 bg-brand text-white rounded-xl border-4 border-white shadow-lg"><Pencil size={14} strokeWidth={3} /></div>}
                 <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} />
             </div>
             
-            <div className="flex-1 min-w-0">
-                <h2 className="font-bold text-lg truncate">{profile?.full_name || "Utilisateur"}</h2>
-                <p className="text-sm text-gray-500 truncate mb-1">{user?.email}</p>
-                {isProActive ? (
-                    <div className="inline-flex flex-col items-start bg-green-50 px-3 py-1.5 rounded-lg border border-green-100">
-                        <span className="flex items-center gap-1 text-green-700 text-[10px] font-bold uppercase"><ShieldCheck size={10} /> Vendeur PRO</span>
-                        <span className="text-[10px] text-green-600 font-medium mt-0.5">Expire dans {daysRemaining} jours</span>
-                    </div>
-                ) : (
-                    <Link href="/pro" className="inline-flex items-center gap-1 bg-gray-900 text-white text-[10px] font-bold px-3 py-1.5 rounded-lg">DEVENIR PRO</Link>
-                )}
+            <div className="flex-1">
+                <h2 className="font-black text-2xl tracking-tight">{profile?.full_name || "Utilisateur"}</h2>
+                <p className="text-sm text-gray-400 font-medium mb-3">{user?.email}</p>
+                <div className="flex gap-2">
+                    {!isEditingInfo && <button onClick={() => setIsEditingInfo(true)} className="px-4 py-2 bg-gray-100 text-gray-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-gray-200">Modifier</button>}
+                    <Link href={`/profil/${user?.id}`} className="px-4 py-2 bg-white text-brand text-[10px] font-black uppercase tracking-widest rounded-lg border border-brand/20 shadow-sm">Voir Profil Public</Link>
+                </div>
             </div>
         </div>
       </div>
 
-      <div className="px-4 -mt-4 relative z-0 space-y-5 pt-8">
-        {user?.email === ADMIN_EMAIL && (
-             <Link href="/admin" className="w-full bg-gray-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg active:scale-95 transition border border-gray-700">
-                <div className="flex items-center gap-3">
-                    <div className="bg-white/10 p-2 rounded-lg"><LayoutDashboard size={24} className="text-brand" /></div>
-                    <div><p className="font-bold text-lg leading-tight">Administration</p><p className="text-xs text-gray-400">Accès réservé</p></div>
+      <div className="px-5 -mt-8 relative z-20 space-y-6">
+        
+        {/* CARTE DE MEMBRE PRO (STYLE GOLD/DARK) */}
+        {isProActive ? (
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="bg-gradient-to-br from-gray-900 to-gray-800 p-6 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10 group">
+                <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:rotate-12 transition-transform duration-700"><Crown size={120} className="text-amber-500" /></div>
+                <div className="relative z-10">
+                    <div className="flex items-center gap-2 text-amber-400 mb-2">
+                        <Crown size={18} fill="currentColor" />
+                        <span className="text-xs font-black uppercase tracking-[0.2em]">Membre Prestige</span>
+                    </div>
+                    <p className="text-white font-black text-xl mb-1">Vendeur Professionnel</p>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Expire dans {daysRemaining} jours</p>
                 </div>
-                <ChevronRight className="text-gray-500" />
-             </Link>
+            </motion.div>
+        ) : (
+            <Link href="/pro" className="block bg-white p-6 rounded-[2.5rem] shadow-sm border border-brand/20 relative group overflow-hidden">
+                <div className="absolute inset-0 bg-brand/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="bg-brand/10 p-3 rounded-2xl text-brand"><Crown size={24} /></div>
+                        <div>
+                            <p className="font-black text-gray-900 uppercase text-[10px] tracking-widest mb-0.5">Offre Exclusive</p>
+                            <p className="font-bold text-lg text-brand tracking-tight">Devenir Vendeur PRO</p>
+                        </div>
+                    </div>
+                    <ChevronRight className="text-brand group-hover:translate-x-1 transition-transform" />
+                </div>
+            </Link>
         )}
 
-        {/* Liens rapides */}
-        <div className="bg-white p-2 rounded-2xl shadow-sm border border-gray-100">
-            <Link href="/mes-annonces" className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition group">
-                <div className="flex items-center gap-4">
-                    <div className="bg-blue-50 text-blue-600 p-2.5 rounded-xl"><Package size={20} /></div>
-                    <span className="font-bold text-gray-700">Mes Annonces</span>
+        {/* SECTION : ACTIVITÉ */}
+        <div className="grid grid-cols-2 gap-4">
+            <Link href="/mes-annonces" className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-white flex flex-col gap-4 active:scale-95 transition-all">
+                <div className="flex justify-between items-start">
+                    <div className="bg-blue-50 text-blue-600 p-3 rounded-2xl"><Package size={24} /></div>
+                    <span className="text-2xl font-black text-gray-900">{counts.products}</span>
                 </div>
-                <ChevronRight size={18} className="text-gray-300" />
+                <span className="font-black text-[10px] uppercase tracking-widest text-gray-400">Annonces</span>
             </Link>
-            <div className="h-px bg-gray-50 mx-4" />
-            <Link href="/favoris" className="flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition group">
-                <div className="flex items-center gap-4">
-                    <div className="bg-pink-50 text-pink-500 p-2.5 rounded-xl"><Heart size={20} /></div>
-                    <span className="font-bold text-gray-700">Mes Favoris</span>
+            <Link href="/favoris" className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-white flex flex-col gap-4 active:scale-95 transition-all">
+                <div className="flex justify-between items-start">
+                    <div className="bg-pink-50 text-pink-500 p-3 rounded-2xl"><Heart size={24} /></div>
+                    <span className="text-2xl font-black text-gray-900">{counts.favorites}</span>
                 </div>
-                <ChevronRight size={18} className="text-gray-300" />
+                <span className="font-black text-[10px] uppercase tracking-widest text-gray-400">Mes Favoris</span>
             </Link>
         </div>
 
-        {/* Formulaire Informations */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
-                <h3 className="font-bold flex items-center gap-2"><User size={18} /> Informations</h3>
-                {!isEditingInfo && <button onClick={() => setIsEditingInfo(true)} className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full">Modifier</button>}
-            </div>
+        {/* SECTION : INFORMATIONS PUBLIQUES */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-white space-y-6">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-gray-300 border-b border-gray-50 pb-4 flex items-center gap-2"><Globe size={14} /> Identité Publique</h3>
             
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase">Nom complet</label>
-                    {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-200" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} /> : <p className="p-3 font-medium text-sm">{profile?.full_name}</p>}
-                </div>
-
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase">À propos / Description</label>
+                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1 block mb-2">Nom du Showroom</label>
                     {isEditingInfo ? (
-                        <div className="relative">
-                            <textarea 
-                                maxLength={500}
-                                className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-200 min-h-32 resize-none" 
-                                placeholder="Présentez-vous ou votre société..." 
-                                value={formData.description} 
-                                onChange={e => setFormData({...formData, description: e.target.value})} 
-                            />
-                            <div className={`absolute bottom-2 right-3 text-[10px] font-bold ${formData.description.length >= 500 ? 'text-red-500' : 'text-gray-400'}`}>
-                                {formData.description.length} / 500
-                            </div>
-                        </div>
+                      <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
-                        <p className="p-3 text-sm whitespace-pre-line text-gray-700">{profile?.description || "Aucune description"}</p>
+                      <p className="p-4 bg-[#F9FAFB] rounded-2xl font-black text-sm border border-transparent">{profile?.full_name}</p>
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase">Île</label>
+                <div>
+                    <label className="text-[10px] font-black text-gray-400 uppercase ml-1 block mb-2">Description / Bio</label>
+                    {isEditingInfo ? (
+                        <div className="relative">
+                            <textarea maxLength={500} className="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold outline-none border border-gray-100 min-h-32 resize-none focus:ring-4 focus:ring-brand/5 transition" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                            <div className={`absolute bottom-3 right-4 text-[9px] font-black ${formData.description.length >= 500 ? 'text-red-500' : 'text-gray-300'}`}>{formData.description.length} / 500</div>
+                        </div>
+                    ) : (
+                        <p className="p-5 bg-gray-50/50 rounded-2xl text-sm font-medium text-gray-600 italic leading-relaxed border border-gray-50">"{profile?.description || "Racontez votre histoire en quelques mots..."}"</p>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 block">Région</label>
                         {isEditingInfo ? (
-                            <select className="w-full bg-gray-50 p-3 rounded-xl text-sm border border-gray-200" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
+                            <select className="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold border border-gray-100 outline-none" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
                                 <option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option><option>La Réunion</option>
                             </select>
-                        ) : ( <p className="p-3 text-sm">{profile?.island}</p> )}
+                        ) : ( <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-sm">{profile?.island}</p> )}
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 block">Ville</label>
+                        {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold border border-gray-100 outline-none" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-sm">{profile?.city}</p>}
+                    </div>
+                </div>
+
+                {/* RÉSEAUX SOCIAUX RESTAURÉS */}
+                <div className="pt-4 border-t border-gray-50 space-y-5">
+                    <div>
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 flex items-center gap-2 mb-2"><Facebook size={12} className="text-blue-600" /> Facebook</label>
+                        {isEditingInfo ? (
+                            <input type="url" placeholder="https://facebook.com/..." className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold border border-gray-100" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} />
+                        ) : (
+                            <p className="p-4 bg-gray-50/50 rounded-2xl text-xs font-bold text-blue-600 truncate">{profile?.facebook_url || "Non renseigné"}</p>
+                        )}
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase">Ville</label>
-                        {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-3 rounded-xl text-sm border border-gray-200" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-3 text-sm">{profile?.city}</p>}
+                        <label className="text-[10px] font-black text-gray-400 uppercase ml-1 flex items-center gap-2 mb-2"><Instagram size={12} className="text-pink-600" /> Instagram</label>
+                        {isEditingInfo ? (
+                            <input type="url" placeholder="https://instagram.com/..." className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold border border-gray-100" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} />
+                        ) : (
+                            <p className="p-4 bg-gray-50/50 rounded-2xl text-xs font-bold text-pink-600 truncate">{profile?.instagram_url || "Non renseigné"}</p>
+                        )}
                     </div>
-                </div>
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase">WhatsApp</label>
-                    {isEditingInfo ? <input type="tel" className="w-full bg-gray-50 p-3 rounded-xl text-sm border border-gray-200" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} /> : <p className="p-3 text-sm tracking-wide">{profile?.phone_number || "-"}</p>}
-                </div>
-
-                {/* --- RÉSEAUX SOCIAUX --- */}
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase">Lien Facebook</label>
-                    {isEditingInfo ? (
-                        <div className="relative">
-                            <Facebook className="absolute left-3 top-3 text-blue-600" size={18} />
-                            <input type="url" placeholder="https://facebook.com/..." className="w-full bg-gray-50 p-3 pl-10 rounded-xl text-sm outline-none border border-gray-200" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} />
-                        </div>
-                    ) : (
-                        <p className="p-3 font-medium text-sm text-blue-600 truncate">{profile?.facebook_url || "-"}</p>
-                    )}
-                </div>
-
-                <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase">Lien Instagram</label>
-                    {isEditingInfo ? (
-                        <div className="relative">
-                            <Instagram className="absolute left-3 top-3 text-pink-600" size={18} />
-                            <input type="url" placeholder="https://instagram.com/..." className="w-full bg-gray-50 p-3 pl-10 rounded-xl text-sm outline-none border border-gray-200" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} />
-                        </div>
-                    ) : (
-                        <p className="p-3 font-medium text-sm text-pink-600 truncate">{profile?.instagram_url || "-"}</p>
-                    )}
                 </div>
             </div>
 
             {isEditingInfo && (
-                <div className="flex gap-2 pt-2 animate-in fade-in">
-                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">Annuler</button>
-                    <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm shadow-brand/20">
-                        {saving ? <Loader2 className="animate-spin" size={16} /> : "Enregistrer"}
-                    </button>
+                <div className="flex gap-4 pt-4">
+                    <button onClick={() => setIsEditingInfo(false)} className="flex-1 bg-gray-50 text-gray-400 font-black py-4 rounded-2xl text-xs uppercase tracking-widest transition">Annuler</button>
+                    <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl shadow-brand/20 transition flex items-center justify-center gap-2">{saving ? <Loader2 className="animate-spin" size={16} /> : <><Save size={16} /> Enregistrer</>}</button>
                 </div>
             )}
         </div>
 
-        {/* Sécurité */}
-        <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 space-y-4">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-3 mb-2">
-                <h3 className="font-bold flex items-center gap-2"><Lock size={18} /> Sécurité</h3>
-                {!isEditingPassword && <button onClick={() => setIsEditingPassword(true)} className="text-xs font-bold text-brand bg-brand/10 px-3 py-1.5 rounded-full">Modifier</button>}
-            </div>
-            {isEditingPassword ? (
-                <form onSubmit={handleUpdatePassword} className="space-y-3 animate-in fade-in">
-                    <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau mot de passe" className="w-full bg-gray-50 p-3 rounded-xl text-sm pr-10 border border-gray-200" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-gray-400">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+        {/* SECTION : SÉCURITÉ PRIVÉE */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-white space-y-6">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.3em] text-gray-300 border-b border-gray-50 pb-4 flex items-center gap-2"><Lock size={14} /> Sécurité</h3>
+            {!isEditingPassword ? (
+                <button onClick={() => setIsEditingPassword(true)} className="w-full flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl border border-gray-100 group">
+                    <div className="flex items-center gap-3">
+                        <div className="bg-white p-2 rounded-xl border border-gray-100"><Lock size={16} className="text-gray-400" /></div>
+                        <span className="font-bold text-sm text-gray-700">Changer de mot de passe</span>
                     </div>
-                    <div className="flex gap-2">
-                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">Annuler</button>
-                        <button type="submit" disabled={passwordLoading} className="flex-1 bg-brand text-white font-bold py-3 rounded-xl text-sm">Confirmer</button>
+                    <ChevronRight size={18} className="text-gray-300 group-hover:translate-x-1 transition-transform" />
+                </button>
+            ) : (
+                <form onSubmit={handleUpdatePassword} className="space-y-4 animate-in fade-in">
+                    <div className="relative">
+                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau mot de passe" className="w-full bg-gray-50 p-4 rounded-2xl text-sm font-bold pr-12 border border-gray-100 focus:ring-4 focus:ring-brand/5" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-4 text-gray-400 active:scale-90 transition">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    </div>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-400 font-black py-4 rounded-2xl text-xs">Annuler</button>
+                        <button type="submit" disabled={passwordLoading} className="flex-1 bg-gray-900 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest">{passwordLoading ? <Loader2 className="animate-spin" /> : "Confirmer"}</button>
                     </div>
                 </form>
-            ) : ( <p className="p-3 text-gray-500 text-sm italic">••••••••</p> )}
+            )}
         </div>
 
-        {/* Zone de Danger */}
-        <div className="bg-red-50 p-5 rounded-2xl shadow-sm border border-red-100 space-y-4">
-            <h3 className="font-bold text-sm text-red-600 flex items-center gap-2"><AlertTriangle size={20} /> Zone de Danger</h3>
-            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-200 text-red-600 font-bold py-3 rounded-xl text-sm hover:bg-red-600 hover:text-white transition">Supprimer mon compte</button>
+        {/* SECTION : ZONE DANGER */}
+        <div className="bg-red-50 p-8 rounded-[3rem] shadow-inner border border-red-100 space-y-4">
+            <div className="flex items-center gap-2 text-red-600 mb-2">
+                <ShieldAlert size={18} />
+                <h3 className="font-black text-[10px] uppercase tracking-[0.3em]">Zone Critique</h3>
+            </div>
+            <p className="text-[11px] text-red-400 font-medium leading-relaxed px-1">La suppression de votre compte est définitive. Toutes vos annonces et données seront effacées immédiatement.</p>
+            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border-2 border-red-100 text-red-600 font-black py-5 rounded-[1.8rem] text-xs uppercase tracking-widest active:scale-95 transition shadow-sm hover:bg-red-600 hover:text-white flex items-center justify-center gap-2">
+              <Trash2 size={16} /> Supprimer le compte
+            </button>
         </div>
+
+        {/* ADMIN SHORTCUT */}
+        {user?.email === ADMIN_EMAIL && (
+             <Link href="/admin" className="w-full bg-gray-900 text-white p-6 rounded-[2.5rem] flex items-center justify-between shadow-xl active:scale-95 transition border border-white/10 group">
+                <div className="flex items-center gap-4">
+                    <div className="bg-white/10 p-3 rounded-2xl group-hover:bg-brand/20 transition-colors"><LayoutDashboard size={24} className="text-brand" /></div>
+                    <div><p className="font-black text-lg leading-tight tracking-tight">Administration</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Gérer la plateforme</p></div>
+                </div>
+                <ChevronRight className="text-gray-600 group-hover:translate-x-1 transition-transform" />
+             </Link>
+        )}
+
       </div>
+
+      {/* MODALE DE SUPPRESSION (UPGRADED) */}
+      <AnimatePresence>
+        {showDeleteModal && (
+          <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[3rem] p-10 space-y-6 text-center shadow-2xl border border-white" onClick={e => e.stopPropagation()}>
+                  <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-4 text-red-600 shadow-inner"><AlertTriangle size={40} /></div>
+                  <h3 className="font-black text-2xl tracking-tight">Suppression</h3>
+                  <p className="text-sm text-gray-400 font-medium">Tapez <span className="text-red-600 font-black">SUPPRIMER</span> pour confirmer la clôture définitive de votre espace.</p>
+                  <input type="text" className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-black text-center outline-none focus:ring-4 focus:ring-red-100 uppercase" placeholder="Mot-clé" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
+                  <div className="flex flex-col gap-3 pt-4">
+                      <button onClick={confirmDeleteAccount} disabled={deleting || deleteConfirmation !== 'SUPPRIMER'} className="w-full py-5 rounded-[1.5rem] font-black text-white bg-red-600 shadow-xl shadow-red-500/20 active:scale-95 uppercase text-xs tracking-widest disabled:opacity-30">Confirmer la suppression</button>
+                      <button onClick={() => setShowDeleteModal(false)} className="w-full py-5 rounded-[1.5rem] font-black text-gray-400 bg-gray-50 active:scale-95 transition uppercase text-xs tracking-widest">Annuler</button>
+                  </div>
+              </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
