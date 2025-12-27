@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { 
   ArrowLeft, Sparkles, Zap, Clock, ShieldCheck, 
-  MessageCircle, Loader2, CheckCircle2, ShoppingBag 
+  MessageCircle, Loader2, Smartphone, CreditCard, Mail
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
@@ -17,6 +17,12 @@ export default function BoostLandingPage() {
   
   const [product, setProduct] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
+
+  // --- PARAMÈTRES DE PAIEMENT (Mêmes que la page PRO) ---
+  const MVOLA_NUMBER = "434 20 63"
+  const WHATSAPP_CONTACT = "33758760743"
+  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
 
   useEffect(() => {
     const getProduct = async () => {
@@ -36,10 +42,9 @@ export default function BoostLandingPage() {
       `Bonjour ! Je souhaite activer le Boost (250 KMF) pour mon annonce :\n\n` +
       `📌 Titre : ${product?.title}\n` +
       `🆔 ID : ${params.id}\n\n` +
-      `J'ai effectué le paiement, merci de l'activer !`
+      `J'ai effectué le paiement via Mvola, merci de l'activer !`
     );
-    // REMPLACEZ PAR VOTRE NUMÉRO WHATSAPP RÉEL
-    window.open(`https://wa.me/2693200000?text=${msg}`, '_blank');
+    window.open(`https://wa.me/${WHATSAPP_CONTACT}?text=${msg}`, '_blank');
   }
 
   if (loading) return (
@@ -51,113 +56,133 @@ export default function BoostLandingPage() {
   const firstImage = product?.images ? JSON.parse(product.images)[0] : null
 
   return (
-    <div className="min-h-screen bg-white font-sans text-gray-900 pb-20 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 font-sans pb-24 overflow-x-hidden">
       
-      {/* HEADER FIXE */}
-      <div className="p-6 flex items-center gap-4 sticky top-0 bg-white/80 backdrop-blur-md z-50">
+      {/* HEADER PREMIUM (Thème Ambre pour le Boost) */}
+      <div className="bg-amber-500 pt-14 px-4 pb-24 rounded-b-[2.5rem] shadow-sm relative">
         <button 
           onClick={() => router.back()} 
-          className="p-3 bg-gray-50 rounded-2xl text-gray-400 active:scale-90 transition"
+          className="absolute top-14 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition active:scale-90"
         >
           <ArrowLeft size={20} />
         </button>
-        <h1 className="font-black text-xl tracking-tight">Propulser mon annonce</h1>
+        <div className="text-center mt-4">
+            <h1 className="text-white font-bold opacity-90 tracking-widest uppercase text-xs mb-1">Option Visibilité</h1>
+            <div className="flex items-center justify-center gap-2">
+                <span className="text-6xl font-extrabold text-white tracking-tighter">250</span>
+                <div className="flex flex-col items-start leading-none pt-2">
+                    <span className="text-lg font-bold text-white">KMF</span>
+                    <span className="text-xs font-medium text-white/80">/ 24h</span>
+                </div>
+            </div>
+            <p className="text-white/80 text-sm mt-2 font-medium">Propulsez votre annonce en tête 🚀</p>
+        </div>
       </div>
 
-      <div className="px-8 pt-6 max-w-md mx-auto">
-        
-        {/* APERÇU DE L'ANNONCE À BOOSTER */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-[#F5F7F9] p-4 rounded-[2.5rem] mb-10 flex items-center gap-4 border border-white shadow-sm"
-        >
-          <div className="w-16 h-16 rounded-2xl overflow-hidden relative bg-gray-200 shrink-0">
-            {firstImage && <Image src={firstImage} alt="" fill className="object-cover" />}
-          </div>
-          <div className="overflow-hidden">
-            <p className="text-[10px] font-black uppercase tracking-widest text-brand mb-1">Votre annonce</p>
-            <h3 className="font-bold text-sm truncate text-gray-800">{product?.title}</h3>
-          </div>
-        </motion.div>
+      {/* APERÇU DE L'OFFRE & AVANTAGES */}
+      <div className="px-4 -mt-16 relative z-10 max-w-md mx-auto">
+        <div className="bg-white p-6 rounded-3xl shadow-xl border border-white space-y-6">
+            <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+               <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-gray-200 shadow-sm">
+                  {firstImage && <Image src={firstImage} alt="" fill className="object-cover" />}
+               </div>
+               <div className="min-w-0">
+                  <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-0.5">Annonce sélectionnée</p>
+                  <h3 className="text-sm font-bold text-gray-900 truncate">{product?.title}</h3>
+               </div>
+            </div>
 
-        {/* HERO SECTION */}
-        <div className="text-center mb-12">
-          <div className="w-24 h-24 bg-amber-50 rounded-[3rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-            <Sparkles size={48} className="text-amber-500 animate-pulse" />
-          </div>
-          <h2 className="text-3xl font-black leading-tight mb-4 tracking-tighter">
-            Vendez <span className="text-amber-500 text-shadow-sm">plus vite</span> !
-          </h2>
-          <p className="text-gray-500 font-medium leading-relaxed">
-            Passez devant tout le monde pour seulement <span className="text-brand font-black">250 KMF</span>.
-          </p>
+            <div className="space-y-4 pt-2">
+                {[
+                  { icon: <Zap size={18} />, color: 'bg-amber-100 text-amber-600', text: "Position prioritaire devant tout le monde" },
+                  { icon: <Clock size={18} />, color: 'bg-blue-100 text-blue-600', text: "Visibilité maximale pendant 24 heures" },
+                  { icon: <ShieldCheck size={18} />, color: 'bg-emerald-100 text-emerald-600', text: "Badge Prestige 'Boosté' exclusif" }
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className={`${item.color} p-2 rounded-xl shrink-0`}>{item.icon}</div>
+                    <p className="text-xs font-bold text-gray-600">{item.text}</p>
+                  </div>
+                ))}
+            </div>
         </div>
+      </div>
 
-        {/* LISTE DES BÉNÉFICES */}
-        <div className="space-y-8 mb-12">
-          {[
-            { 
-              icon: <Zap className="text-amber-500" />, 
-              title: "Position Prioritaire", 
-              desc: "Votre annonce remonte en haut de sa catégorie, devant les annonces classiques." 
-            },
-            { 
-              icon: <Clock className="text-brand" />, 
-              title: "Visibilité 24 Heures", 
-              desc: "Le boost reste actif pendant une journée complète pour toucher un maximum d'acheteurs." 
-            },
-            { 
-              icon: <ShieldCheck className="text-emerald-500" />, 
-              title: "Badge Prestige", 
-              desc: "Une bordure ambre et un badge spécial 'Boosté' pour attirer l'œil." 
-            }
-          ].map((item, i) => (
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              key={i} 
-              className="flex gap-5"
+      {/* SÉLECTEUR DE PAIEMENT (Comme Page PRO) */}
+      <div className="px-4 mt-10 max-w-md mx-auto">
+        <h3 className="font-black text-gray-900 mb-4 ml-1 uppercase text-[10px] tracking-widest opacity-50">Moyen de paiement</h3>
+        
+        <div className="bg-gray-200 p-1 rounded-2xl flex mb-6">
+            <button 
+                onClick={() => setActiveTab('mvola')}
+                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'mvola' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500'}`}
             >
-              <div className="w-14 h-14 bg-gray-50 rounded-[1.5rem] flex items-center justify-center shrink-0 border border-white shadow-sm">
-                {item.icon}
-              </div>
-              <div>
-                <h4 className="font-black text-sm tracking-tight mb-1">{item.title}</h4>
-                <p className="text-xs text-gray-400 font-bold leading-relaxed">{item.desc}</p>
-              </div>
-            </motion.div>
-          ))}
+                <Smartphone size={16} /> Mvola
+            </button>
+            <button 
+                onClick={() => setActiveTab('cb')}
+                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'cb' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500'}`}
+            >
+                <CreditCard size={16} /> Carte
+            </button>
         </div>
 
-        {/* SECTION PAIEMENT */}
-        <div className="bg-[#F5F7F9] p-8 rounded-[3rem] border border-white mb-8 shadow-inner">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-6 text-center">Instructions de paiement</h3>
-          <div className="space-y-4">
-             <div className="flex justify-between items-center bg-white p-5 rounded-[1.5rem] shadow-sm border border-gray-100">
-               <span className="text-xs font-black text-gray-400 uppercase tracking-widest">Montant unique</span>
-               <span className="text-xl font-black text-brand">250 KMF</span>
-             </div>
-             
-             <div className="p-4 bg-white/50 rounded-2xl border border-dashed border-gray-200">
-                <p className="text-[10px] text-gray-500 font-bold text-center leading-relaxed italic">
-                  Utilisez le même numéro que pour votre abonnement PRO. Une fois le transfert effectué, confirmez ci-dessous.
+        {activeTab === 'mvola' ? (
+            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-white space-y-8 animate-in fade-in slide-in-from-bottom-2">
+                {/* ÉTAPE 1 */}
+                <div>
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">1</span>
+                        <h3 className="font-black text-gray-900 text-sm">Envoyez 250 KMF</h3>
+                    </div>
+                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-center justify-between group">
+                        <div className="flex items-center gap-3">
+                           <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white font-black text-lg">M</div>
+                           <div>
+                              <p className="font-black text-gray-900 text-xs">Mvola Comores</p>
+                              <p className="text-[10px] text-amber-600 font-bold">Telma Money</p>
+                           </div>
+                        </div>
+                        <span className="font-black text-xl text-gray-900 tracking-tighter">{MVOLA_NUMBER}</span>
+                    </div>
+                </div>
+
+                {/* ÉTAPE 2 */}
+                <div>
+                    <div className="flex items-center gap-2 mb-4">
+                        <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">2</span>
+                        <h3 className="font-black text-gray-900 text-sm">Confirmation</h3>
+                    </div>
+                    <p className="text-[11px] text-gray-400 font-bold leading-relaxed mb-6 px-1">
+                        Une fois le transfert effectué, cliquez sur le bouton ci-dessous pour nous envoyer votre preuve de paiement.
+                    </p>
+                    <button 
+                        onClick={handleConfirmPayment}
+                        className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black py-5 rounded-[1.8rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 transition transform active:scale-95 uppercase text-[10px] tracking-widest"
+                    >
+                        <MessageCircle size={20} /> Confirmer sur WhatsApp
+                    </button>
+                </div>
+
+                <div className="pt-4 text-center border-t border-gray-50">
+                   <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                      <Mail size={12} /> {CONTACT_EMAIL}
+                   </p>
+                </div>
+            </div>
+        ) : (
+            <div className="bg-white p-12 rounded-[2.5rem] text-center border border-white shadow-sm animate-in fade-in">
+                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+                    <CreditCard size={32} />
+                </div>
+                <h3 className="font-black text-gray-900 mb-2">Bientôt disponible</h3>
+                <p className="text-gray-400 text-xs font-bold leading-relaxed">
+                  Le paiement par carte bancaire (Stripe/PayPal) arrive prochainement. Pour l'instant, merci d'utiliser Mvola.
                 </p>
-             </div>
-          </div>
-        </div>
+            </div>
+        )}
 
-        {/* CTA FINAL */}
-        <button 
-          onClick={handleConfirmPayment}
-          className="w-full bg-brand text-white font-black py-6 rounded-[2rem] shadow-xl shadow-brand/20 active:scale-95 transition-all flex items-center justify-center gap-3 uppercase text-xs tracking-[0.2em]"
-        >
-          <MessageCircle size={20} /> Confirmer le paiement
-        </button>
-        
-        <p className="text-center mt-6 text-[10px] text-gray-300 font-bold uppercase tracking-widest">
-           Activation manuelle sous 30 min
+        <p className="text-center mt-8 text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">
+           Activation sous 30 minutes
         </p>
       </div>
     </div>

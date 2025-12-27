@@ -6,7 +6,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   Trash2, MapPin, Loader2, Plus, ArrowLeft, Pencil, 
-  BarChart3, AlertTriangle, ChevronRight, Sparkles, ShoppingBag 
+  BarChart3, AlertTriangle, ChevronRight, Sparkles, ShoppingBag,
+  Zap, Clock 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -69,7 +70,7 @@ export default function MesAnnoncesPage() {
   return (
     <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900">
       
-      {/* --- MODALE SUPPRESSION PRESTIGE --- */}
+      {/* MODALE SUPPRESSION */}
       <AnimatePresence>
         {deleteModal.isOpen && (
           <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setDeleteModal({ isOpen: false, productId: null })}>
@@ -91,7 +92,7 @@ export default function MesAnnoncesPage() {
         )}
       </AnimatePresence>
 
-      {/* --- HEADER MASTER TEMPLATE --- */}
+      {/* HEADER */}
       <div className="bg-brand pt-safe px-4 pb-8 sticky top-0 z-40 shadow-md rounded-b-[2.5rem]">
         <div className="flex justify-between items-center pt-2 px-2">
             <div className="flex items-center gap-3">
@@ -106,7 +107,6 @@ export default function MesAnnoncesPage() {
                   </div>
                 </div>
             </div>
-            
             <div className="bg-white/10 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-2">
                 <ShoppingBag size={14} className="text-white" />
                 <span className="text-xs font-black text-white">{products.length}</span>
@@ -131,15 +131,24 @@ export default function MesAnnoncesPage() {
             products.map((product, idx) => {
                 let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
                 const views = stats[product.id] || 0
+                
+                // VÉRIFICATION DU BOOST
+                const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
+                const boostHoursLeft = isBoosted ? Math.ceil((new Date(product.boosted_until).getTime() - new Date().getTime()) / (1000 * 3600)) : 0;
 
                 return (
                     <motion.div 
                       key={product.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-                      className="bg-white rounded-[2.2rem] shadow-sm border border-white overflow-hidden group"
+                      className={`bg-white rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50' : 'border-white'}`}
                     >
                         <div className="p-4 flex gap-4">
                             <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-[1.5rem] relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
                                 {img && <Image src={img} alt="" fill className="object-cover" />}
+                                {isBoosted && (
+                                  <div className="absolute inset-0 bg-amber-500/10 flex items-center justify-center">
+                                     <Sparkles size={24} className="text-amber-500 opacity-50 animate-pulse" />
+                                  </div>
+                                )}
                             </Link>
 
                             <div className="flex-1 min-w-0 flex flex-col py-1">
@@ -162,10 +171,28 @@ export default function MesAnnoncesPage() {
                             </div>
                         </div>
 
+                        {/* --- NOUVELLE SECTION BOOST --- */}
+                        <div className="px-4 pb-2">
+                          {isBoosted ? (
+                            <div className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-600 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-amber-100">
+                                <Clock size={14} className="animate-pulse" /> 
+                                Boost Actif ({boostHoursLeft}h restantes)
+                            </div>
+                          ) : (
+                            <Link
+                              href={`/boost/${product.id}`}
+                              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
+                            >
+                              <Zap size={14} fill="currentColor" className="group-hover:scale-110 transition-transform" />
+                              Booster l'annonce (250 KMF)
+                            </Link>
+                          )}
+                        </div>
+
                         {/* SECTION STATISTIQUES */}
                         <Link 
                             href={`/mes-annonces/${product.id}/vues`}
-                            className="flex items-center justify-between bg-[#F5F7F9] px-5 py-3.5 active:bg-gray-100 transition"
+                            className="flex items-center justify-between bg-[#F5F7F9] px-5 py-3.5 active:bg-gray-100 transition mt-2"
                         >
                             <div className="flex items-center gap-3">
                                 <div className="p-1.5 bg-white rounded-lg shadow-sm">
