@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
+import EliteAssistant from '@/components/EliteAssistant'; // Import de l'IA
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -67,6 +68,9 @@ export default function RootLayout({
           <main className="min-h-screen">
             {children}
           </main>
+
+          {/* L'Assistant Elite CM est maintenant actif sur tout le site */}
+          <EliteAssistant />
 
           <Suspense fallback={null}>
             <BottomNav />
