@@ -8,8 +8,8 @@ import Image from 'next/image'
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
   Pencil, Package, Heart, ChevronRight, Save,
-  Facebook, Instagram, Crown, AlertTriangle, Trash2, Smartphone,
-  MapPin, LayoutDashboard
+  Facebook, Instagram, Crown, AlertTriangle, Trash2,
+  Smartphone, ExternalLink, LayoutDashboard, MapPin // Imports vérifiés ici
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -95,7 +95,7 @@ export default function ComptePage() {
           toast.error("Erreur : " + error.message)
           setDeleting(false)
       } else {
-          toast.success("Compte supprimé.")
+          toast.success("Votre compte a été supprimé.")
           await supabase.auth.signOut()
           router.push('/')
           router.refresh()
@@ -203,7 +203,14 @@ export default function ComptePage() {
       <div className="bg-white p-6 pb-12 rounded-b-[3.5rem] shadow-sm relative z-10 border-b border-gray-100">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tight">Mon Compte</h1>
-            <button onClick={handleSignOut} className="bg-gray-50 p-3 rounded-2xl text-gray-400 hover:text-red-500 transition shadow-sm border border-white active:scale-90"><LogOut size={20} /></button>
+            <div className="flex gap-2">
+              {/* LIEN VERS PROFIL PUBLIC */}
+              <Link href={`/profil/${user?.id}`} className="bg-brand/5 p-3 rounded-2xl text-brand hover:bg-brand/10 transition shadow-sm border border-brand/5 active:scale-90 flex items-center gap-2">
+                <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Mon Profil</span>
+                <ExternalLink size={20} />
+              </Link>
+              <button onClick={handleSignOut} className="bg-gray-50 p-3 rounded-2xl text-gray-400 hover:text-red-500 transition shadow-sm border border-white active:scale-90"><LogOut size={20} /></button>
+            </div>
         </div>
 
         <div className="flex items-center gap-5">
@@ -258,12 +265,12 @@ export default function ComptePage() {
             </Link>
         </div>
 
-        {/* INFORMATIONS (RÉTABLIES AVEC BOUTON MODIFIER) */}
+        {/* INFORMATIONS */}
         <div className="bg-white p-7 rounded-[2.5rem] shadow-sm border border-white space-y-6">
             <div className="flex justify-between items-center border-b border-gray-50 pb-4">
                 <h3 className="font-black text-sm uppercase tracking-widest text-gray-400 flex items-center gap-2"><User size={16} /> Identité & Social</h3>
                 {!isEditingInfo && (
-                  <button onClick={() => setIsEditingInfo(true)} className="text-[10px] font-black text-brand bg-brand/5 px-4 py-2 rounded-full uppercase tracking-widest hover:bg-brand/10 transition">
+                  <button onClick={() => setIsEditingInfo(true)} className="text-[10px] font-black text-brand bg-brand/10 px-4 py-2 rounded-full uppercase tracking-widest hover:bg-brand/20 transition">
                     Modifier le profil
                   </button>
                 )}
