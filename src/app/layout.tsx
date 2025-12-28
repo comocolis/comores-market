@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
-import EliteAssistant from '@/components/EliteAssistant'; // Import de l'IA
+import EliteAssistant from '@/components/EliteAssistant';
 import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -58,7 +58,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}>
+      {/* Ajout de suppressHydrationWarning pour éviter l'erreur React #418 liée aux composants mobiles */}
+      <body 
+        className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}
+        suppressHydrationWarning={true}
+      >
         
         <InstallBanner />
 
@@ -69,7 +73,7 @@ export default function RootLayout({
             {children}
           </main>
 
-          {/* L'Assistant Elite CM est maintenant actif sur tout le site */}
+          {/* L'assistant Elite CM est désormais disponible sur toutes les pages */}
           <EliteAssistant />
 
           <Suspense fallback={null}>
