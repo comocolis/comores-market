@@ -6,12 +6,12 @@ import { useEffect, useState } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
   User, Ban, CheckCircle, Flag, AlertTriangle, X, Star, MessageSquare, 
-  Zap, Sparkles, Clock, FileText // Ajout de FileText
+  Zap, Sparkles, Clock, FileText, Award, MapPin, Crown // Correction : Crown et nouveaux icônes ajoutés
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
-import { generatePROReceipt } from '@/utils/generateReceipt' // Import de l'utilitaire PDF
+import { generatePROReceipt } from '@/utils/generateReceipt'
 
 export default function AdminPage() {
   const supabase = createClient()
@@ -22,7 +22,10 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports' | 'reviews'>('dashboard')
   
-  const [stats, setStats] = useState({ users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0 })
+  // Stats incluant désormais la qualité de La Sentinelle
+  const [stats, setStats] = useState({ 
+    users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0 
+  })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
@@ -30,14 +33,8 @@ export default function AdminPage() {
   const [searchTerm, setSearchTerm] = useState('')
 
   const [confirmModal, setConfirmModal] = useState<{
-    isOpen: boolean;
-    title: string;
-    message: string;
-    action: () => void;
-    isDanger: boolean;
-  }>({
-    isOpen: false, title: '', message: '', action: () => {}, isDanger: false
-  })
+    isOpen: boolean; title: string; message: string; action: () => void; isDanger: boolean;
+  }>({ isOpen: false, title: '', message: '', action: () => {}, isDanger: false })
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -58,6 +55,7 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+    // On récupère quality_score et les localisations ajoutés par l'IA et le formulaire [cite: 2025-12-17]
     const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
     
     const { data: reportsData } = await supabase
@@ -84,7 +82,8 @@ export default function AdminPage() {
             banned: profiles.filter(p => p.is_banned).length,
             reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
             reviews: reviewsData?.length || 0,
-            boosted: items.filter(p => p.boosted_until && new Date(p.boosted_until) > now).length
+            boosted: items.filter(p => p.boosted_until && new Date(p.boosted_until) > now).length,
+            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length // Alerte Sentinelle
         })
     }
   }
@@ -93,9 +92,7 @@ export default function AdminPage() {
       setConfirmModal({ isOpen: true, title, message, action, isDanger })
   }
 
-  const closeConfirm = () => {
-      setConfirmModal({ ...confirmModal, isOpen: false })
-  }
+  const closeConfirm = () => setConfirmModal({ ...confirmModal, isOpen: false })
 
   const executeAction = async (actionFn: () => Promise<void>) => {
       await actionFn()
@@ -194,23 +191,23 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* HEADER */}
+      {/* HEADER PRESTIGE */}
       <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
         <div className="flex justify-between items-center mb-6">
             <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2"><ShieldCheck className="text-brand" /> Admin</h1>
+                <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tighter"><ShieldCheck className="text-amber-500" /> ELITE ADMIN</h1>
                 <p className="text-gray-400 text-xs mt-1">Super Admin : {ADMIN_EMAIL}</p>
             </div>
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'dashboard' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
-            <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
-                <Flag size={14} /> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 text-[10px] px-1.5 rounded-full">{stats.reports}</span>}
+            <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
+            <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+                <Flag size={14} /> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 text-[10px] px-1.5 rounded-full font-bold ml-1">{stats.reports}</span>}
             </button>
-            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'users' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
-            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-sm font-bold transition ${activeTab === 'products' ? 'bg-brand text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
-            <button onClick={() => setActiveTab('reviews')} className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
+            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
+            <button onClick={() => setActiveTab('reviews')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
                 <Star size={14} /> Avis ({stats.reviews})
             </button>
         </div>
@@ -218,48 +215,40 @@ export default function AdminPage() {
 
       <div className="p-4">
         
-        {/* DASHBOARD */}
+        {/* DASHBOARD AVEC ALERTES IA */}
         {activeTab === 'dashboard' && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-gray-900">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes PRO</p></div><div className="bg-yellow-100 w-10 h-10 rounded-full flex items-center justify-center text-yellow-600"><ShieldCheck size={20} /></div></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between"><div><p className="text-2xl font-extrabold text-amber-600">{stats.boosted}</p><p className="text-xs text-gray-500 font-bold uppercase">Boosts Actifs</p></div><div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600"><Zap size={20} /></div></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center justify-between col-span-2"><div><p className="text-2xl font-extrabold text-gray-900">{stats.reports}</p><p className="text-xs text-gray-500 font-bold uppercase text-red-500">Alertes en cours</p></div><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600"><Flag size={20} /></div></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 bg-amber-50/30"><div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 mb-3"><Crown size={20} /></div><p className="text-2xl font-extrabold text-amber-600">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes Élite</p></div>
+                <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
             </div>
         )}
 
-        {/* LISTE UTILISATEURS */}
+        {/* LISTE UTILISATEURS AVEC LOGO CROWN */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                <input type="text" placeholder="Rechercher un utilisateur..." className="w-full bg-white p-3 rounded-xl shadow-sm text-sm outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
-                {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
+                <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
+                {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
                     const daysLeft = getDaysRemaining(u.subscription_end_date)
                     const isProActive = u.is_pro && daysLeft > 0
                     return (
-                        <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isProActive ? 'border-green-200 bg-green-50/30' : 'border-gray-100')}`}>
+                        <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100')}`}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : <User size={20} />}</div>
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-400">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
                                     <div>
-                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1">{u.full_name} {isProActive && <CheckCircle size={12} className="text-green-600" />}</p>
-                                        <p className="text-[10px] text-gray-400">{u.email}</p>
+                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1">{u.full_name} {isProActive && <Crown size={12} className="text-amber-500" />}</p>
+                                        <p className="text-[10px] text-gray-400 font-bold">{u.email}</p>
                                     </div>
                                 </div>
-                                {/* ACTION REÇU PDF */}
-                                <button 
-                                    onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })}
-                                    className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl hover:bg-emerald-100 transition shadow-sm border border-emerald-100"
-                                    title="Générer reçu"
-                                >
-                                    <FileText size={18} />
-                                </button>
+                                <button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>
                             </div>
                             <div className="grid grid-cols-4 gap-2">
-                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="bg-blue-50 text-blue-700 py-1.5 rounded-lg text-[10px] font-bold">+1 Mois</button>
-                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="bg-purple-50 text-purple-700 py-1.5 rounded-lg text-[10px] font-bold">+1 An</button>
-                                <button onClick={() => askConfirm("Arrêter l'abonnement ?", "Utilisateur redeviendra particulier.", () => stopSubscription(u.id))} className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-bold">Stop</button>
-                                <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Modification d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} className={`py-1.5 rounded-lg text-[10px] font-bold border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Débannir' : 'Bannir'}</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter">+1 Mois</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter">+1 An</button>
+                                <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter">Stop</button>
+                                <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Action d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} className={`py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
                             </div>
                         </div>
                     )
@@ -267,93 +256,61 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* ... (Reste des onglets Reviews, Reports, Products identiques) ... */}
-        {activeTab === 'reviews' && (
-             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                {reviewsList.length === 0 ? <p className="text-center text-gray-400 mt-10">Aucun avis.</p> : reviewsList.map(review => (
-                    <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                        <div className="flex justify-between items-start mb-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold text-gray-900">{review.reviewer?.full_name || 'Anonyme'}</span>
-                                <span className="text-gray-400 text-xs">➔</span>
-                                <span className="text-sm font-bold text-gray-900">{review.target?.full_name || 'Vendeur inconnu'}</span>
-                            </div>
-                            <span className="text-[10px] text-gray-400">{new Date(review.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <div className="flex items-center gap-1 mb-2">
-                            {[...Array(5)].map((_, i) => (<Star key={i} size={12} className={i < review.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-200"} />))}
-                        </div>
-                        {review.comment && <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-700 italic mb-3">"{review.comment}"</div>}
-                        <div className="flex justify-end">
-                            <button onClick={() => askConfirm("Supprimer cet avis ?", "Action irréversible.", () => deleteReview(review.id))} className="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg font-bold flex items-center gap-1"><Trash2 size={14}/> Supprimer</button>
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )}
-
-        {activeTab === 'reports' && (
-            <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                {reports.length === 0 ? <p className="text-center text-gray-400 mt-10">Aucun signalement.</p> : reports.map(r => (
-                    <div key={r.id} className={`bg-white p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 bg-red-50/50' : 'border-gray-100 opacity-60'}`}>
-                        <div className="flex justify-between items-start mb-2">
-                            <span className={`text-[10px] font-bold px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
-                            <span className="text-[10px] text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-sm font-bold text-gray-900 mb-2">Motif : "{r.reason}"</p>
-                        <div className="bg-white p-3 rounded-lg border border-gray-200 mb-3">
-                            {r.product ? (
-                                <Link href={`/annonce/${r.product_id}`} className="flex items-center gap-2">
-                                    <div className="w-8 h-8 bg-gray-100 rounded relative shrink-0 overflow-hidden">{r.product.images && <Image src={JSON.parse(r.product.images)[0]} alt="" fill className="object-cover" />}</div>
-                                    <span className="text-sm font-medium truncate flex-1">{r.product.title}</span>
-                                </Link>
-                            ) : <p className="text-sm text-red-400 italic">Annonce supprimée</p>}
-                        </div>
-                        <div className="flex gap-2 justify-end">
-                            {r.product && <button onClick={() => askConfirm("Supprimer l'annonce ?", "Action irréversible.", () => deleteProduct(r.product_id))} className="text-xs bg-red-100 text-red-600 px-3 py-2 rounded-lg font-bold flex items-center gap-1"><Trash2 size={12}/> Supprimer Annonce</button>}
-                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-xs bg-gray-800 text-white px-3 py-2 rounded-lg font-bold flex items-center gap-1"><CheckCircle size={12}/> Marquer traité</button>}
-                        </div>
-                    </div>
-                ))}
-            </div>
-        )}
-
+        {/* LISTE ANNONCES AVEC SCORE IA & LOCALISATION */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
                     let img = null; try { img = JSON.parse(p.images)[0] } catch {}
                     const now = new Date()
                     const isBoosted = p.boosted_until && new Date(p.boosted_until) > now
-                    const boostHoursLeft = isBoosted ? Math.ceil((new Date(p.boosted_until).getTime() - now.getTime()) / (1000 * 3600)) : 0
+                    const scoreColor = p.quality_score >= 8 ? 'text-green-600 bg-green-50' : p.quality_score >= 5 ? 'text-amber-600 bg-amber-50' : 'text-red-600 bg-red-50';
 
                     return (
-                        <div key={p.id} className={`bg-white p-3 rounded-xl shadow-sm border transition-all ${isBoosted ? 'border-amber-400 bg-amber-50/20' : 'border-gray-100'}`}>
+                        <div key={p.id} className={`bg-white p-3 rounded-2xl shadow-sm border transition-all ${isBoosted ? 'border-amber-400 bg-amber-50/20' : 'border-gray-100'}`}>
                             <div className="flex gap-3 mb-3">
-                                <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 relative overflow-hidden">{img && <Image src={img} alt="" fill className="object-cover" />}</div>
+                                <div className="w-16 h-16 bg-gray-100 rounded-xl shrink-0 relative overflow-hidden">{img && <Image src={img} alt="" fill className="object-cover" />}</div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2">
                                         <p className="font-bold text-sm text-gray-900 truncate">{p.title}</p>
-                                        {isBoosted && <span className="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase flex items-center gap-0.5"><Sparkles size={8} /> Boosté</span>}
+                                        <div className={`flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${scoreColor}`}>
+                                            <Award size={10} /> {p.quality_score || 0}/10
+                                        </div>
                                     </div>
-                                    <p className="text-xs text-gray-500 truncate">{p.profiles?.full_name}</p>
-                                    <p className="text-brand font-bold text-xs mt-1">{p.price} KMF</p>
+                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1 flex items-center gap-1"><MapPin size={10} /> {p.location_island} • {p.location_city}</p>
+                                    <p className="text-amber-600 font-black text-xs mt-1">{p.price} KMF</p>
                                 </div>
-                                <button onClick={() => askConfirm("Supprimer l'annonce ?", "Action irréversible.", () => deleteProduct(p.id))} className="bg-red-50 text-red-500 p-2 rounded-lg self-start"><Trash2 size={18} /></button>
+                                <button onClick={() => askConfirm("Supprimer ?", "Action irréversible.", () => deleteProduct(p.id))} className="text-red-500 p-2 rounded-lg self-start transition-colors hover:bg-red-50"><Trash2 size={18} /></button>
                             </div>
 
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
-                                <button 
-                                    onClick={() => toggleBoost(p.id, isBoosted)}
-                                    className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${isBoosted ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'}`}
-                                >
+                                <button onClick={() => toggleBoost(p.id, isBoosted)} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isBoosted ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'}`}>
                                     <Zap size={12} fill={isBoosted ? "none" : "currentColor"} />
-                                    {isBoosted ? `Retirer Boost (${boostHoursLeft}h rest.)` : 'Activer Boost 24h'}
+                                    {isBoosted ? 'Retirer Boost' : 'Booster 24h'}
                                 </button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" className="bg-gray-50 text-gray-400 p-2 rounded-lg border border-gray-100"><Search size={16} /></Link>
+                                <Link href={`/annonce/${p.id}`} target="_blank" className="bg-gray-50 text-gray-400 p-3 rounded-xl border border-gray-100 hover:bg-gray-100 transition-colors"><Search size={16} /></Link>
                             </div>
                         </div>
                     )
                 })}
+            </div>
+        )}
+        
+        {/* SIGNALEMENTS */}
+        {activeTab === 'reports' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                {reports.map(r => (
+                    <div key={r.id} className={`bg-white p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 bg-red-50/50' : 'border-gray-100 opacity-60'}`}>
+                        <div className="flex justify-between items-start mb-2">
+                            <span className={`text-[10px] font-black px-2 py-1 rounded uppercase tracking-tighter ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
+                            <span className="text-[10px] text-gray-400 font-bold">{new Date(r.created_at).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
+                        <div className="flex gap-2 justify-end">
+                            {r.product && <button onClick={() => askConfirm("Supprimer ?", "Action irréversible.", () => deleteProduct(r.product_id))} className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase tracking-widest flex items-center gap-1"><Trash2 size={12}/> Supprimer</button>}
+                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase tracking-widest flex items-center gap-1"><CheckCircle size={12}/> Traité</button>}
+                        </div>
+                    </div>
+                ))}
             </div>
         )}
       </div>
