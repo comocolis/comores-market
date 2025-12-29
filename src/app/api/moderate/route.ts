@@ -5,38 +5,25 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
   try {
-    const { title, description, price } = await req.json();
+    const { title, description } = await req.json();
     const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
-    const prompt = `
-      Tu es "La Sentinelle", le système de modération de Comores Market.
-      Analyse cette annonce et détermine si elle respecte nos standards de prestige.
-
-      ANNONCE :
-      Titre: ${title}
-      Description: ${description}
-      Prix: ${price} KMF
-
-      CRITÈRES DE REFUS :
-      1. Arnaques ou promesses de gain d'argent facile.
-      2. Produits illégaux, drogues ou armes (Attention : les masseurs comme le "Pistolet Fascia" sont autorisés).
-      3. Langage offensant ou de très mauvaise qualité.
-      4. Prix incohérent (ex: une voiture à 100 KMF).
-
-      RÉPONSE ATTENDUE (JSON UNIQUEMENT) :
-      {
-        "is_safe": boolean,
-        "reason": "explication courte en français",
-        "quality_score": number (sur 10)
-      }
-    `;
+    const prompt = `Analyse cette annonce : "${title} - ${description}". 
+    Réponds UNIQUEMENT en JSON sous ce format : {"is_safe": boolean, "reason": "string", "quality_score": number}. 
+    Pas de texte avant ou après.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
-    const jsonResponse = JSON.parse(response.text().replace(/```json|```/g, ""));
+    let text = response.text();
+
+    // Nettoyage de la réponse (enlève les ```json ... ``` si l'IA en ajoute)
+    const jsonString = text.replace(/```json|```/g, "").trim();
+    const jsonResponse = JSON.parse(jsonString);
 
     return NextResponse.json(jsonResponse);
   } catch (error: any) {
-    return NextResponse.json({ is_safe: true, reason: "Erreur technique, validation manuelle requise." });
+    console.error("ERREUR MODÉRATION :", error.message);
+    // En cas d'échec de l'IA, on laisse passer l'annonce par sécurité mais avec un score moyen
+    return NextResponse.json({ is_safe: true, reason: "Vérification manuelle", quality_score: 5 });
   }
 }

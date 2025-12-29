@@ -4,7 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { Home, Heart, MessageCircle, User, Plus } from 'lucide-react'
+import { Home, Heart, MessageCircle, User, Plus, Bell } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function BottomNav() {
@@ -14,19 +14,21 @@ export default function BottomNav() {
   const router = useRouter()
   
   const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0) 
   const [userId, setUserId] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
-  // LOGIQUE DE MASQUAGE MISE À JOUR : 
-  // On cache si on est sur /messages ET qu'il y a une conversation (id) OU un prospect (user)
   const isChatOpen = pathname === '/messages' && (searchParams.get('id') || searchParams.get('user'))
   const isAuthPage = pathname === '/auth'
 
   useEffect(() => {
+    setMounted(true)
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
         fetchUnreadCount(user.id)
+        fetchNotificationCount(user.id)
       }
     }
     init()
@@ -38,55 +40,70 @@ export default function BottomNav() {
       .select('*', { count: 'exact', head: true })
       .eq('receiver_id', uid)
       .eq('is_read', false)
-    
     setUnreadCount(count || 0)
+  }
+
+  const fetchNotificationCount = async (uid: string) => {
+    const { count } = await supabase
+      .from('notifications')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', uid)
+      .eq('is_read', false)
+    setUnreadNotifCount(count || 0)
   }
 
   useEffect(() => {
     if (!userId) return
 
-    const channel = supabase.channel('nav-notifications')
-      .on(
-        'postgres_changes', 
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'messages', 
-          filter: `receiver_id=eq.${userId}` 
-        }, 
-        (payload) => {
-            fetchUnreadCount(userId)
-            
-            // Ne pas afficher de toast si on est déjà sur la page des messages
-            if (!window.location.pathname.includes('/messages')) {
-                const content = payload.new.content || ''
-                
-                const displayText = (content.includes('messages_images') && content.startsWith('http'))
-                    ? '📷 Photo reçue'
-                    : content
+    // 1. Canal Messages
+    const channelMessages = supabase.channel('nav-messages')
+      .on('postgres_changes', { 
+        event: 'INSERT', 
+        schema: 'public', 
+        table: 'messages', 
+        filter: `receiver_id=eq.${userId}` 
+      }, 
+        () => fetchUnreadCount(userId)
+      ).subscribe()
 
-                toast.message('Nouveau message !', {
-                    description: displayText,
-                    action: { label: 'Voir', onClick: () => router.push('/messages') },
-                    duration: 4000,
+    // 2. Canal Notifications - CONFIGURATION ÉLITE
+    const channelNotifs = supabase.channel('nav-notifications')
+      .on('postgres_changes', { 
+        event: '*', // Écoute TOUT : insertion, mise à jour (lecture), suppression
+        schema: 'public', 
+        table: 'notifications', 
+        filter: `user_id=eq.${userId}` 
+      }, 
+        (payload) => {
+            console.log("📡 [Realtime] Changement détecté :", payload.eventType)
+            
+            // Mise à jour immédiate du compteur
+            fetchNotificationCount(userId)
+            
+            // Si c'est une NOUVELLE notification, on affiche le toast
+            if (payload.eventType === 'INSERT') {
+                toast.info(payload.new.title, {
+                    description: payload.new.message,
+                    icon: <Bell size={16} className="text-amber-500" />,
+                    action: {
+                        label: 'Voir',
+                        onClick: () => router.push('/compte/notifications')
+                    },
                 })
             }
         }
       )
-      .subscribe()
-
-    const channelUpdate = supabase.channel('nav-badges-update')
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages', filter: `receiver_id=eq.${userId}` }, () => fetchUnreadCount(userId))
-        .subscribe()
+      .subscribe((status) => {
+          console.log("📡 [Status] Notifications Realtime :", status)
+      })
 
     return () => { 
-        supabase.removeChannel(channel) 
-        supabase.removeChannel(channelUpdate)
+        supabase.removeChannel(channelMessages) 
+        supabase.removeChannel(channelNotifs)
     }
-  }, [userId, router])
+  }, [userId, router, supabase])
 
-  // Si on est dans un chat ou sur la page de connexion, on ne renvoie rien (le footer disparaît)
-  if (isChatOpen || isAuthPage) return null
+  if (!mounted || isChatOpen || isAuthPage) return null
 
   return (
     <nav className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
@@ -100,6 +117,7 @@ export default function BottomNav() {
           </Link>
         </div>
 
+        {/* MESSAGES */}
         <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
@@ -112,7 +130,18 @@ export default function BottomNav() {
             <span className="text-[9px] font-bold">Messages</span>
         </Link>
 
-        <NavBtn href="/compte" icon={User} label="Compte" active={pathname === '/compte' || pathname === '/admin' || pathname === '/mes-annonces'} />
+        {/* COMPTE + BADGE AMBRE */}
+        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
+            <div className="relative">
+                <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />
+                {unreadNotifCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-amber-500 text-white text-[9px] font-bold h-4 w-4 flex items-center justify-center rounded-full shadow-sm animate-in zoom-in border border-white">
+                        {unreadNotifCount}
+                    </span>
+                )}
+            </div>
+            <span className="text-[9px] font-bold">Compte</span>
+        </Link>
       </div>
     </nav>
   )

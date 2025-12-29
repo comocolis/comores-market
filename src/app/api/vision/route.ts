@@ -7,19 +7,24 @@ export async function POST(req: Request) {
   try {
     const { imageBase64 } = await req.json();
     
-    // Utilisation de gemini-1.5-flash qui supporte la vision
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Utilisation du modèle gemini-flash-latest pour la rapidité et stabilité
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const prompt = `
-      Tu es l'expert en marketing de Comores Market. 
+      Tu es l'expert marketing de Comores Market. 
       Analyse cette image de produit et rédige une description "Prestige" (style Silk & Stone).
       
-      STRUCTURE DE LA RÉPONSE :
-      1. Un titre accrocheur et luxueux.
-      2. Un texte de vente élégant qui met en avant la qualité et les bénéfices.
-      3. Une liste courte des points forts.
+      CONSIGNES DE FORMATAGE (TRÈS IMPORTANT) :
+      - NE PAS utiliser de symboles Markdown (pas d'étoiles **, pas de hashtags ## ou #).
+      - Rédige en texte brut (Plain Text) uniquement.
+      - Utilise des sauts de ligne pour aérer le texte.
+      - Utilise des MAJUSCULES pour les titres de sections si nécessaire.
       
-      TON : Professionnel, rare, et digne d'un showroom de luxe aux Comores.
+      CONTENU :
+      1. Un titre luxueux.
+      2. Un paragraphe de vente fluide et élégant.
+      3. Une liste simple des points forts (sans tirets compliqués).
+      
       LANGUE : Français.
     `;
 
@@ -27,7 +32,7 @@ export async function POST(req: Request) {
       prompt,
       {
         inlineData: {
-          data: imageBase64.split(",")[1], // On retire le préfixe data:image/jpeg;base64,
+          data: imageBase64.split(",")[1],
           mimeType: "image/jpeg",
         },
       },

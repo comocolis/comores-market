@@ -7,9 +7,9 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
-  Pencil, Package, Heart, ChevronRight, Save,
+  Pencil, Package, Heart, ChevronRight, Save, Bell,
   Facebook, Instagram, Crown, AlertTriangle, Trash2,
-  Smartphone, ExternalLink, LayoutDashboard, MapPin // Imports vérifiés ici
+  Smartphone, ExternalLink, LayoutDashboard, MapPin 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -204,7 +204,6 @@ export default function ComptePage() {
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tight">Mon Compte</h1>
             <div className="flex gap-2">
-              {/* LIEN VERS PROFIL PUBLIC */}
               <Link href={`/profil/${user?.id}`} className="bg-brand/5 p-3 rounded-2xl text-brand hover:bg-brand/10 transition shadow-sm border border-brand/5 active:scale-90 flex items-center gap-2">
                 <span className="text-[10px] font-black uppercase tracking-widest hidden sm:block">Mon Profil</span>
                 <ExternalLink size={20} />
@@ -252,6 +251,18 @@ export default function ComptePage() {
                 <ChevronRight className="text-gray-600 group-hover:translate-x-1 transition-transform" />
              </Link>
         )}
+
+        {/* NOTIFICATIONS LINK - NOUVEAU */}
+        <Link href="/compte/notifications" className="w-full bg-white p-5 rounded-[2.2rem] flex items-center justify-between shadow-sm active:scale-95 transition border border-white group hover:shadow-md">
+            <div className="flex items-center gap-4">
+                <div className="bg-amber-50 p-3 rounded-2xl group-hover:bg-amber-100 transition-colors text-amber-600"><Bell size={24} /></div>
+                <div>
+                    <p className="font-black text-lg leading-tight tracking-tight text-gray-900">Notifications</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Alertes & La Sentinelle</p>
+                </div>
+            </div>
+            <ChevronRight className="text-gray-300 group-hover:translate-x-1 transition-transform" />
+        </Link>
 
         {/* QUICK LINKS */}
         <div className="grid grid-cols-2 gap-4">
