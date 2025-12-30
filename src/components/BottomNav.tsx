@@ -55,47 +55,47 @@ export default function BottomNav() {
   useEffect(() => {
     if (!userId) return
 
-    // 1. Canal Messages
+    // 1. CANAL MESSAGES - CORRIGÉ POUR LA SYNCHRO INSTANTANÉE
     const channelMessages = supabase.channel('nav-messages')
       .on('postgres_changes', { 
-        event: 'INSERT', 
+        event: '*', // Écoute INSERT (nouveau) et UPDATE (lu)
         schema: 'public', 
         table: 'messages', 
         filter: `receiver_id=eq.${userId}` 
       }, 
-        () => fetchUnreadCount(userId)
+        (payload) => {
+            // On rafraîchit le compteur rouge dans tous les cas
+            fetchUnreadCount(userId)
+            
+            // On affiche le toast UNIQUEMENT si c'est un nouveau message entrant
+            if (payload.eventType === 'INSERT' && !window.location.pathname.includes('/messages')) {
+                toast.message('Nouveau message !', {
+                    description: payload.new.content,
+                    action: { label: 'Répondre', onClick: () => router.push('/messages') },
+                })
+            }
+        }
       ).subscribe()
 
-    // 2. Canal Notifications - CONFIGURATION ÉLITE
+    // 2. CANAL NOTIFICATIONS SYSTÈME (Déjà optimisé)
     const channelNotifs = supabase.channel('nav-notifications')
       .on('postgres_changes', { 
-        event: '*', // Écoute TOUT : insertion, mise à jour (lecture), suppression
+        event: '*', 
         schema: 'public', 
         table: 'notifications', 
         filter: `user_id=eq.${userId}` 
       }, 
         (payload) => {
-            console.log("📡 [Realtime] Changement détecté :", payload.eventType)
-            
-            // Mise à jour immédiate du compteur
             fetchNotificationCount(userId)
-            
-            // Si c'est une NOUVELLE notification, on affiche le toast
             if (payload.eventType === 'INSERT') {
                 toast.info(payload.new.title, {
                     description: payload.new.message,
                     icon: <Bell size={16} className="text-amber-500" />,
-                    action: {
-                        label: 'Voir',
-                        onClick: () => router.push('/compte/notifications')
-                    },
+                    action: { label: 'Voir', onClick: () => router.push('/compte/notifications') },
                 })
             }
         }
-      )
-      .subscribe((status) => {
-          console.log("📡 [Status] Notifications Realtime :", status)
-      })
+      ).subscribe()
 
     return () => { 
         supabase.removeChannel(channelMessages) 
@@ -117,7 +117,7 @@ export default function BottomNav() {
           </Link>
         </div>
 
-        {/* MESSAGES */}
+        {/* MESSAGES AVEC BADGE ROUGE SYNCHRO */}
         <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
@@ -130,7 +130,7 @@ export default function BottomNav() {
             <span className="text-[9px] font-bold">Messages</span>
         </Link>
 
-        {/* COMPTE + BADGE AMBRE */}
+        {/* COMPTE AVEC BADGE AMBRE SYNCHRO */}
         <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />

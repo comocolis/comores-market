@@ -8,7 +8,16 @@ type Props = {
   searchParams: { [key: string]: string | string[] | undefined }
 }
 
-// --- GÉNÉRATION DES METADATA DYNAMIQUES POUR GOOGLE ---
+// --- UTILITAIRE DE REDIMENSIONNEMENT ÉLITE ---
+const getSeoImage = (url: string | null) => {
+  if (!url) return 'https://comores-market.com/cover-default.jpg';
+  if (url.includes('supabase.co')) {
+    return `${url}?width=1200&quality=80&resize=contain`;
+  }
+  return url;
+};
+
+// --- GÉNÉRATION DES METADATA DYNAMIQUES ---
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
@@ -26,21 +35,20 @@ export async function generateMetadata(
     return { title: 'Annonce introuvable | Comores Market' }
   }
 
-  // Formatage du prix et de la localisation pour le titre SEO
   const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price)
   const location = `${product.location_city}, ${product.location_island}`
-  
-  // Stratégie de titre : [Objet] - [Prix] KMF à [Ville] | Comores Market
   const seoTitle = `${product.title} - ${formattedPrice} KMF à ${location} | Comores Market`
   const seoDescription = `${formattedPrice} KMF - ${product.description?.substring(0, 150)}... Découvrez cette offre sur Comores Market.`
 
-  let mainImage = '/cover-default.jpg'
+  let rawImage = '/cover-default.jpg'
   try {
       const images = JSON.parse(product.images)
-      if (Array.isArray(images) && images.length > 0) mainImage = images[0]
+      if (Array.isArray(images) && images.length > 0) rawImage = images[0]
   } catch (e) {
-      if (product.images && typeof product.images === 'string') mainImage = product.images
+      if (product.images && typeof product.images === 'string') rawImage = product.images
   }
+
+  const mainImage = getSeoImage(rawImage);
  
   return {
     title: seoTitle,
@@ -50,6 +58,7 @@ export async function generateMetadata(
       description: seoDescription,
       images: [mainImage],
       type: 'article',
+      url: `https://comores-market.com/annonce/${id}`,
     },
     twitter: {
       card: 'summary_large_image',
@@ -64,16 +73,15 @@ export async function generateMetadata(
 export default async function Page({ params }: Props) {
   const supabase = await createClient()
   
-  // Pré-chargement des données pour le script JSON-LD
+  // Correction de la requête pour forcer le typage ou gérer le tableau de profiles
   const { data: product } = await supabase
     .from('products')
-    .select('*, profiles(full_name)')
+    .select('title, price, description, images, profiles(full_name)')
     .eq('id', params.id)
     .single()
 
   if (!product) return <AnnonceClient />
 
-  // Construction du schéma JSON-LD pour les Rich Snippets Google
   let jsonLdImage = ''
   try {
     const imgs = JSON.parse(product.images)
@@ -82,11 +90,17 @@ export default async function Page({ params }: Props) {
     jsonLdImage = product.images
   }
 
+  // --- RÉPARATION ICI ---
+  // Supabase retourne souvent profiles comme un tableau dans les types générés.
+  // On accède donc au premier élément de manière sécurisée.
+  const sellerData = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
+  const sellerName = sellerData?.full_name || 'Vendeur Comores Market';
+
   const jsonLd = {
     '@context': 'https://schema.org/',
     '@type': 'Product',
     'name': product.title,
-    'image': jsonLdImage,
+    'image': getSeoImage(jsonLdImage),
     'description': product.description,
     'brand': {
       '@type': 'Brand',
@@ -98,16 +112,16 @@ export default async function Page({ params }: Props) {
       'price': product.price,
       'itemCondition': 'https://schema.org/UsedCondition',
       'availability': 'https://schema.org/InStock',
+      'url': `https://comores-market.com/annonce/${params.id}`,
       'seller': {
         '@type': 'Person',
-        'name': product.profiles?.full_name || 'Vendeur Comores Market'
+        'name': sellerName
       }
     }
   }
 
   return (
     <>
-      {/* Insertion du script pour les résultats enrichis de Google */}
       <Script
         id="product-jsonld"
         type="application/ld+json"

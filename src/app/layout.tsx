@@ -7,7 +7,14 @@ import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import { Suspense } from "react";
 
-const inter = Inter({ subsets: ["latin"] });
+// OPTIMISATION : display: 'swap' permet d'afficher le texte immédiatement 
+// avec une police système en attendant que Inter soit chargée, 
+// ce qui est crucial pour la perception de vitesse aux Comores.
+const inter = Inter({ 
+  subsets: ["latin"],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -57,26 +64,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr">
-      {/* Ajout de suppressHydrationWarning pour éviter l'erreur React #418 liée aux composants mobiles */}
+    <html lang="fr" suppressHydrationWarning>
       <body 
-        className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden`}
-        suppressHydrationWarning={true}
+        className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden font-sans`}
       >
-        
+        {/* Bannière d'installation PWA */}
         <InstallBanner />
 
-        <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative">
+        <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative flex flex-col">
+          {/* Notifications Toast en haut pour une visibilité maximale */}
           <Toaster richColors position="top-center" duration={3000} />
           
-          <main className="min-h-screen">
+          <main className="flex-1">
             {children}
           </main>
 
-          {/* L'assistant Elite CM est désormais disponible sur toutes les pages */}
+          {/* L'assistant Elite CM : support client permanent */}
           <EliteAssistant />
 
-          <Suspense fallback={null}>
+          {/* OPTIMISATION : Le fallback du Suspense simule la hauteur de la barre 
+            pour éviter le saut de mise en page (Layout Shift) lors du chargement.
+          */}
+          <Suspense fallback={<div className="h-16 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>
         </div>
