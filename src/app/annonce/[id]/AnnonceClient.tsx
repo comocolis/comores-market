@@ -9,13 +9,13 @@ import {
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, 
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
   X, Crown, Sparkles, MessageCircle, Clock, Facebook, Instagram,
-  AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Smartphone 
+  AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Smartphone
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 
-// --- UTILITAIRE D'OPTIMISATION IMAGE ÉLITE ---
+// --- UTILITAIRE IMAGE ---
 const getOptimizedImage = (url: string | null, width = 800) => {
   if (!url) return '/placeholder.png';
   if (url.includes('supabase.co')) {
@@ -24,7 +24,7 @@ const getOptimizedImage = (url: string | null, width = 800) => {
   return url;
 };
 
-// --- INTERFACE POUR LES PROPS ---
+// --- INTERFACE PROPS (Pour éviter l'erreur TypeScript) ---
 interface AnnonceClientProps {
   initialData?: any
 }
@@ -34,17 +34,16 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const router = useRouter()
   const params = useParams()
   
+  // Initialisation avec les données serveur
   const [product, setProduct] = useState<any>(initialData)
   const [loading, setLoading] = useState(!initialData)
-  const [currentUser, setCurrentUser] = useState<any>(null)
   
+  const [currentUser, setCurrentUser] = useState<any>(null)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
-  
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reporting, setReporting] = useState(false)
-  
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [images, setImages] = useState<string[]>([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -53,10 +52,9 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
   const minSwipeDistance = 50 
-
   const viewLogged = useRef(false)
 
-  // RÉCUPÉRATION DES DONNÉES CIBLÉE
+  // Récupération des données complémentaires (User, Favs)
   const getData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
@@ -66,6 +64,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
+    // Si on n'a pas reçu initialData (cas rare ou navigation client pure), on fetch
     if (!initialData) {
       const { data: productData } = await supabase
         .from('products')
@@ -87,6 +86,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     getData()
   }, [getData])
 
+  // Parsing des images
   useEffect(() => {
     if (product?.images) {
       try {
@@ -98,6 +98,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     }
   }, [product])
 
+  // Logger la vue
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current || !product) return
@@ -227,7 +228,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-gray-900 overflow-x-hidden relative">
+    // AJUSTEMENT PADDING : pb-12 suffit car il n'y a plus de barre fixe
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden relative">
       
       {/* HEADER FIXE */}
       <div className="fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
@@ -285,7 +287,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         {product.title} 
                         {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
-                    {/* ZÉRO TRANSFORMATION */}
                     <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest">
                         <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
                     </div>
@@ -349,7 +350,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             {!isOwner && (
                 <div className="space-y-4 pb-12">
-                    {/* WhatsApp */}
+                    {/* Bouton WhatsApp */}
                     <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
                         <Phone size={20} fill="currentColor" /> WhatsApp Direct
                     </button>

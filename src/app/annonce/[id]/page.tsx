@@ -3,12 +3,12 @@ import { createClient } from '@/utils/supabase/server'
 import AnnonceClient from './AnnonceClient'
 import Script from 'next/script'
 
+// CORRECTION 1 : params est désormais une Promise
 type Props = {
-  params: { id: string }
-  searchParams: { [key: string]: string | string[] | undefined }
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
-// --- UTILITAIRE DE REDIMENSIONNEMENT ÉLITE ---
 const getSeoImage = (url: string | null) => {
   if (!url) return 'https://comores-market.com/cover-default.jpg';
   if (url.includes('supabase.co')) {
@@ -17,12 +17,12 @@ const getSeoImage = (url: string | null) => {
   return url;
 };
 
-// --- GÉNÉRATION DES METADATA DYNAMIQUES ---
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
 ): Promise<Metadata> {
-  const id = params.id
+  // CORRECTION 2 : On attend la résolution des paramètres
+  const { id } = await params
   const supabase = await createClient()
   
   const { data: product } = await supabase
@@ -37,7 +37,8 @@ export async function generateMetadata(
 
   const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price)
   const location = `${product.location_city}, ${product.location_island}`
-  // ZÉRO TRANSFORMATION SEO
+  
+  // ZÉRO TRANSFORMATION : Titre brut
   const seoTitle = `${product.title} - ${formattedPrice} KMF à ${location} | Comores Market`
   const seoDescription = `${formattedPrice} KMF - ${product.description?.substring(0, 150)}... Découvrez cette offre sur Comores Market.`
 
@@ -70,11 +71,11 @@ export async function generateMetadata(
   }
 }
 
-// --- COMPOSANT PAGE AVEC DONNÉES STRUCTURÉES ---
 export default async function Page({ params }: Props) {
+  // CORRECTION 3 : On attend la résolution des paramètres ici aussi
+  const { id } = await params
   const supabase = await createClient()
   
-  // CORRECTION : On récupère les infos PRO et date d'expiration
   const { data: product } = await supabase
     .from('products')
     .select(`
@@ -88,9 +89,10 @@ export default async function Page({ params }: Props) {
         instagram_url
       )
     `)
-    .eq('id', params.id)
+    .eq('id', id) // On utilise 'id' extrait de l'await
     .single()
 
+  // On passe null si pas de produit, le client gérera l'affichage
   if (!product) return <AnnonceClient initialData={null} />
 
   let jsonLdImage = ''
@@ -120,7 +122,7 @@ export default async function Page({ params }: Props) {
       'price': product.price,
       'itemCondition': 'https://schema.org/UsedCondition',
       'availability': 'https://schema.org/InStock',
-      'url': `https://comores-market.com/annonce/${params.id}`,
+      'url': `https://comores-market.com/annonce/${id}`,
       'seller': {
         '@type': 'Person',
         'name': sellerName
@@ -135,7 +137,6 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* CORRECTION : On passe initialData */}
       <AnnonceClient initialData={product} />
     </>
   )
