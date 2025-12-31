@@ -8,8 +8,8 @@ import Link from 'next/link'
 import { 
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, 
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
-  X, Crown, Sparkles, MessageCircle, Clock, Facebook, Instagram,
-  AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Smartphone
+  X, Crown, Sparkles, MessageCircle, Clock,
+  AlertTriangle, CheckCircle2, ShieldCheck, Smartphone
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,7 +24,6 @@ const getOptimizedImage = (url: string | null, width = 800) => {
   return url;
 };
 
-// --- INTERFACE PROPS (Pour éviter l'erreur TypeScript) ---
 interface AnnonceClientProps {
   initialData?: any
 }
@@ -34,16 +33,16 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const router = useRouter()
   const params = useParams()
   
-  // Initialisation avec les données serveur
   const [product, setProduct] = useState<any>(initialData)
   const [loading, setLoading] = useState(!initialData)
-  
   const [currentUser, setCurrentUser] = useState<any>(null)
+  
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
   const [showReportModal, setShowReportModal] = useState(false)
   const [reportReason, setReportReason] = useState('')
   const [reporting, setReporting] = useState(false)
+  
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
   const [images, setImages] = useState<string[]>([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
@@ -54,7 +53,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const minSwipeDistance = 50 
   const viewLogged = useRef(false)
 
-  // Récupération des données complémentaires (User, Favs)
   const getData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
@@ -64,29 +62,23 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
-    // Si on n'a pas reçu initialData (cas rare ou navigation client pure), on fetch
     if (!initialData) {
       const { data: productData } = await supabase
         .from('products')
         .select(`
           id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until,
-          profiles(full_name, avatar_url, is_pro, subscription_end_date, facebook_url, instagram_url)
+          profiles(full_name, avatar_url, is_pro, subscription_end_date)
         `)
         .eq('id', params.id)
         .single()
       
-      if (productData) {
-          setProduct(productData)
-      }
+      if (productData) setProduct(productData)
       setLoading(false)
     }
   }, [supabase, params.id, initialData])
 
-  useEffect(() => {
-    getData()
-  }, [getData])
+  useEffect(() => { getData() }, [getData])
 
-  // Parsing des images
   useEffect(() => {
     if (product?.images) {
       try {
@@ -98,16 +90,12 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     }
   }, [product])
 
-  // Logger la vue
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current || !product) return
         viewLogged.current = true
         if (currentUser?.id !== product.user_id) {
-            await supabase.from('product_views').insert({
-                product_id: product.id,
-                viewer_id: currentUser?.id || null
-            })
+            await supabase.from('product_views').insert({ product_id: product.id, viewer_id: currentUser?.id || null })
         }
     }
     logView()
@@ -121,10 +109,9 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         product_id: product.id,
         reason: reportReason
     })
-    if (error) {
-        toast.error("Erreur lors du signalement")
-    } else {
-        toast.success("Signalement envoyé. Merci !")
+    if (error) toast.error("Erreur")
+    else {
+        toast.success("Signalement envoyé")
         setShowReportModal(false)
         setReportReason('')
     }
@@ -133,31 +120,18 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
   const nextImage = (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => (prev !== null ? (prev + 1) % images.length : 0))
-    } else {
-      setSelectedImageIndex((prev) => (prev + 1) % images.length)
-    }
+    if (lightboxIndex !== null) setLightboxIndex((prev) => (prev !== null ? (prev + 1) % images.length : 0))
+    else setSelectedImageIndex((prev) => (prev + 1) % images.length)
   }
 
   const prevImage = (e?: React.MouseEvent) => {
     e?.stopPropagation()
-    if (lightboxIndex !== null) {
-      setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
-    } else {
-      setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)
-    }
+    if (lightboxIndex !== null) setLightboxIndex((prev) => (prev !== null ? (prev - 1 + images.length) % images.length : 0))
+    else setSelectedImageIndex((prev) => (prev - 1 + images.length) % images.length)
   }
 
-  const onTouchStart = (e: TouchEvent) => {
-    setTouchEnd(0)
-    setTouchStart(e.targetTouches[0].clientX)
-  }
-
-  const onTouchMove = (e: TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX)
-  }
-
+  const onTouchStart = (e: TouchEvent) => { setTouchEnd(0); setTouchStart(e.targetTouches[0].clientX) }
+  const onTouchMove = (e: TouchEvent) => { setTouchEnd(e.targetTouches[0].clientX) }
   const onTouchEndAction = () => {
     if (!touchStart || !touchEnd) return
     const distance = touchStart - touchEnd
@@ -176,7 +150,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         receiver_id: product.user_id, 
         product_id: product.id
     })
-    if (error) toast.error("Erreur : " + error.message)
+    if (error) toast.error("Erreur")
     else { toast.success("Message envoyé !"); setMessage('') }
     setSending(false)
   }
@@ -216,23 +190,19 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
-  
   const seller = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
   
-  // LOGIQUE PRO ACTIVE
   const daysRemaining = seller?.subscription_end_date 
     ? Math.ceil((new Date(seller.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
   const isProActive = seller?.is_pro && daysRemaining > 0;
-
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   return (
-    // AJUSTEMENT PADDING : pb-12 suffit car il n'y a plus de barre fixe
     <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden relative">
       
-      {/* HEADER FIXE */}
-      <div className="fixed top-0 left-0 w-full p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
+      {/* HEADER FIXE (Contraint au mobile) */}
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
           <button onClick={() => router.back()} className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto">
             <ArrowLeft size={22} strokeWidth={2.5} />
           </button>
@@ -271,7 +241,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </div>
 
-      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-[3.5rem] relative z-10 min-h-[50vh] shadow-sm border-t border-white">
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-[3.5rem] relative z-10 min-h-screen shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             
             {isBoosted && (
@@ -301,7 +271,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 </div>
             </div>
 
-            {/* VENDEUR & RÉSEAUX */}
+            {/* VENDEUR (Sans réseaux sociaux) */}
             <div className="flex flex-col gap-4 mb-12">
               <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
@@ -323,34 +293,18 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                   </div>
                   <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
               </Link>
-
-              {/* RESTRICTION PRO : Réseaux sociaux */}
-              {isProActive && (seller?.facebook_url || seller?.instagram_url) && (
-                <div className="flex gap-3 px-1 animate-in fade-in zoom-in">
-                  {seller.facebook_url && (
-                    <a href={seller.facebook_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-100 text-blue-600 rounded-2xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-sm">
-                      <Facebook size={14} fill="currentColor" /> Facebook
-                    </a>
-                  )}
-                  {seller.instagram_url && (
-                    <a href={seller.instagram_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-100 text-pink-600 rounded-2xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-sm">
-                      <Instagram size={14} /> Instagram
-                    </a>
-                  )}
-                </div>
-              )}
             </div>
 
             <div className="mb-12">
-                <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Détails de l'offre</h3>
+                <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Description</h3>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line font-medium italic border-l-4 border-gray-50 pl-6 py-2">
                   "{product.description}"
                 </p>
             </div>
 
             {!isOwner && (
-                <div className="space-y-4 pb-12">
-                    {/* Bouton WhatsApp */}
+                <div className="space-y-4 pb-20">
+                    {/* BOUTONS D'ACTION INTÉGRÉS DANS LE FLUX */}
                     <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
                         <Phone size={20} fill="currentColor" /> WhatsApp Direct
                     </button>
@@ -372,20 +326,21 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       {/* LIGHTBOX */}
       <AnimatePresence>
         {lightboxIndex !== null && (
-          <div className="fixed inset-0 z-[200] bg-white animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
-              <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[210] text-black p-3 bg-gray-50 rounded-full active:scale-90 transition"><X size={28} strokeWidth={3} /></button>
-              <TransformWrapper centerOnInit={true}>
-                <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
-                  <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
-                </TransformComponent>
-              </TransformWrapper>
-              {images.length > 1 && (
-                  <>
-                      <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
-                      <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
-                      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-8 py-2.5 bg-gray-900 text-white text-[10px] font-black tracking-[0.3em] rounded-full z-[210] uppercase">{lightboxIndex + 1} / {images.length}</div>
-                  </>
-              )}
+          <div className="fixed inset-0 z-[200] bg-white animate-in fade-in flex justify-center">
+              <div className="w-full max-w-[480px] h-full relative flex items-center bg-black">
+                  <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[210] p-3 bg-white/10 backdrop-blur-md text-white rounded-full"><X size={24} /></button>
+                  <TransformWrapper centerOnInit={true}>
+                    <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
+                      <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
+                    </TransformComponent>
+                  </TransformWrapper>
+                  {images.length > 1 && (
+                      <>
+                          <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-white z-[210] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
+                          <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-white z-[210] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
+                      </>
+                  )}
+              </div>
           </div>
         )}
 
@@ -394,7 +349,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
                   <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
-                  <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-6 leading-relaxed">Indiquez la raison du litige</p>
                   <textarea className="w-full bg-gray-50 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-[120px] resize-none mb-6 shadow-inner" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
                   <div className="flex flex-col gap-3">
                       <button onClick={submitReport} disabled={reporting || !reportReason.trim()} className="w-full py-5 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-xl shadow-red-500/20 uppercase text-[10px] tracking-widest">{reporting ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Envoyer l'alerte"}</button>

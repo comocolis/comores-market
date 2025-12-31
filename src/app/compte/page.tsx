@@ -58,7 +58,7 @@ export default function ComptePage() {
     description: '' 
   })
 
-  // RÉCUPÉRATION CHIRURGICALE DES DONNÉES
+  // RÉCUPÉRATION DES DONNÉES
   const getProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -136,7 +136,11 @@ export default function ComptePage() {
         if (uploadError) throw uploadError
         
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+        
+        // Mise à jour Table + Auth pour l'avatar aussi
         const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+        await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
+
         if (updateError) throw updateError
         
         setProfile({ ...profile, avatar_url: publicUrl })
@@ -148,15 +152,33 @@ export default function ComptePage() {
     }
   }
 
+  // --- CORRECTION CRITIQUE : DOUBLE MISE À JOUR (TABLE + AUTH) ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
-    const { error } = await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
-    if (error) toast.error("Erreur de sauvegarde")
-    else {
+
+    // 1. Mise à jour de la table publique
+    const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ ...formData })
+        .eq('id', user.id)
+
+    // 2. Mise à jour des métadonnées Auth (Pour la persistance session)
+    const { error: authError } = await supabase.auth.updateUser({
+        data: { 
+            full_name: formData.full_name,
+            // On peut ajouter d'autres champs si nécessaire dans les metadata
+        }
+    })
+
+    if (profileError || authError) {
+        console.error("Update Error:", profileError || authError)
+        toast.error("Erreur de sauvegarde")
+    } else {
         toast.success("Profil mis à jour !")
         setIsEditingInfo(false)
         setProfile({ ...profile, ...formData })
+        router.refresh() // Rafraîchissement pour propager les changements
     }
     setSaving(false)
   }

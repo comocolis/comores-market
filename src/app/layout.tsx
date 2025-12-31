@@ -7,9 +7,7 @@ import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import { Suspense } from "react";
 
-// OPTIMISATION : display: 'swap' permet d'afficher le texte immédiatement 
-// avec une police système en attendant que Inter soit chargée, 
-// ce qui est crucial pour la perception de vitesse aux Comores.
+// OPTIMISATION : display: 'swap' pour affichage immédiat du texte
 const inter = Inter({ 
   subsets: ["latin"],
   display: 'swap',
@@ -65,27 +63,34 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
+      {/* 1. bg-gray-200 : Fond de bureau pour faire ressortir l'app
+        2. flex justify-center : Centre l'application au milieu de l'écran
+      */}
       <body 
-        className={`${inter.className} bg-gray-100 min-h-screen flex justify-center overflow-x-hidden font-sans`}
+        className={`${inter.className} bg-gray-200 min-h-screen flex justify-center overflow-y-scroll font-sans`}
       >
-        {/* Bannière d'installation PWA */}
-        <InstallBanner />
+        {/* LE CONTENEUR MOBILE :
+          - max-w-[480px] : Largeur fixe mobile
+          - shadow-2xl : Effet de profondeur
+          - relative : Pour positionner les éléments internes
+        */}
+        <div className="w-full max-w-[480px] min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+          
+          {/* Bannière PWA (Intégrée dans le flux mobile) */}
+          <InstallBanner />
 
-        <div className="w-full max-w-md min-h-screen bg-white shadow-2xl relative flex flex-col">
-          {/* Notifications Toast en haut pour une visibilité maximale */}
+          {/* Notifications Toast */}
           <Toaster richColors position="top-center" duration={3000} />
           
-          <main className="flex-1">
+          <main className="flex-1 relative">
             {children}
           </main>
 
-          {/* L'assistant Elite CM : support client permanent */}
+          {/* L'assistant Elite CM */}
           <EliteAssistant />
 
-          {/* OPTIMISATION : Le fallback du Suspense simule la hauteur de la barre 
-            pour éviter le saut de mise en page (Layout Shift) lors du chargement.
-          */}
-          <Suspense fallback={<div className="h-16 w-full bg-white border-t border-gray-50" />}>
+          {/* Navigation du bas */}
+          <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>
         </div>
