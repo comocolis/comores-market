@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useParams, useRouter } from 'next/navigation'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link' 
 import { 
@@ -15,16 +15,23 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-export default function ProfileClient() {
+// INTERFACE POUR LES DONNÉES INITIALES
+interface ProfileClientProps {
+  initialData?: any
+  id?: string
+}
+
+export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   const supabase = createClient()
   const params = useParams()
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   
-  const [profile, setProfile] = useState<any>(null)
+  // Utilisation de initialData si disponible
+  const [profile, setProfile] = useState<any>(initialData || null)
   const [products, setProducts] = useState<any[]>([])
   const [reviews, setReviews] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(!initialData)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [responseTimeLabel, setResponseTimeLabel] = useState<string>("Réactif")
   const [uploadingCover, setUploadingCover] = useState(false)
@@ -35,7 +42,8 @@ export default function ProfileClient() {
   const [newComment, setNewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
 
-  const isOwner = currentUser?.id === params.id
+  const profileId = id || (params?.id as string)
+  const isOwner = currentUser?.id === profileId
 
   const calculateResponseTime = async (userId: string) => {
     try {
@@ -70,23 +78,29 @@ export default function ProfileClient() {
     } catch (e) { console.error(e) }
   }
 
-  useEffect(() => {
-    const getData = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setCurrentUser(user)
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', params.id).single()
-      setProfile(prof)
-      if (prof) {
-        calculateResponseTime(prof.id);
-        const { data: pds } = await supabase.from('products').select('*').eq('user_id', params.id).eq('status', 'active').order('created_at', { ascending: false })
-        setProducts(pds || [])
-        const { data: rvs } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', params.id).order('created_at', { ascending: false })
-        setReviews(rvs || [])
-      }
-      setLoading(false)
+  const getData = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    setCurrentUser(user)
+    
+    // Si on n'a pas les données initiales, on les fetch
+    if (!initialData) {
+        const { data: prof } = await supabase.from('profiles').select('*').eq('id', profileId).single()
+        if (prof) setProfile(prof)
     }
+
+    if (profileId) {
+        calculateResponseTime(profileId);
+        const { data: pds } = await supabase.from('products').select('*').eq('user_id', profileId).eq('status', 'active').order('created_at', { ascending: false })
+        setProducts(pds || [])
+        const { data: rvs } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', profileId).order('created_at', { ascending: false })
+        setReviews(rvs || [])
+    }
+    setLoading(false)
+  }, [profileId, supabase, initialData])
+
+  useEffect(() => {
     getData()
-  }, [params.id, supabase])
+  }, [getData])
 
   const averageRating = reviews.length > 0 
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1) 
@@ -117,16 +131,21 @@ export default function ProfileClient() {
   const handleAddReview = async () => {
       if (!currentUser) return router.push('/auth')
       setSubmittingReview(true)
-      const { error } = await supabase.from('reviews').insert({ reviewer_id: currentUser.id, target_id: params.id, rating: newRating, comment: newComment })
+      const { error } = await supabase.from('reviews').insert({ reviewer_id: currentUser.id, target_id: profileId, rating: newRating, comment: newComment })
       if (error) toast.error("Erreur envoi")
       else { toast.success("Avis publié !"); window.location.reload() }
       setSubmittingReview(false)
   }
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]"><Loader2 className="animate-spin text-brand" /></div>
-  if (!profile) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
+  if (!profile && !loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
 
-  const isPro = profile?.is_pro
+  // --- LOGIQUE PRO ACTIVE ---
+  const daysRemaining = profile?.subscription_end_date 
+    ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+    : 0;
+  const isProActive = profile?.is_pro && daysRemaining > 0;
+
   const headerButtonStyle = "p-3 bg-white rounded-full text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
 
   return (
@@ -164,10 +183,10 @@ export default function ProfileClient() {
         <div className="bg-white -mt-24 rounded-[3rem] shadow-xl relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
           
           <div className="relative -mt-16 mb-4">
-            <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isPro ? 'bg-amber-50' : 'bg-gray-100'}`}>
+            <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50' : 'bg-gray-100'}`}>
                 {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
             </div>
-            {isPro && (
+            {isProActive && (
               <div className="absolute -bottom-2 -right-2 bg-amber-50 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white flex items-center justify-center">
                 <Crown size={18} className="fill-amber-500 text-amber-500" />
               </div>
@@ -175,9 +194,10 @@ export default function ProfileClient() {
           </div>
 
           <div className="space-y-1">
+            {/* ZÉRO TRANSFORMATION : Nom brut */}
             <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
               {profile.full_name || "Utilisateur"} 
-              {isPro && <Crown size={22} className="text-amber-500 fill-amber-500" />}
+              {isProActive && <Crown size={22} className="text-amber-500 fill-amber-500" />}
             </h2>
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit mx-auto mt-2">
                 <Clock size={12} strokeWidth={3} />
@@ -193,7 +213,7 @@ export default function ProfileClient() {
 
           {/* ACTIONS : FACTURE & RÉSEAUX SOCIAUX */}
           <div className="mt-6 flex flex-col items-center gap-5 w-full">
-            {isOwner && isPro && (
+            {isOwner && isProActive && (
               <button 
                 onClick={() => generatePROReceipt({ 
                   full_name: profile.full_name, 
@@ -206,8 +226,8 @@ export default function ProfileClient() {
               </button>
             )}
 
-            {/* RESTAURATION DES LIENS SOCIAUX */}
-            {(profile.facebook_url || profile.instagram_url) && (
+            {/* RESTRICTION PRO : Disparaît si non-pro ou expiré */}
+            {isProActive && (profile.facebook_url || profile.instagram_url) && (
               <div className="flex justify-center gap-3">
                 {profile.facebook_url && (
                   <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
@@ -224,6 +244,7 @@ export default function ProfileClient() {
           </div>
 
           <div className="mt-6 space-y-4 w-full">
+            {/* ZÉRO TRANSFORMATION : Ville brute */}
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
@@ -259,6 +280,7 @@ export default function ProfileClient() {
                                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
                                   </div>
                                   <div className="pt-3 px-1">
+                                    {/* ZÉRO TRANSFORMATION : Titre brut */}
                                     <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
                                     <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
                                       <ShoppingBag size={10} /> {p.location_city}
@@ -289,7 +311,7 @@ export default function ProfileClient() {
                 </motion.div>
             ) : (
                 <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
-                    {currentUser && currentUser.id !== params.id && (
+                    {currentUser && currentUser.id !== profileId && (
                         <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-[2rem] flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
                           <Plus size={18} /> Partager un avis
                         </button>

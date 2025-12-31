@@ -37,6 +37,7 @@ export async function generateMetadata(
 
   const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price)
   const location = `${product.location_city}, ${product.location_island}`
+  // ZÉRO TRANSFORMATION SEO
   const seoTitle = `${product.title} - ${formattedPrice} KMF à ${location} | Comores Market`
   const seoDescription = `${formattedPrice} KMF - ${product.description?.substring(0, 150)}... Découvrez cette offre sur Comores Market.`
 
@@ -73,14 +74,24 @@ export async function generateMetadata(
 export default async function Page({ params }: Props) {
   const supabase = await createClient()
   
-  // Correction de la requête pour forcer le typage ou gérer le tableau de profiles
+  // CORRECTION : On récupère les infos PRO et date d'expiration
   const { data: product } = await supabase
     .from('products')
-    .select('title, price, description, images, profiles(full_name)')
+    .select(`
+      *,
+      profiles(
+        full_name,
+        avatar_url,
+        is_pro,
+        subscription_end_date,
+        facebook_url,
+        instagram_url
+      )
+    `)
     .eq('id', params.id)
     .single()
 
-  if (!product) return <AnnonceClient />
+  if (!product) return <AnnonceClient initialData={null} />
 
   let jsonLdImage = ''
   try {
@@ -90,9 +101,6 @@ export default async function Page({ params }: Props) {
     jsonLdImage = product.images
   }
 
-  // --- RÉPARATION ICI ---
-  // Supabase retourne souvent profiles comme un tableau dans les types générés.
-  // On accède donc au premier élément de manière sécurisée.
   const sellerData = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
   const sellerName = sellerData?.full_name || 'Vendeur Comores Market';
 
@@ -127,7 +135,8 @@ export default async function Page({ params }: Props) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <AnnonceClient />
+      {/* CORRECTION : On passe initialData */}
+      <AnnonceClient initialData={product} />
     </>
   )
 }

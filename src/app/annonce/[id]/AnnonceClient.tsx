@@ -9,7 +9,7 @@ import {
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, 
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
   X, Crown, Sparkles, MessageCircle, Clock, Facebook, Instagram,
-  AlertTriangle, CheckCircle2
+  AlertTriangle, CheckCircle2, ShieldCheck, MessageSquare, Smartphone 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -24,13 +24,18 @@ const getOptimizedImage = (url: string | null, width = 800) => {
   return url;
 };
 
-export default function AnnonceClient() {
+// --- INTERFACE POUR LES PROPS ---
+interface AnnonceClientProps {
+  initialData?: any
+}
+
+export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const supabase = createClient()
   const router = useRouter()
   const params = useParams()
   
-  const [product, setProduct] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [product, setProduct] = useState<any>(initialData)
+  const [loading, setLoading] = useState(!initialData)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
   const [message, setMessage] = useState('')
@@ -61,31 +66,37 @@ export default function AnnonceClient() {
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
-    // On sélectionne uniquement les colonnes nécessaires pour la performance
-    const { data: productData } = await supabase
-      .from('products')
-      .select(`
-        id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until,
-        profiles(full_name, avatar_url, is_pro, facebook_url, instagram_url)
-      `)
-      .eq('id', params.id)
-      .single()
-    
-    if (productData) {
-        setProduct(productData)
-        try {
-          const imgs = JSON.parse(productData.images)
-          setImages(Array.isArray(imgs) ? imgs : [productData.images])
-        } catch {
-          setImages([productData.images])
-        }
+    if (!initialData) {
+      const { data: productData } = await supabase
+        .from('products')
+        .select(`
+          id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until,
+          profiles(full_name, avatar_url, is_pro, subscription_end_date, facebook_url, instagram_url)
+        `)
+        .eq('id', params.id)
+        .single()
+      
+      if (productData) {
+          setProduct(productData)
+      }
+      setLoading(false)
     }
-    setLoading(false)
-  }, [supabase, params.id])
+  }, [supabase, params.id, initialData])
 
   useEffect(() => {
     getData()
   }, [getData])
+
+  useEffect(() => {
+    if (product?.images) {
+      try {
+        const imgs = JSON.parse(product.images)
+        setImages(Array.isArray(imgs) ? imgs : [product.images])
+      } catch {
+        setImages([product.images])
+      }
+    }
+  }, [product])
 
   useEffect(() => {
     const logView = async () => {
@@ -205,9 +216,14 @@ export default function AnnonceClient() {
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
   
-  // Correction TypeScript pour la structure de profiles
   const seller = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
-  const isPro = seller?.is_pro
+  
+  // LOGIQUE PRO ACTIVE
+  const daysRemaining = seller?.subscription_end_date 
+    ? Math.ceil((new Date(seller.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+    : 0;
+  const isProActive = seller?.is_pro && daysRemaining > 0;
+
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   return (
@@ -232,7 +248,7 @@ export default function AnnonceClient() {
           </div>
       </div>
 
-      {/* GALERIE PHOTO AVEC REDIMENSIONNEMENT */}
+      {/* GALERIE PHOTO */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
           src={getOptimizedImage(images[selectedImageIndex]) || '/placeholder.png'} 
@@ -264,11 +280,13 @@ export default function AnnonceClient() {
 
             <div className="flex justify-between items-start mb-8 gap-4">
                 <div className="flex-1">
-                    <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight uppercase flex items-center gap-2">
+                    {/* ZÉRO TRANSFORMATION */}
+                    <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight flex items-center gap-2">
                         {product.title} 
-                        {isPro && <Crown size={20} className="text-amber-500 fill-amber-500" />}
+                        {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
-                    <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+                    {/* ZÉRO TRANSFORMATION */}
+                    <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest">
                         <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
                     </div>
                 </div>
@@ -290,22 +308,24 @@ export default function AnnonceClient() {
                           {seller?.avatar_url ? (
                             <Image src={getOptimizedImage(seller.avatar_url, 150) || '/placeholder.png'} alt="" fill className="object-cover" />
                           ) : (
-                            <User size={24} className="text-gray-200" />
+                            <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={24} /></div>
                           )}
                       </div>
                       <div>
-                          <p className="font-black text-gray-900 text-sm uppercase tracking-tight flex items-center gap-1.5">
+                          {/* ZÉRO TRANSFORMATION */}
+                          <p className="font-black text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
                             {seller?.full_name || "Utilisateur"} 
-                            {isPro && <Crown size={14} className="text-amber-500 fill-amber-500" />}
+                            {isProActive && <ShieldCheck size={16} className="text-brand fill-brand/10" />}
                           </p>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 mt-0.5">{isPro ? 'Compte Pro' : 'Particulier'}</p>
+                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 mt-0.5">{isProActive ? 'Compte Pro' : 'Particulier'}</p>
                       </div>
                   </div>
                   <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
               </Link>
 
-              {(seller?.facebook_url || seller?.instagram_url) && (
-                <div className="flex gap-3 px-1">
+              {/* RESTRICTION PRO : Réseaux sociaux */}
+              {isProActive && (seller?.facebook_url || seller?.instagram_url) && (
+                <div className="flex gap-3 px-1 animate-in fade-in zoom-in">
                   {seller.facebook_url && (
                     <a href={seller.facebook_url} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-white border border-gray-100 text-blue-600 rounded-2xl text-[9px] font-black uppercase tracking-widest active:scale-95 transition shadow-sm">
                       <Facebook size={14} fill="currentColor" /> Facebook
@@ -329,11 +349,11 @@ export default function AnnonceClient() {
 
             {!isOwner && (
                 <div className="space-y-4 pb-12">
-                    {isPro && (
-                        <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
-                            <Phone size={20} fill="currentColor" /> WhatsApp Direct
-                        </button>
-                    )}
+                    {/* WhatsApp */}
+                    <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
+                        <Phone size={20} fill="currentColor" /> WhatsApp Direct
+                    </button>
+                    
                     <div className="bg-gray-50 p-7 rounded-[2.5rem] border border-white">
                         <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
@@ -349,26 +369,25 @@ export default function AnnonceClient() {
       </motion.div>
 
       {/* LIGHTBOX */}
-      {lightboxIndex !== null && (
-        <div className="fixed inset-0 z-[200] bg-white animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
-            <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[210] text-black p-3 bg-gray-50 rounded-full active:scale-90 transition"><X size={28} strokeWidth={3} /></button>
-            <TransformWrapper centerOnInit={true}>
-              <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
-                <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
-              </TransformComponent>
-            </TransformWrapper>
-            {images.length > 1 && (
-                <>
-                    <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
-                    <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-8 py-2.5 bg-gray-900 text-white text-[10px] font-black tracking-[0.3em] rounded-full z-[210] uppercase">{lightboxIndex + 1} / {images.length}</div>
-                </>
-            )}
-        </div>
-      )}
-
-      {/* MODALE SIGNALEMENT AVEC AlertTriangle CORRIGÉ */}
       <AnimatePresence>
+        {lightboxIndex !== null && (
+          <div className="fixed inset-0 z-[200] bg-white animate-in fade-in" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEndAction}>
+              <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[210] text-black p-3 bg-gray-50 rounded-full active:scale-90 transition"><X size={28} strokeWidth={3} /></button>
+              <TransformWrapper centerOnInit={true}>
+                <TransformComponent wrapperStyle={{ width: "100vw", height: "100vh" }}>
+                  <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
+                </TransformComponent>
+              </TransformWrapper>
+              {images.length > 1 && (
+                  <>
+                      <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
+                      <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-black z-[210] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
+                      <div className="absolute bottom-12 left-1/2 -translate-x-1/2 px-8 py-2.5 bg-gray-900 text-white text-[10px] font-black tracking-[0.3em] rounded-full z-[210] uppercase">{lightboxIndex + 1} / {images.length}</div>
+                  </>
+              )}
+          </div>
+        )}
+
         {showReportModal && (
           <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
