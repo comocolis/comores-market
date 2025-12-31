@@ -68,7 +68,6 @@ export default function ComptePage() {
     
     setUser(user) 
 
-    // OPTIMISATION : On ne sélectionne que les colonnes nécessaires
     const { data, error } = await supabase
         .from('profiles')
         .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date')
@@ -108,7 +107,6 @@ export default function ComptePage() {
           return
       }
       setDeleting(true)
-      // On conserve l'appel RPC sécurisé créé précédemment [cite: 2025-12-09]
       const { error } = await supabase.rpc('delete_own_account')
       if (error) {
           toast.error("Erreur : " + error.message)
@@ -200,7 +198,6 @@ export default function ComptePage() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-gray-900">
       
-      {/* MODALE SUPPRESSION (Conservée du changement précédent) */}
       <AnimatePresence>
         {showDeleteModal && (
           <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
@@ -218,7 +215,6 @@ export default function ComptePage() {
         )}
       </AnimatePresence>
 
-      {/* HEADER AVEC AVATAR OPTIMISÉ */}
       <div className="bg-white p-8 pb-12 rounded-b-[3.5rem] shadow-sm relative z-10 border-b border-gray-100">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tighter">Réglages</h1>
@@ -240,7 +236,7 @@ export default function ComptePage() {
                         src={getOptimizedAvatar(profile.avatar_url) || '/placeholder.jpg'} 
                         alt="" 
                         fill 
-                        priority // OPTIMISATION LCP
+                        priority 
                         className="object-cover" 
                       />
                     ) : (
@@ -255,8 +251,10 @@ export default function ComptePage() {
             </div>
             
             <div className="flex-1 min-w-0">
-                <h2 className="font-black text-xl truncate tracking-tight uppercase leading-none mb-2">{profile?.full_name || "Nom du Showroom"}</h2>
-                <p className="text-[10px] text-gray-400 font-black truncate uppercase tracking-widest mb-3">{user?.email}</p>
+                {/* ZÉRO TRANSFORMATION : Suppression de 'uppercase' */}
+                <h2 className="font-black text-xl truncate tracking-tight leading-none mb-2">{profile?.full_name || "Nom du Showroom"}</h2>
+                {/* ZÉRO TRANSFORMATION : Suppression de 'uppercase' */}
+                <p className="text-[10px] text-gray-400 font-black truncate tracking-widest mb-3">{user?.email}</p>
                 {isProActive ? (
                     <div className="inline-flex flex-col items-start bg-amber-500 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20">
                         <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"><Crown size={10} fill="currentColor" /> Expert Pro</span>
@@ -270,7 +268,6 @@ export default function ComptePage() {
 
       <div className="px-5 -mt-6 relative z-20 space-y-6">
         
-        {/* SHORTCUTS (Admin conservé) */}
         <div className="flex flex-col gap-4">
           {user?.email === ADMIN_EMAIL && (
                <Link href="/admin" className="w-full bg-gray-900 text-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-2xl border border-white/10 active:scale-95 transition">
@@ -302,7 +299,6 @@ export default function ComptePage() {
             </Link>
         </div>
 
-        {/* IDENTITÉ */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-8">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
                 <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300">Mon Showroom</h3>
@@ -317,7 +313,8 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                       <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
-                      <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs uppercase tracking-tight">{profile?.full_name}</p>
+                      /* ZÉRO TRANSFORMATION : Suppression de 'uppercase' */
+                      <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight">{profile?.full_name}</p>
                     )}
                 </div>
 
@@ -326,6 +323,7 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                         <textarea className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold outline-none border border-gray-100 min-h-24 resize-none" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                     ) : (
+                        /* DÉJÀ SANS TRANSFORMATION */
                         <p className="p-5 bg-gray-50/50 rounded-2xl text-xs font-medium text-gray-500 leading-relaxed italic">"{profile?.description || "Aucune bio..."}"</p>
                     )}
                 </div>
@@ -337,11 +335,19 @@ export default function ComptePage() {
                             <select className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black border border-gray-100 outline-none" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
                                 {['Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'].map(i => <option key={i}>{i}</option>)}
                             </select>
-                        ) : ( <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px] uppercase">{profile?.island}</p> )}
+                        ) : ( 
+                          /* ZÉRO TRANSFORMATION : Suppression de 'uppercase' */
+                          <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.island}</p> 
+                        )}
                     </div>
                     <div className="space-y-2">
                         <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Ville</label>
-                        {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black border border-gray-100" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px] uppercase">{profile?.city}</p>}
+                        {isEditingInfo ? (
+                          <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black border border-gray-100" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                        ) : ( 
+                          /* ZÉRO TRANSFORMATION : Suppression de 'uppercase' */
+                          <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.city}</p> 
+                        )}
                     </div>
                 </div>
 
@@ -352,7 +358,10 @@ export default function ComptePage() {
                           <Smartphone className="absolute left-4 top-4 text-gray-300" size={16} />
                           <input type="tel" className="w-full bg-gray-50 p-4 pl-12 rounded-2xl text-xs font-black border border-gray-100" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
                         </div>
-                    ) : ( <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-[0.2em]">{profile?.phone_number || "Non renseigné"}</p> )}
+                    ) : ( 
+                      /* DÉJÀ SANS TRANSFORMATION */
+                      <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-[0.2em]">{profile?.phone_number || "Non renseigné"}</p> 
+                    )}
                 </div>
             </div>
 
@@ -366,7 +375,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* SÉCURITÉ (Conservé) */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-6">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><Lock size={16} /> Sécurité</h3>
             {isEditingPassword ? (
@@ -388,7 +396,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* DANGER (Conservé) */}
         <div className="bg-red-50 p-8 rounded-[2.5rem] shadow-sm border border-red-100 space-y-5">
             <h3 className="font-black text-[10px] text-red-600 uppercase tracking-widest flex items-center gap-2"><AlertTriangle size={16} /> Zone Critique</h3>
             <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-200 text-red-600 font-black py-5 rounded-[1.8rem] text-[9px] uppercase tracking-widest active:scale-95 transition shadow-sm flex items-center justify-center gap-2">
