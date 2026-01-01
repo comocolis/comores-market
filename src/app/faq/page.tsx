@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft, ChevronDown, ChevronUp, HelpCircle, Mail } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
-// Données FAQ (Textes validés)
+// Données de la FAQ
 const faqData = [
   {
     question: "Comment devenir vendeur Pro ?",
@@ -60,37 +60,37 @@ const faqData = [
 export default function FAQPage() {
   const router = useRouter()
   const [openIndex, setOpenIndex] = useState<number | null>(0)
+  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-10 font-sans text-gray-900 flex flex-col">
+    // MÊME CONTENEUR GLOBAL QUE LA PAGE CGU
+    <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
       
-      {/* HEADER STICKY : La solution au conflit.
-          Il reste dans le flux (sous la bannière) et se colle en haut au scroll. 
+      {/* HEADER STANDARD (Même structure que CGU) 
+          Pas de fixed, pas de sticky. Flux naturel.
       */}
-      <div className="sticky top-0 z-40 w-full bg-[#F8FAFC]/90 backdrop-blur-xl p-4 pt-safe border-b border-gray-100 flex items-center gap-4 transition-all">
+      <div className="flex items-center gap-4 mb-8 pt-safe">
         <button 
           onClick={() => router.back()} 
-          className="p-2.5 bg-white rounded-xl shadow-sm border border-gray-100 active:scale-90 transition cursor-pointer"
+          className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
         >
-          <ArrowLeft size={20} />
+            <ArrowLeft size={20} className="text-gray-700" />
         </button>
-        <h1 className="text-lg font-black tracking-tight flex items-center gap-2">
-          <HelpCircle size={20} className="text-brand" /> Aide & FAQ
-        </h1>
+        <h1 className="text-xl font-bold text-gray-900">Aide & FAQ</h1>
       </div>
 
-      {/* CONTENU : Padding normal (plus besoin de compensation pt-24) */}
-      <div className="flex-1 px-5 pt-6 w-full space-y-4">
+      <div className="space-y-4">
+        {/* LISTE DES QUESTIONS (ACCORDÉONS) */}
         {faqData.map((item, i) => (
-          <div key={i} className="bg-white rounded-[1.5rem] border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md transition-shadow duration-200">
+          <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <button 
               onClick={() => setOpenIndex(openIndex === i ? null : i)}
-              className="w-full flex justify-between items-center p-5 text-left active:bg-gray-50 transition cursor-pointer"
+              className="w-full flex justify-between items-center p-5 text-left active:bg-gray-50 transition"
             >
-              <span className={`text-sm font-black pr-4 ${openIndex === i ? 'text-brand' : 'text-gray-800'}`}>
+              <span className={`text-sm font-bold pr-4 ${openIndex === i ? 'text-brand' : 'text-gray-800'}`}>
                 {item.question}
               </span>
-              {openIndex === i ? <ChevronUp size={18} className="text-brand shrink-0" /> : <ChevronDown size={18} className="text-gray-300 group-hover:text-gray-500 shrink-0" />}
+              {openIndex === i ? <ChevronUp size={18} className="text-brand shrink-0" /> : <ChevronDown size={18} className="text-gray-400 shrink-0" />}
             </button>
             
             <AnimatePresence>
@@ -101,7 +101,7 @@ export default function FAQPage() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-5 pb-5 pt-0 text-xs text-gray-500 font-medium leading-relaxed border-t border-gray-50 mt-2 pt-4">
+                  <div className="px-5 pb-5 pt-0 text-sm text-gray-600 leading-relaxed border-t border-gray-50 mt-2 pt-4">
                     {item.answer}
                   </div>
                 </motion.div>
@@ -110,16 +110,20 @@ export default function FAQPage() {
           </div>
         ))}
 
-        {/* SECTION SUPPORT */}
-        <div className="mt-8 p-6 bg-brand/5 rounded-[2rem] text-center border border-brand/10 mb-8">
-          <p className="text-xs font-black text-brand mb-3">Une autre question ?</p>
-          <a 
-            href="mailto:contact.comoresmarket@gmail.com" 
-            className="inline-flex items-center gap-2 px-6 py-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xs font-black text-gray-700 active:scale-95 transition hover:border-brand/30 hover:text-brand cursor-pointer"
-          >
-            <Mail size={14} />
-            Contacter le support
-          </a>
+        {/* SECTION CONTACT (Style identique CGU) */}
+        <section className="bg-white p-6 rounded-2xl shadow-sm mt-8 border border-gray-100 text-center">
+            <h2 className="text-gray-900 font-bold mb-2">Une autre question ?</h2>
+            <p className="text-sm text-gray-500 mb-4">Notre équipe est là pour vous aider.</p>
+            <a 
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center text-sm"
+            >
+                <Mail size={18} /> Contacter le support
+            </a>
+        </section>
+
+        <div className="pt-8 text-xs text-center text-gray-400">
+            © 2025 Comores Market. Tous droits réservés.
         </div>
       </div>
     </div>

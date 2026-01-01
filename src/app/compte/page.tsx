@@ -86,6 +86,8 @@ export default function ComptePage() {
           instagram_url: data.instagram_url || '',
           description: data.description || '' 
       })
+    } else if (error) {
+        console.error("Erreur lecture profil:", error)
     }
     setLoading(false)
   }, [router, supabase])
@@ -136,25 +138,38 @@ export default function ComptePage() {
         
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
         
-        // Mise à jour Avatar via table + auth
-        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+        // Mise à jour via RPC
+        await supabase.rpc('update_profile', { 
+            p_full_name: formData.full_name,
+            p_city: formData.city,
+            p_island: formData.island,
+            p_phone_number: formData.phone_number,
+            p_facebook_url: formData.facebook_url,
+            p_instagram_url: formData.instagram_url,
+            p_description: formData.description
+        })
+        
+        // Mise à jour Auth pour l'avatar aussi
         await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
         
-        setProfile({ ...profile, avatar_url: publicUrl })
+        // Update local pour affichage immédiat
+        setProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }))
+        
         toast.success("Photo mise à jour !")
     } catch (error: any) {
+        console.error(error)
         toast.error("Erreur d'envoi")
     } finally {
         setAvatarUploading(false)
     }
   }
 
-  // --- SAUVEGARDE VIA RPC (Solution Conflit) ---
+  // --- SAUVEGARDE COMPLÈTE (Table + Auth Metadata) ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
 
-    // 1. Appel RPC pour forcer l'écriture en base
+    // 1. Sauvegarde dans la TABLE (via RPC pour contourner les droits)
     const { error: rpcError } = await supabase.rpc('update_profile', {
         p_full_name: formData.full_name,
         p_city: formData.city,
@@ -166,16 +181,28 @@ export default function ComptePage() {
     })
 
     if (rpcError) {
-        // Fallback si la fonction RPC n'existe pas : update classique
-        console.error("RPC Error (fallback activé):", rpcError)
-        await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
+        console.error("Erreur RPC:", rpcError)
+        // Fallback: update classique
+        const { error: tableError } = await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
+        if (tableError) {
+            toast.error("Erreur de sauvegarde")
+            setSaving(false)
+            return
+        }
     }
 
-    // 2. Synchronisation Auth pour la session
+    // 2. CRUCIAL : Sauvegarde dans les METADATA AUTH
+    // C'est ici que l'on empêche le trigger d'écraser les données au prochain login.
+    // On envoie TOUT le formulaire dans les métadonnées.
     const { error: authError } = await supabase.auth.updateUser({
         data: { 
             full_name: formData.full_name,
-            // On peut ajouter d'autres métadonnées si besoin
+            city: formData.city,
+            island: formData.island,
+            phone_number: formData.phone_number,
+            facebook_url: formData.facebook_url,
+            instagram_url: formData.instagram_url,
+            description: formData.description
         }
     })
 
@@ -226,7 +253,7 @@ export default function ComptePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-gray-900" suppressHydrationWarning>
       
       {/* MODALE SUPPRESSION */}
       <AnimatePresence>
@@ -246,7 +273,7 @@ export default function ComptePage() {
         )}
       </AnimatePresence>
 
-      {/* HEADER AVEC AVATAR OPTIMISÉ */}
+      {/* HEADER AVEC AVATAR */}
       <div className="bg-white p-8 pb-12 rounded-b-[3.5rem] shadow-sm relative z-10 border-b border-gray-100">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tighter">Réglages</h1>
@@ -262,12 +289,13 @@ export default function ComptePage() {
 
         <div className="flex items-center gap-6">
             <div className="relative cursor-pointer" onClick={handleAvatarClick}>
-                <div className={`w-24 h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center text-brand text-3xl font-black overflow-hidden border-4 shadow-xl transition-all duration-500 ${isEditingInfo ? 'border-brand scale-105' : 'border-white'}`}>
+                <div className={`relative w-24 h-24 bg-gray-100 rounded-[2.5rem] flex items-center justify-center text-brand text-3xl font-black overflow-hidden border-4 shadow-xl transition-all duration-500 ${isEditingInfo ? 'border-brand scale-105' : 'border-white'}`}>
                     {avatarUploading ? <Loader2 className="animate-spin" /> : profile?.avatar_url ? (
                       <Image 
                         src={getOptimizedAvatar(profile.avatar_url) || '/placeholder.jpg'} 
                         alt="" 
                         fill 
+                        sizes="(max-width: 768px) 100vw, 200px" 
                         priority 
                         className="object-cover" 
                       />
@@ -412,29 +440,7 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* SÉCURITÉ */}
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-6">
-            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><Lock size={16} /> Sécurité</h3>
-            {isEditingPassword ? (
-                <form onSubmit={handleUpdatePassword} className="space-y-4">
-                    <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau code secret" className="w-full bg-gray-50 p-5 rounded-2xl text-xs font-black border border-gray-100 outline-none" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-5 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
-                    </div>
-                    <div className="flex gap-3">
-                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-400 font-black py-4 rounded-2xl text-[9px] uppercase">Annuler</button>
-                        <button type="submit" disabled={passwordLoading} className="flex-1 bg-gray-900 text-white font-black py-4 rounded-2xl text-[9px] uppercase">Mettre à jour</button>
-                    </div>
-                </form>
-            ) : ( 
-              <div className="flex justify-between items-center bg-gray-50/50 p-5 rounded-2xl border border-transparent">
-                <p className="text-gray-300 tracking-[0.8em] font-black text-xs">••••••••</p>
-                <button onClick={() => setIsEditingPassword(true)} className="text-[8px] font-black text-brand uppercase tracking-widest">Changer</button>
-              </div>
-            )}
-        </div>
-
-        {/* INFORMATIONS & AIDE */}
+        {/* INFORMATIONS */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-4">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><FileText size={16} /> Informations</h3>
             
@@ -457,6 +463,28 @@ export default function ComptePage() {
                 </div>
                 <ChevronRight size={16} className="text-gray-300" />
             </Link>
+        </div>
+
+        {/* SÉCURITÉ */}
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-6">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><Lock size={16} /> Sécurité</h3>
+            {isEditingPassword ? (
+                <form onSubmit={handleUpdatePassword} className="space-y-4">
+                    <div className="relative">
+                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau code secret" className="w-full bg-gray-50 p-5 rounded-2xl text-xs font-black border border-gray-100 outline-none" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-5 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                    </div>
+                    <div className="flex gap-3">
+                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-400 font-black py-4 rounded-2xl text-[9px] uppercase">Annuler</button>
+                        <button type="submit" disabled={passwordLoading} className="flex-1 bg-gray-900 text-white font-black py-4 rounded-2xl text-[9px] uppercase">Mettre à jour</button>
+                    </div>
+                </form>
+            ) : ( 
+              <div className="flex justify-between items-center bg-gray-50/50 p-5 rounded-2xl border border-transparent">
+                <p className="text-gray-300 tracking-[0.8em] font-black text-xs">••••••••</p>
+                <button onClick={() => setIsEditingPassword(true)} className="text-[8px] font-black text-brand uppercase tracking-widest">Changer</button>
+              </div>
+            )}
         </div>
 
         {/* DANGER */}
