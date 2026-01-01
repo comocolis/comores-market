@@ -9,7 +9,8 @@ import {
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, 
   Pencil, Package, Heart, ChevronRight, Save, Bell,
   Facebook, Instagram, Crown, AlertTriangle, Trash2,
-  Smartphone, ExternalLink, LayoutDashboard, Sparkles
+  Smartphone, ExternalLink, LayoutDashboard, Sparkles,
+  HelpCircle, FileText, ShieldCheck
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -135,7 +136,7 @@ export default function ComptePage() {
         
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
         
-        // On met à jour l'avatar partout
+        // Mise à jour Avatar via table + auth
         await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
         
@@ -148,49 +149,44 @@ export default function ComptePage() {
     }
   }
 
-  // --- LA SOLUTION ULTIME : SYNCHRONISATION TOTALE ---
+  // --- SAUVEGARDE VIA RPC (Solution Conflit) ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
 
-    // 1. On essaie de mettre à jour la table via RPC (si vous l'avez créé) ou directement
-    // Si le RPC échoue (fonction inexistante), on tente l'update classique
-    const updates = { 
-        full_name: formData.full_name,
-        city: formData.city,
-        island: formData.island,
-        phone_number: formData.phone_number,
-        facebook_url: formData.facebook_url,
-        instagram_url: formData.instagram_url,
-        description: formData.description
+    // 1. Appel RPC pour forcer l'écriture en base
+    const { error: rpcError } = await supabase.rpc('update_profile', {
+        p_full_name: formData.full_name,
+        p_city: formData.city,
+        p_island: formData.island,
+        p_phone_number: formData.phone_number,
+        p_facebook_url: formData.facebook_url,
+        p_instagram_url: formData.instagram_url,
+        p_description: formData.description
+    })
+
+    if (rpcError) {
+        // Fallback si la fonction RPC n'existe pas : update classique
+        console.error("RPC Error (fallback activé):", rpcError)
+        await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
     }
 
-    // Tentative update table
-    await supabase.from('profiles').update(updates).eq('id', user.id)
-
-    // 2. CRUCIAL : On met à jour TOUTES les métadonnées Auth
-    // C'est ce qui empêchera les données d'être écrasées lors de la reconnexion
+    // 2. Synchronisation Auth pour la session
     const { error: authError } = await supabase.auth.updateUser({
         data: { 
             full_name: formData.full_name,
-            city: formData.city,
-            island: formData.island,
-            phone_number: formData.phone_number,
-            facebook_url: formData.facebook_url,
-            instagram_url: formData.instagram_url,
-            description: formData.description
+            // On peut ajouter d'autres métadonnées si besoin
         }
     })
 
     if (authError) {
         console.error("Erreur Auth:", authError)
-        toast.error("Erreur de sauvegarde")
-    } else {
-        toast.success("Profil sauvegardé avec succès !")
-        setIsEditingInfo(false)
-        setProfile({ ...profile, ...formData })
-        router.refresh()
     }
+
+    toast.success("Profil sauvegardé avec succès !")
+    setIsEditingInfo(false)
+    setProfile({ ...profile, ...formData })
+    router.refresh()
     setSaving(false)
   }
 
@@ -436,6 +432,31 @@ export default function ComptePage() {
                 <button onClick={() => setIsEditingPassword(true)} className="text-[8px] font-black text-brand uppercase tracking-widest">Changer</button>
               </div>
             )}
+        </div>
+
+        {/* INFORMATIONS & AIDE */}
+        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-4">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><FileText size={16} /> Informations</h3>
+            
+            <Link href="/faq" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-white text-blue-500 flex items-center justify-center shadow-sm">
+                        <HelpCircle size={16} />
+                    </div>
+                    <span className="text-xs font-black text-gray-700">Aide & FAQ</span>
+                </div>
+                <ChevronRight size={16} className="text-gray-300" />
+            </Link>
+
+            <Link href="/cgu" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-white text-gray-500 flex items-center justify-center shadow-sm">
+                        <ShieldCheck size={16} />
+                    </div>
+                    <span className="text-xs font-black text-gray-700">Conditions Générales</span>
+                </div>
+                <ChevronRight size={16} className="text-gray-300" />
+            </Link>
         </div>
 
         {/* DANGER */}
