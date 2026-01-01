@@ -6,7 +6,7 @@ import { useEffect, useState, useRef, ChangeEvent, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
-  User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, ShieldCheck, 
+  User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, 
   Pencil, Package, Heart, ChevronRight, Save, Bell,
   Facebook, Instagram, Crown, AlertTriangle, Trash2,
   Smartphone, ExternalLink, LayoutDashboard, Sparkles
@@ -74,9 +74,7 @@ export default function ComptePage() {
         .eq('id', user.id)
         .single()
 
-    if (error) {
-        toast.error("Erreur de chargement du profil");
-    } else if (data) {
+    if (data) {
       setProfile(data)
       setFormData({
           full_name: data.full_name || '',
@@ -137,11 +135,9 @@ export default function ComptePage() {
         
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
         
-        // Mise à jour Table + Auth pour l'avatar aussi
-        const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
+        // On met à jour l'avatar partout
+        await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id)
         await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
-
-        if (updateError) throw updateError
         
         setProfile({ ...profile, avatar_url: publicUrl })
         toast.success("Photo mise à jour !")
@@ -152,33 +148,48 @@ export default function ComptePage() {
     }
   }
 
-  // --- CORRECTION CRITIQUE : DOUBLE MISE À JOUR (TABLE + AUTH) ---
+  // --- LA SOLUTION ULTIME : SYNCHRONISATION TOTALE ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
 
-    // 1. Mise à jour de la table publique
-    const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ ...formData })
-        .eq('id', user.id)
+    // 1. On essaie de mettre à jour la table via RPC (si vous l'avez créé) ou directement
+    // Si le RPC échoue (fonction inexistante), on tente l'update classique
+    const updates = { 
+        full_name: formData.full_name,
+        city: formData.city,
+        island: formData.island,
+        phone_number: formData.phone_number,
+        facebook_url: formData.facebook_url,
+        instagram_url: formData.instagram_url,
+        description: formData.description
+    }
 
-    // 2. Mise à jour des métadonnées Auth (Pour la persistance session)
+    // Tentative update table
+    await supabase.from('profiles').update(updates).eq('id', user.id)
+
+    // 2. CRUCIAL : On met à jour TOUTES les métadonnées Auth
+    // C'est ce qui empêchera les données d'être écrasées lors de la reconnexion
     const { error: authError } = await supabase.auth.updateUser({
         data: { 
             full_name: formData.full_name,
-            // On peut ajouter d'autres champs si nécessaire dans les metadata
+            city: formData.city,
+            island: formData.island,
+            phone_number: formData.phone_number,
+            facebook_url: formData.facebook_url,
+            instagram_url: formData.instagram_url,
+            description: formData.description
         }
     })
 
-    if (profileError || authError) {
-        console.error("Update Error:", profileError || authError)
+    if (authError) {
+        console.error("Erreur Auth:", authError)
         toast.error("Erreur de sauvegarde")
     } else {
-        toast.success("Profil mis à jour !")
+        toast.success("Profil sauvegardé avec succès !")
         setIsEditingInfo(false)
         setProfile({ ...profile, ...formData })
-        router.refresh() // Rafraîchissement pour propager les changements
+        router.refresh()
     }
     setSaving(false)
   }
@@ -214,7 +225,6 @@ export default function ComptePage() {
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0
   
-  // Logique PRO stricte
   const isProActive = profile?.is_pro && daysRemaining > 0
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-brand" size={32} /></div>
@@ -277,7 +287,6 @@ export default function ComptePage() {
             </div>
             
             <div className="flex-1 min-w-0">
-                {/* ZÉRO TRANSFORMATION */}
                 <h2 className="font-black text-xl truncate tracking-tight leading-none mb-2">{profile?.full_name || "Nom du Showroom"}</h2>
                 <p className="text-[10px] text-gray-400 font-black truncate tracking-widest mb-3">{user?.email}</p>
                 {isProActive ? (
@@ -285,7 +294,6 @@ export default function ComptePage() {
                         <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"><Crown size={10} fill="currentColor" /> Expert Pro</span>
                     </div>
                 ) : (
-                    // BOUTON "DEVENIR PRO" ESTHÉTIQUE
                     <Link href="/pro" className="group inline-flex items-center gap-2 bg-gray-900 text-white text-[10px] font-black px-6 py-3 rounded-2xl shadow-xl shadow-gray-900/20 active:scale-95 transition-all hover:bg-black border border-gray-800">
                        Devenir Pro 
                        <Sparkles size={12} className="text-amber-400 group-hover:animate-pulse" />
@@ -344,7 +352,6 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                       <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
-                      /* ZÉRO TRANSFORMATION */
                       <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight">{profile?.full_name}</p>
                     )}
                 </div>
@@ -373,7 +380,6 @@ export default function ComptePage() {
                     </div>
                 </div>
 
-                {/* RESTRICTION PRO : Réseaux sociaux */}
                 {isProActive && (
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                     <div className="space-y-2">

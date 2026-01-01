@@ -6,6 +6,9 @@ import { Sparkles, Send, X, Loader2, Bot, GripVertical } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
 
 export default function EliteAssistant() {
+  // État pour gérer la visibilité globale du composant
+  const [isVisible, setIsVisible] = useState(true)
+  
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [history, setHistory] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([])
@@ -52,25 +55,24 @@ export default function EliteAssistant() {
     }
   }
 
+  // Si l'utilisateur a fermé l'assistant, on ne rend rien.
+  // Au rechargement de la page (relance), cet état redeviendra "true" par défaut.
+  if (!isVisible) return null
+
   return (
     <>
-      {/* 1. LA CAGE INVISIBLE (CONRAINTS)
-        Elle se positionne exactement comme l'app mobile (centrée, max-480px).
-        Le bouton ne pourra pas sortir de cette div.
-      */}
+      {/* 1. LA CAGE INVISIBLE (CONRAINTS) */}
       <div 
         ref={constraintsRef} 
         className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-full z-[500] pointer-events-none"
       >
         
-        {/* 2. L'ÉLÉMENT DÉPLAÇABLE (DRAGGABLE)
-          Il est en absolute DANS la cage.
-        */}
+        {/* 2. L'ÉLÉMENT DÉPLAÇABLE (DRAGGABLE) */}
         <motion.div 
           drag 
           dragConstraints={constraintsRef}
-          dragElastic={0.1} // Effet élastique sur les bords
-          dragMomentum={false} // S'arrête net quand on lâche
+          dragElastic={0.1}
+          dragMomentum={false}
           className="absolute bottom-32 right-4 pointer-events-auto touch-none"
         >
             
@@ -80,7 +82,6 @@ export default function EliteAssistant() {
                   initial={{ opacity: 0, scale: 0.9, y: 20 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                  // Empêche le drag quand on clique DANS la fenêtre de chat
                   onPointerDown={(e) => e.stopPropagation()} 
                   className="absolute bottom-20 right-0 w-[340px] max-w-[calc(100vw-32px)] bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col origin-bottom-right cursor-default"
                   style={{ height: '520px', maxHeight: '60vh' }}
@@ -167,6 +168,19 @@ export default function EliteAssistant() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
+              {/* PETITE CROIX DE FERMETURE (Nouveau) */}
+              {!isOpen && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation() // Empêche le drag/click du parent
+                    setIsVisible(false) // Cache le composant
+                  }}
+                  className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-400 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
+                >
+                  <X size={12} strokeWidth={3} />
+                </button>
+              )}
+
               {/* Indicateur visuel de drag (poignée) */}
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/10 rounded-full p-1">
                  <GripVertical size={12} />
@@ -174,7 +188,6 @@ export default function EliteAssistant() {
 
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                // Stop propagation ici pour éviter de déclencher un drag si on clique juste
                 onPointerDown={(e) => isOpen && e.stopPropagation()} 
                 className="bg-gradient-to-br from-amber-400 via-amber-500 to-orange-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-amber-500/40 border-4 border-white transition-all overflow-hidden"
               >
