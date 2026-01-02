@@ -7,7 +7,17 @@ type Props = {
   params: Promise<{ id: string }> // Compatible Next.js 15
 }
 
-// --- GÉNÉRATION DES METADATA (SEO) ---
+/**
+ * UTILITAIRE : Transforme l'URL de l'avatar en URL absolue pour le partage social
+ * Les réseaux sociaux ont besoin du domaine complet pour afficher l'image.
+ */
+const getAbsoluteImageUrl = (url: string | null) => {
+  if (!url) return 'https://comores-market.com/icons/icon-512x512.png'; // Fallback icône app
+  if (url.startsWith('http')) return url;
+  return `https://comores-market.com${url}`;
+};
+
+// --- GÉNÉRATION DES METADATA (SEO & PARTAGE SOCIAL) ---
 export async function generateMetadata(
   { params }: Props,
   parent: ResolvingMetadata
@@ -23,20 +33,38 @@ export async function generateMetadata(
 
   if (!profile) return { title: 'Profil introuvable | Comores Market' }
 
-  // ZÉRO TRANSFORMATION : On utilise les données brutes
   const name = profile.full_name || 'Utilisateur'
   const city = profile.city || 'Comores'
   const isPro = profile.is_pro ? ' (Pro)' : ''
+  const shareImage = getAbsoluteImageUrl(profile.avatar_url)
 
   return {
     title: `${name}${isPro} à ${city} | Comores Market`,
     description: `Découvrez la boutique de ${name}. ${profile.description?.substring(0, 150) || 'Vendeur sur Comores Market.'}`,
+    
+    // CONFIGURATION DU PARTAGE SOCIAL (Open Graph)
     openGraph: {
       title: `${name} - Comores Market`,
-      description: profile.description || `Profil vendeur de ${name}`,
-      images: [profile.avatar_url || '/avatar-default.png'],
+      description: profile.description || `Profil vendeur de ${name} sur Comores Market.`,
+      url: `https://comores-market.com/profil/${id}`,
+      siteName: 'Comores Market',
+      // Utilisation de l'URL absolue pour forcer l'icône dans Telegram/Gmail/Messenger
+      images: [
+        {
+          url: shareImage,
+          width: 800,
+          height: 800,
+          alt: `Photo de profil de ${name}`,
+        }
+      ],
       type: 'profile',
     },
+    // Meta spécifique pour Twitter/X
+    twitter: {
+      card: 'summary_large_image',
+      title: `${name} sur Comores Market`,
+      images: [shareImage],
+    }
   }
 }
 
@@ -45,21 +73,20 @@ export default async function Page({ params }: Props) {
   const { id } = await params
   const supabase = await createClient()
   
-  // RÉCUPÉRATION COMPLÈTE POUR LOGIQUE CLIENT
-  // On récupère tout (*) pour avoir subscription_end_date, liens sociaux, etc.
+  // RÉCUPÉRATION COMPLÈTE
   const { data: profile } = await supabase
     .from('profiles')
     .select('*')
     .eq('id', id)
     .single()
 
-  // On prépare le JSON-LD pour le référencement
+  // JSON-LD pour les moteurs de recherche
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': profile?.is_pro ? 'Store' : 'Person',
     'name': profile?.full_name || 'Utilisateur',
     'description': profile?.description || 'Vendeur sur Comores Market',
-    'image': profile?.avatar_url || '/avatar-default.png',
+    'image': getAbsoluteImageUrl(profile?.avatar_url || null),
     'address': {
       '@type': 'PostalAddress',
       'addressLocality': profile?.city || 'Comores',
@@ -75,10 +102,6 @@ export default async function Page({ params }: Props) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       
-      {/* PASSER initialData EST CRUCIAL :
-        Cela permet au ProfileClient d'afficher les infos immédiatement
-        sans chargement, et d'appliquer la logique PRO (date expiration)
-      */}
       <ProfileClient initialData={profile} id={id} />
     </>
   )
