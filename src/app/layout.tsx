@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
+import SplashScreen from '@/components/SplashScreen'; // NOUVEL IMPORT
 import { Suspense } from "react";
 
 // OPTIMISATION : display: 'swap' pour affichage immédiat du texte
@@ -48,7 +49,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#16a34a",
+  themeColor: "#ffffff", // Mis à jour pour matcher le splash screen blanc
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -69,6 +70,9 @@ export default function RootLayout({
       <body 
         className={`${inter.className} bg-gray-200 min-h-screen flex justify-center overflow-y-scroll font-sans`}
       >
+        {/* SPLASH SCREEN ANIMÉ : S'affiche au-dessus de tout au chargement */}
+        <SplashScreen />
+
         {/* LE CONTENEUR MOBILE :
           - max-w-[480px] : Largeur fixe mobile
           - shadow-2xl : Effet de profondeur
