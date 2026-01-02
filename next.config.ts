@@ -1,12 +1,14 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-// Utilisation d'un require pour next-pwa car le support ESM peut varier selon les versions
+// Configuration PWA avec correctif pour le build
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  // IMPORTANT : Empêche l'erreur de build sur manifest.webmanifest
+  buildExcludes: [/manifest\.webmanifest$/], 
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
@@ -36,29 +38,34 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
-  // La minification SWC est activée par défaut, plus besoin de swcMinify: true
   reactStrictMode: true,
   
-  // Correction de la fonction webpack ici (dans nextConfig)
   webpack: (config) => {
-    // Optimisation pour la vitesse
-    config.optimization.treeShake = true;
+    // Optimisation de base
+    if (config.optimization) {
+        config.optimization.treeShake = true;
+    }
     return config;
   },
 };
 
-// Application de l'enveloppe PWA
+// 1. Application de l'enveloppe PWA
 const configWithPWA = withPWA(nextConfig);
 
-// Application de l'enveloppe Sentry avec uniquement les propriétés reconnues
+// 2. Application de l'enveloppe Sentry (Nettoyée des options dépréciées)
 export default withSentryConfig(configWithPWA, {
   org: "comoresmarket",
   project: "comoresmarket",
+  
+  // N'affiche les logs que lors des builds automatiques (CI)
   silent: !process.env.CI,
+  
+  // Options d'upload de source maps
   widenClientFileUpload: true,
+  
+  // Route pour contourner les bloqueurs de pub
   tunnelRoute: "/monitoring",
   
-  // Sentry n'accepte pas de fonction webpack ici, 
-  // il utilise ses propres mécanismes internes pour les source maps.
-  automaticVercelMonitors: true,
+  // Note: 'automaticVercelMonitors' a été retiré car déprécié
+  disableLogger: true, // Réduit le bruit dans la console
 });
