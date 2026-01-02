@@ -69,7 +69,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until,
           profiles(full_name, avatar_url, is_pro, subscription_end_date)
         `)
-        .eq('id', params.id)
+        .eq('id', params.id) // Correction : 2 arguments
         .single()
       
       if (productData) setProduct(productData)
@@ -199,24 +199,35 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden relative">
+    <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden flex flex-col relative">
       
-      {/* HEADER FIXE (Contraint au mobile) */}
-      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] p-4 pt-safe flex justify-between items-center z-[100] pointer-events-none">
-          <button onClick={() => router.back()} className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto">
-            <ArrowLeft size={22} strokeWidth={2.5} />
-          </button>
-          
-          <div className="flex gap-2 pointer-events-auto">
-              <button onClick={handleShare} className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-brand shadow-lg border border-white active:scale-90 transition">
-                <Share2 size={20} strokeWidth={2.5} />
-              </button>
-              <button onClick={toggleFavorite} className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-brand shadow-lg border border-white active:scale-90 transition">
-                <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand" : ""} />
-              </button>
-              <button onClick={() => setShowReportModal(true)} className="p-3 bg-white/90 backdrop-blur-md rounded-2xl text-red-500 shadow-lg border border-white active:scale-90 transition">
-                <Flag size={20} strokeWidth={2.5} />
-              </button>
+      {/* ICÔNES RONDES FLOTTANTES (Design Profil)
+          - sticky + h-0 : Reste dans le cadre sans barre de fond.
+          - z-10 : Laisse la bannière PWA (index élevé) passer devant.
+          - pointer-events-none : N'empêche pas de toucher l'image.
+      */}
+      <div className="sticky top-0 w-full h-0 overflow-visible z-10 pointer-events-none">
+          <div className="p-4 pt-safe flex justify-between items-center w-full">
+            {/* Bouton Retour Rond */}
+            <button 
+                onClick={() => router.back()} 
+                className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto"
+            >
+                <ArrowLeft size={22} strokeWidth={2.5} />
+            </button>
+            
+            {/* Groupe Boutons Actions Ronds */}
+            <div className="flex gap-2 pointer-events-auto">
+                <button onClick={handleShare} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
+                    <Share2 size={20} strokeWidth={2.5} />
+                </button>
+                <button onClick={toggleFavorite} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
+                    <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand" : ""} />
+                </button>
+                <button onClick={() => setShowReportModal(true)} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-lg border border-white active:scale-90 transition">
+                    <Flag size={20} strokeWidth={2.5} />
+                </button>
+            </div>
           </div>
       </div>
 
@@ -241,6 +252,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </div>
 
+      {/* CONTENU */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-[3.5rem] relative z-10 min-h-screen shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             
@@ -252,7 +264,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             <div className="flex justify-between items-start mb-8 gap-4">
                 <div className="flex-1">
-                    {/* ZÉRO TRANSFORMATION */}
                     <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight flex items-center gap-2">
                         {product.title} 
                         {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
@@ -271,7 +282,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 </div>
             </div>
 
-            {/* VENDEUR (Sans réseaux sociaux) */}
+            {/* VENDEUR */}
             <div className="flex flex-col gap-4 mb-12">
               <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
@@ -283,7 +294,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                           )}
                       </div>
                       <div>
-                          {/* ZÉRO TRANSFORMATION */}
                           <p className="font-black text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
                             {seller?.full_name || "Utilisateur"} 
                             {isProActive && <ShieldCheck size={16} className="text-brand fill-brand/10" />}
@@ -304,7 +314,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             {!isOwner && (
                 <div className="space-y-4 pb-20">
-                    {/* BOUTONS D'ACTION INTÉGRÉS DANS LE FLUX */}
                     <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
                         <Phone size={20} fill="currentColor" /> WhatsApp Direct
                     </button>
@@ -323,21 +332,21 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX & MODALS */}
       <AnimatePresence>
         {lightboxIndex !== null && (
-          <div className="fixed inset-0 z-[200] bg-white animate-in fade-in flex justify-center">
-              <div className="w-full max-w-[480px] h-full relative flex items-center bg-black">
-                  <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[210] p-3 bg-white/10 backdrop-blur-md text-white rounded-full"><X size={24} /></button>
+          <div className="fixed inset-0 z-[1000] bg-black animate-in fade-in flex justify-center">
+              <div className="w-full max-w-[480px] h-full relative flex items-center">
+                  <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[1010] p-3 bg-white/10 backdrop-blur-md text-white rounded-full"><X size={24} /></button>
                   <TransformWrapper centerOnInit={true}>
                     <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-                      <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain" />
+                      <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain mx-auto" />
                     </TransformComponent>
                   </TransformWrapper>
                   {images.length > 1 && (
                       <>
-                          <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-white z-[210] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
-                          <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-white z-[210] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
+                          <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-white z-[1010] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
+                          <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-white z-[1010] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
                       </>
                   )}
               </div>
@@ -345,7 +354,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         )}
 
         {showReportModal && (
-          <div className="fixed inset-0 z-[300] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
+          <div className="fixed inset-0 z-[1100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
                   <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
