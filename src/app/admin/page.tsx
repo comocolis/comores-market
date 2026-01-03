@@ -150,7 +150,7 @@ function AdminContent() {
 
   const deleteUserAccount = async (userId: string) => {
     const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
-    if (error) toast.error("Erreur : " + error.message)
+    if (error) toast.error("Erreur suppression : " + error.message)
     else {
         toast.success("Compte supprimé")
         setUsers(prev => prev.filter(u => u.id !== userId))
@@ -193,21 +193,6 @@ function AdminContent() {
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
-      {confirmModal.isOpen && (
-        <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-                    <AlertTriangle className={confirmModal.isDanger ? "text-red-500" : "text-blue-500"} /> {confirmModal.title}
-                </h3>
-                <p className="text-sm text-gray-500">{confirmModal.message}</p>
-                <div className="flex gap-3 pt-2">
-                    <button onClick={closeConfirm} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
-                    <button onClick={() => executeAction(async () => confirmModal.action())} className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg ${confirmModal.isDanger ? 'bg-red-600' : 'bg-blue-600'}`}>Confirmer</button>
-                </div>
-            </div>
-        </div>
-      )}
-
       {/* HEADER */}
       <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
         <div className="flex justify-between items-center mb-6">
@@ -227,6 +212,21 @@ function AdminContent() {
       </div>
 
       <div className="p-4">
+        {confirmModal.isOpen && (
+            <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
+                <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
+                    <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                        <AlertTriangle className={confirmModal.isDanger ? "text-red-500" : "text-blue-500"} /> {confirmModal.title}
+                    </h3>
+                    <p className="text-sm text-gray-500">{confirmModal.message}</p>
+                    <div className="flex gap-3 pt-2">
+                        <button onClick={closeConfirm} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
+                        <button onClick={() => executeAction(async () => confirmModal.action())} className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg ${confirmModal.isDanger ? 'bg-red-600' : 'bg-blue-600'}`}>Confirmer</button>
+                    </div>
+                </div>
+            </div>
+        )}
+
         {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
@@ -237,7 +237,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* UTILISATEURS */}
+        {/* UTILISATEURS - LOGIQUE FACTURE CORRIGÉE ICI */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -260,17 +260,18 @@ function AdminContent() {
                                     {isProActive && (
                                         <button 
                                             onClick={() => {
-                                                // CORRECTION DATE : On envoie la date ACTUELLE (Maintenant)
-                                                // Le générateur s'occupera d'ajouter +30 jours pour la validité.
+                                                // ICI : On envoie la date du jour EXACTE. 
+                                                // Plus de calculs basés sur la fin d'abo qui foirent la date.
+                                                // La facture affichera "Aujourd'hui" et "Fin = Aujourd'hui + 30j"
                                                 generatePROReceipt({ 
                                                     full_name: u.full_name, 
                                                     email: u.email, 
-                                                    date: new Date().toISOString(), // <--- C'EST ICI QUE ÇA SE JOUE (AUJOURD'HUI)
+                                                    date: new Date().toISOString(), 
                                                     description: subType 
                                                 })
                                             }} 
                                             className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
-                                            title="Facture"
+                                            title="Générer Facture"
                                         >
                                             <FileText size={18} />
                                         </button>
@@ -290,7 +291,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* ... (Autres onglets identiques) */}
+        {/* ... (Produits, Signalements, Avis restent inchangés) */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
