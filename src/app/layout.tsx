@@ -1,19 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+// 1. SUPPRESSION de l'import qui bloque le build Netlify
+// import { Inter } from "next/font/google"; 
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
-import SplashScreen from '@/components/SplashScreen'; // NOUVEL IMPORT
+import SplashScreen from '@/components/SplashScreen';
 import { Suspense } from "react";
 
-// OPTIMISATION : display: 'swap' pour affichage immédiat du texte
-const inter = Inter({ 
+// 2. SUPPRESSION de la configuration de la police
+/* const inter = Inter({ 
   subsets: ["latin"],
   display: 'swap',
   variable: '--font-inter',
 });
+*/
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -49,7 +51,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff", // Mis à jour pour matcher le splash screen blanc
+  themeColor: "#ffffff",
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
@@ -64,20 +66,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* 1. bg-gray-200 : Fond de bureau pour faire ressortir l'app
-        2. flex justify-center : Centre l'application au milieu de l'écran
-      */}
+      {/* 3. UTILISATION de 'font-sans' (police système) au lieu de inter.className */}
       <body 
-        className={`${inter.className} bg-gray-200 min-h-screen flex justify-center overflow-y-scroll font-sans`}
+        className={`font-sans bg-gray-200 min-h-screen flex justify-center overflow-y-scroll`}
       >
         {/* SPLASH SCREEN ANIMÉ : S'affiche au-dessus de tout au chargement */}
         <SplashScreen />
 
-        {/* LE CONTENEUR MOBILE :
-          - max-w-[480px] : Largeur fixe mobile
-          - shadow-2xl : Effet de profondeur
-          - relative : Pour positionner les éléments internes
-        */}
+        {/* LE CONTENEUR MOBILE */}
         <div className="w-full max-w-[480px] min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           {/* Bannière PWA (Intégrée dans le flux mobile) */}
