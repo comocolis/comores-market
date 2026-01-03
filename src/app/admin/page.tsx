@@ -260,13 +260,12 @@ function AdminContent() {
                                     {isProActive && (
                                         <button 
                                             onClick={() => {
-                                                // CORRECTION MAJEURE : On utilise la date d'AUJOURD'HUI.
-                                                // Le générateur va prendre cette date et ajouter 30 jours.
-                                                // Cela garantit que la facture correspond à l'action de l'admin à l'instant T.
+                                                // CORRECTION DATE : On envoie la date ACTUELLE (Maintenant)
+                                                // Le générateur s'occupera d'ajouter +30 jours pour la validité.
                                                 generatePROReceipt({ 
                                                     full_name: u.full_name, 
                                                     email: u.email, 
-                                                    date: new Date().toISOString(), // DATE RÉELLE DE L'ACTION
+                                                    date: new Date().toISOString(), // <--- C'EST ICI QUE ÇA SE JOUE (AUJOURD'HUI)
                                                     description: subType 
                                                 })
                                             }} 
@@ -291,7 +290,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* PRODUITS */}
+        {/* ... (Autres onglets identiques) */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
@@ -318,7 +317,6 @@ function AdminContent() {
             </div>
         )}
 
-        {/* SIGNALEMENTS */}
         {activeTab === 'reports' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reports.map(r => (
@@ -338,7 +336,6 @@ function AdminContent() {
             </div>
         )}
 
-        {/* AVIS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reviewsList.length === 0 ? <p className="text-center text-gray-400 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
