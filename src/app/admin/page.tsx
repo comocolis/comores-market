@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
   User, Ban, CheckCircle, Flag, AlertTriangle, X, Star, MessageSquare, 
-  Zap, Sparkles, Clock, FileText, Award, MapPin, Crown // Correction : Crown et nouveaux icônes ajoutés
+  Zap, Sparkles, Clock, FileText, Award, MapPin, Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -22,7 +22,6 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports' | 'reviews'>('dashboard')
   
-  // Stats incluant désormais la qualité de La Sentinelle
   const [stats, setStats] = useState({ 
     users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0 
   })
@@ -55,7 +54,6 @@ export default function AdminPage() {
 
   const fetchData = async () => {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    // On récupère quality_score et les localisations ajoutés par l'IA et le formulaire [cite: 2025-12-17]
     const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
     
     const { data: reportsData } = await supabase
@@ -83,7 +81,7 @@ export default function AdminPage() {
             reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
             reviews: reviewsData?.length || 0,
             boosted: items.filter(p => p.boosted_until && new Date(p.boosted_until) > now).length,
-            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length // Alerte Sentinelle
+            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length
         })
     }
   }
@@ -141,6 +139,28 @@ export default function AdminPage() {
   const toggleBanUser = async (userId: string, currentBan: boolean) => {
     const { error } = await supabase.from('profiles').update({ is_banned: !currentBan }).eq('id', userId)
     if (!error) { toast.success(currentBan ? "Utilisateur débanni" : "Utilisateur BANNI"); fetchData() }
+  }
+
+  // --- NOUVELLE FONCTION : SUPPRIMER UN COMPTE ---
+  const deleteUserAccount = async (userId: string) => {
+    // Note: Pour une suppression complète (Auth + Profile), il faut idéalement utiliser une fonction RPC côté serveur (Supabase Edge Function) 
+    // car le client ne peut pas supprimer un utilisateur de la table auth.users directement.
+    // Ici, on appelle une RPC 'delete_user_by_admin' que vous devrez créer dans Supabase, 
+    // ou on supprime juste le profil (ce qui peut laisser l'auth orphelin selon vos cascades).
+    
+    // Option 1 : RPC (Recommandé)
+    const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
+    
+    // Option 2 (Fallback si pas de RPC) : Suppression manuelle des données publiques
+    // const { error } = await supabase.from('profiles').delete().eq('id', userId)
+
+    if (error) {
+        console.error(error)
+        toast.error("Erreur suppression : " + error.message)
+    } else {
+        toast.success("Compte utilisateur supprimé définitivement.")
+        fetchData()
+    }
   }
 
   const deleteProduct = async (productId: string) => {
@@ -215,7 +235,7 @@ export default function AdminPage() {
 
       <div className="p-4">
         
-        {/* DASHBOARD AVEC ALERTES IA */}
+        {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
@@ -225,7 +245,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* LISTE UTILISATEURS AVEC LOGO CROWN */}
+        {/* LISTE UTILISATEURS AVEC SUPPRESSION */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -242,7 +262,11 @@ export default function AdminPage() {
                                         <p className="text-[10px] text-gray-400 font-bold">{u.email}</p>
                                     </div>
                                 </div>
-                                <button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>
+                                <div className="flex gap-2">
+                                    <button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>
+                                    {/* BOUTON SUPPRIMER LE COMPTE */}
+                                    <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données de cet utilisateur seront effacées. Cette action est irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition shadow-sm hover:bg-red-100"><Trash2 size={18} /></button>
+                                </div>
                             </div>
                             <div className="grid grid-cols-4 gap-2">
                                 <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase tracking-tighter">+1 Mois</button>
@@ -256,7 +280,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* LISTE ANNONCES AVEC SCORE IA & LOCALISATION */}
+        {/* LISTE ANNONCES */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
