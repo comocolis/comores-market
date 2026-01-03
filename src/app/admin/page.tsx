@@ -13,7 +13,6 @@ import Link from 'next/link'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
 function AdminContent() {
-  // ... (Le début du fichier reste identique : supabase, router, stats, etc.)
   const supabase = createClient()
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -44,7 +43,6 @@ function AdminContent() {
     window.history.pushState({}, '', newUrl)
   }
 
-  // ... (useEffect, fetchData, askConfirm, closeConfirm, executeAction restent identiques)
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -94,7 +92,8 @@ function AdminContent() {
   const closeConfirm = () => setConfirmModal({ ...confirmModal, isOpen: false })
   const executeAction = async (actionFn: () => Promise<void>) => { await actionFn(); closeConfirm() }
 
-  // ... (Toutes les actions deleteReview, toggleBoost, etc. restent identiques)
+  // --- ACTIONS ---
+
   const deleteReportOnly = async (reportId: string) => {
       const { error } = await supabase.from('reports').delete().eq('id', reportId)
       if (error) { console.error(error); toast.error("Erreur suppression") }
@@ -151,7 +150,7 @@ function AdminContent() {
 
   const deleteUserAccount = async (userId: string) => {
     const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
-    if (error) toast.error("Erreur suppression : " + error.message)
+    if (error) toast.error("Erreur : " + error.message)
     else {
         toast.success("Compte supprimé")
         setUsers(prev => prev.filter(u => u.id !== userId))
@@ -190,12 +189,10 @@ function AdminContent() {
       return getDaysRemaining(dateString) > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
   }
 
-  // ... Rendu
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
-      {/* ... (Modale et Header restent identiques) */}
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
             <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
@@ -230,7 +227,7 @@ function AdminContent() {
       </div>
 
       <div className="p-4">
-        {/* ... (Tabs Dashboard, Products, Reports, Reviews restent identiques) */}
+        {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
@@ -240,7 +237,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* --- MODIFICATION ICI DANS L'ONGLET USERS --- */}
+        {/* UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -263,24 +260,13 @@ function AdminContent() {
                                     {isProActive && (
                                         <button 
                                             onClick={() => {
-                                                // --- LOGIQUE DE DATE CORRIGÉE (30 JOURS EXACTS) ---
-                                                const endDate = new Date(u.subscription_end_date);
-                                                const isAnnual = subType.includes("Annuel");
-                                                const startDate = new Date(endDate);
-                                                
-                                                if (isAnnual) {
-                                                    startDate.setFullYear(startDate.getFullYear() - 1);
-                                                } else {
-                                                    // On recule de 30 jours pour tomber juste
-                                                    startDate.setDate(startDate.getDate() - 30);
-                                                }
-
+                                                // CORRECTION MAJEURE : On utilise la date d'AUJOURD'HUI.
+                                                // Le générateur va prendre cette date et ajouter 30 jours.
+                                                // Cela garantit que la facture correspond à l'action de l'admin à l'instant T.
                                                 generatePROReceipt({ 
                                                     full_name: u.full_name, 
                                                     email: u.email, 
-                                                    date: startDate.toISOString(), 
-                                                    // On ne passe PAS endDate ici, on laisse le générateur recalculer +30 jours
-                                                    // pour garantir que la facture affiche bien un cycle de 30 jours à partir du début.
+                                                    date: new Date().toISOString(), // DATE RÉELLE DE L'ACTION
                                                     description: subType 
                                                 })
                                             }} 
@@ -305,7 +291,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* ... (Autres onglets Produits, Signalements, Avis identiques) */}
+        {/* PRODUITS */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
@@ -332,6 +318,7 @@ function AdminContent() {
             </div>
         )}
 
+        {/* SIGNALEMENTS */}
         {activeTab === 'reports' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reports.map(r => (
@@ -351,6 +338,7 @@ function AdminContent() {
             </div>
         )}
 
+        {/* AVIS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reviewsList.length === 0 ? <p className="text-center text-gray-400 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
