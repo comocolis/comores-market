@@ -5,14 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
-  Flag, AlertTriangle, Star, Zap, FileText, Award, MapPin, Crown, CheckCircle
+  Flag, AlertTriangle, Star, Zap, FileText, Award, MapPin, Crown, CheckCircle, XCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-// Composant interne pour la logique
 function AdminContent() {
   const supabase = createClient()
   const router = useRouter()
@@ -21,8 +20,6 @@ function AdminContent() {
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
-  
-  // Lecture de l'onglet depuis l'URL (ou 'dashboard' par défaut)
   const currentTab = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState(currentTab || 'dashboard')
   
@@ -39,7 +36,6 @@ function AdminContent() {
     isOpen: boolean; title: string; message: string; action: () => void; isDanger: boolean;
   }>({ isOpen: false, title: '', message: '', action: () => {}, isDanger: false })
 
-  // Fonction pour changer l'onglet ET l'URL
   const changeTab = (tab: string) => {
     setActiveTab(tab)
     const newUrl = new URL(window.location.href)
@@ -67,10 +63,7 @@ function AdminContent() {
   const fetchData = async () => {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
     const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
-    
     const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
-    
-    // Récupération complète des avis
     const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false })
 
     if (profiles && items) {
@@ -101,14 +94,25 @@ function AdminContent() {
 
   // --- ACTIONS ---
 
-  const deleteReview = async (reviewId: string) => {
-      const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
+  // 1. NOUVELLE FONCTION : Supprimer JUSTE le signalement
+  const deleteReportOnly = async (reportId: string) => {
+      const { error } = await supabase.from('reports').delete().eq('id', reportId) // .eq() est CRUCIAL ici
       if (error) {
           console.error(error)
-          toast.error("Erreur suppression (Vérifiez les droits SQL)")
-      } else { 
+          toast.error("Erreur suppression")
+      } else {
+          toast.success("Signalement supprimé")
+          // Mise à jour locale
+          setReports(prev => prev.filter(r => r.id !== reportId))
+          setStats(prev => ({ ...prev, reports: Math.max(0, prev.reports - 1) }))
+      }
+  }
+
+  const deleteReview = async (reviewId: string) => {
+      const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
+      if (error) { toast.error("Erreur suppression (Droits SQL)") } 
+      else { 
           toast.success("Avis supprimé")
-          // Mise à jour immédiate de l'interface
           setReviewsList(prev => prev.filter(r => r.id !== reviewId))
           setStats(prev => ({ ...prev, reviews: Math.max(0, prev.reviews - 1) }))
       }
@@ -150,9 +154,9 @@ function AdminContent() {
 
   const deleteUserAccount = async (userId: string) => {
     const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
-    if (error) toast.error("Erreur suppression : " + error.message)
+    if (error) toast.error("Erreur : " + error.message)
     else {
-        toast.success("Compte supprimé définitivement")
+        toast.success("Compte supprimé")
         setUsers(prev => prev.filter(u => u.id !== userId))
         setStats(prev => ({ ...prev, users: Math.max(0, prev.users - 1) }))
     }
@@ -163,6 +167,8 @@ function AdminContent() {
     if (!error) { 
         toast.success("Annonce supprimée")
         setProducts(prev => prev.filter(p => p.id !== productId))
+        // On nettoie aussi les signalements liés localement pour éviter la confusion
+        setReports(prev => prev.filter(r => r.product_id !== productId))
         setStats(prev => ({ ...prev, products: Math.max(0, prev.products - 1) }))
     }
   }
@@ -183,7 +189,6 @@ function AdminContent() {
     return Math.ceil((end.getTime() - now.getTime()) / (1000 * 3600 * 24))
   }
 
-  // Détermine si c'est un abo Mensuel ou Annuel (> 40 jours = Annuel)
   const getSubscriptionType = (dateString: string | null) => {
       if (!dateString) return "Standard"
       return getDaysRemaining(dateString) > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
@@ -259,12 +264,7 @@ function AdminContent() {
                                 <div className="flex gap-2">
                                     {isProActive && (
                                         <button 
-                                            onClick={() => generatePROReceipt({ 
-                                                full_name: u.full_name, 
-                                                email: u.email, 
-                                                date: new Date().toISOString(),
-                                                description: subType 
-                                            })} 
+                                            onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString(), description: subType })} 
                                             className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
                                             title="Facture"
                                         >
@@ -313,7 +313,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* SIGNALEMENTS */}
+        {/* SIGNALEMENTS (CORRIGÉ) */}
         {activeTab === 'reports' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reports.map(r => (
@@ -323,16 +323,42 @@ function AdminContent() {
                             <span className="text-[10px] text-gray-400 font-bold">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
                         <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
-                        <div className="flex gap-2 justify-end">
-                            {r.product && <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(r.product_id))} className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex gap-1"><Trash2 size={12}/> Supprimer</button>}
-                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex gap-1"><CheckCircle size={12}/> Traité</button>}
+                        
+                        <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 mt-2">
+                            {/* BOUTON 1 : SUPPRIMER JUSTE LE SIGNALEMENT (Corbeille simple) */}
+                            <button 
+                                onClick={() => askConfirm("Supprimer le signalement ?", "Cela ne supprimera PAS l'annonce.", () => deleteReportOnly(r.id))} 
+                                className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200"
+                                title="Supprimer le signalement seulement"
+                            >
+                                <Trash2 size={16}/>
+                            </button>
+
+                            {/* BOUTON 2 : SUPPRIMER L'ANNONCE (Action Danger) */}
+                            {r.product && (
+                                <button 
+                                    onClick={() => askConfirm("Supprimer L'ANNONCE ?", "L'annonce sera détruite. Irréversible.", () => deleteProduct(r.product_id))} 
+                                    className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"
+                                >
+                                    <XCircle size={14}/> Supprimer l'annonce
+                                </button>
+                            )}
+
+                            {r.status === 'pending' && (
+                                <button 
+                                    onClick={() => resolveReport(r.id)} 
+                                    className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"
+                                >
+                                    <CheckCircle size={14}/> Traité
+                                </button>
+                            )}
                         </div>
                     </div>
                 ))}
             </div>
         )}
 
-        {/* AVIS (REVIEWS) */}
+        {/* AVIS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reviewsList.length === 0 ? <p className="text-center text-gray-400 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
