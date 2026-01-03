@@ -1,15 +1,35 @@
 import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 
-export const generatePROReceipt = (userData: { full_name: string, email: string, date: string }) => {
+interface ReceiptData {
+  full_name: string;
+  email: string;
+  date: string;
+  description?: string; // Champ optionnel pour le type d'abonnement
+}
+
+export const generatePROReceipt = (userData: ReceiptData) => {
   try {
     const doc = new jsPDF();
     const transactionId = `TX-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
     const activationDate = new Date(userData.date);
     
-    // Calcul de la date d'expiration pour l'offre mensuelle (+1 mois)
+    // DÉTECTION DU TYPE D'ABONNEMENT
+    // Si la description contient "Annuel", on considère que c'est l'offre annuelle
+    const isAnnual = userData.description?.toLowerCase().includes("annuel");
+    
+    // Configuration dynamique selon l'offre
+    const offerTitle = isAnnual ? "OFFRE ANNUELLE PRO" : "OFFRE MENSUELLE PRO";
+    const offerPrice = isAnnual ? "25 000 KMF" : "2 500 KMF";
+    const filePrefix = isAnnual ? "Attestation_Annuelle_PRO" : "Attestation_Mensuelle_PRO";
+
+    // Calcul de la date d'expiration
     const expiryDate = new Date(userData.date);
-    expiryDate.setMonth(expiryDate.getMonth() + 1);
+    if (isAnnual) {
+        expiryDate.setFullYear(expiryDate.getFullYear() + 1); // +1 An
+    } else {
+        expiryDate.setMonth(expiryDate.getMonth() + 1); // +1 Mois
+    }
 
     // --- CADRE DE PAGE ---
     doc.setDrawColor(230, 230, 230);
@@ -47,7 +67,7 @@ export const generatePROReceipt = (userData: { full_name: string, email: string,
     doc.setFont("helvetica", "normal");
     doc.text([
         userData.email,
-        `Inscrit le : ${activationDate.toLocaleDateString('fr-FR')}`
+        `Date d'émission : ${activationDate.toLocaleDateString('fr-FR')}`
     ], 20, 68);
 
     // BLOC TRANSACTION
@@ -87,11 +107,11 @@ export const generatePROReceipt = (userData: { full_name: string, email: string,
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
-    doc.text("OFFRE MENSUELLE PRO", 20, 215);
+    doc.text(offerTitle, 20, 215); // "OFFRE ANNUELLE PRO" ou "OFFRE MENSUELLE PRO"
     
     doc.setFontSize(18);
     doc.setTextColor(5, 150, 105);
-    doc.text("2 500 KMF", 160, 215);
+    doc.text(offerPrice, 160, 215); // "25 000 KMF" ou "2 500 KMF"
     
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
@@ -116,9 +136,9 @@ export const generatePROReceipt = (userData: { full_name: string, email: string,
     ], 105, 280, { align: "center" });
 
     // --- TÉLÉCHARGEMENT ---
-    const fileName = `Attestation_Mensuelle_PRO_${userData.full_name.replace(/\s+/g, '_')}.pdf`;
+    const fileName = `${filePrefix}_${userData.full_name.replace(/\s+/g, '_')}.pdf`;
     doc.save(fileName);
-    toast.success("Votre attestation mensuelle est prête !");
+    toast.success("Votre attestation est prête !");
 
   } catch (error) {
     console.error("Erreur PDF:", error);

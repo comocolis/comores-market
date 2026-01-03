@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation' // Ajout de useSearchParams
+import { useEffect, useState, Suspense } from 'react' // Ajout de Suspense
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
   User, Ban, CheckCircle, Flag, AlertTriangle, X, Star, MessageSquare, 
@@ -13,14 +13,19 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-export default function AdminPage() {
+// Composant interne pour gérer la logique avec useSearchParams (requis par Next.js pour le build)
+function AdminContent() {
   const supabase = createClient()
   const router = useRouter()
+  const searchParams = useSearchParams() // Pour lire l'URL
   
   const ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'reports' | 'reviews'>('dashboard')
+  
+  // 1. CORRECTION ONGLET : On initialise avec la valeur de l'URL ou 'dashboard' par défaut
+  const initialTab = (searchParams.get('tab') as 'dashboard' | 'users' | 'products' | 'reports' | 'reviews') || 'dashboard'
+  const [activeTab, setActiveTab] = useState(initialTab)
   
   const [stats, setStats] = useState({ 
     users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0 
@@ -34,6 +39,14 @@ export default function AdminPage() {
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean; title: string; message: string; action: () => void; isDanger: boolean;
   }>({ isOpen: false, title: '', message: '', action: () => {}, isDanger: false })
+
+  // Fonction pour changer l'onglet ET l'URL sans recharger
+  const changeTab = (tab: string) => {
+    setActiveTab(tab as any)
+    const newUrl = new URL(window.location.href)
+    newUrl.searchParams.set('tab', tab)
+    window.history.pushState({}, '', newUrl)
+  }
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -61,7 +74,6 @@ export default function AdminPage() {
         .select('*, product:products(*), reporter:profiles(*)')
         .order('created_at', { ascending: false })
 
-    // Récupération des avis avec les noms des utilisateurs
     const { data: reviewsData } = await supabase
         .from('reviews')
         .select(`
@@ -100,6 +112,21 @@ export default function AdminPage() {
   const executeAction = async (actionFn: () => Promise<void>) => {
       await actionFn()
       closeConfirm()
+  }
+
+  // --- ACTIONS ---
+
+  const deleteReview = async (reviewId: string) => {
+      const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
+      if (error) {
+          toast.error("Erreur suppression avis")
+      } else { 
+          toast.success("Avis supprimé")
+          // 2. CORRECTION AVIS : Mise à jour locale immédiate
+          setReviewsList(prev => prev.filter(r => r.id !== reviewId))
+          // On met aussi à jour le compteur stats
+          setStats(prev => ({ ...prev, reviews: prev.reviews - 1 }))
+      }
   }
 
   const toggleBoost = async (productId: string, isCurrentlyBoosted: boolean) => {
@@ -154,25 +181,28 @@ export default function AdminPage() {
         toast.error("Erreur suppression : " + error.message)
     } else {
         toast.success("Compte utilisateur supprimé définitivement.")
-        fetchData()
+        // Mise à jour locale pour éviter le délai
+        setUsers(prev => prev.filter(u => u.id !== userId))
+        setStats(prev => ({ ...prev, users: prev.users - 1 }))
     }
   }
 
   const deleteProduct = async (productId: string) => {
     const { error } = await supabase.from('products').delete().eq('id', productId)
-    if (!error) { toast.success("Annonce supprimée"); fetchData() }
+    if (!error) { 
+        toast.success("Annonce supprimée")
+        setProducts(prev => prev.filter(p => p.id !== productId))
+        setStats(prev => ({ ...prev, products: prev.products - 1 }))
+    }
   }
 
   const resolveReport = async (reportId: string) => {
       const { error } = await supabase.from('reports').update({ status: 'resolved' }).eq('id', reportId)
-      if(!error) { toast.success("Signalement traité"); fetchData() }
-  }
-
-  // --- FONCTION SUPPRESSION AVIS ---
-  const deleteReview = async (reviewId: string) => {
-      const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
-      if (error) toast.error("Erreur suppression avis")
-      else { toast.success("Avis supprimé"); fetchData() }
+      if(!error) { 
+          toast.success("Signalement traité")
+          setReports(prev => prev.map(r => r.id === reportId ? { ...r, status: 'resolved' } : r))
+          setStats(prev => ({ ...prev, reports: Math.max(0, prev.reports - 1) }))
+      }
   }
 
   const getDaysRemaining = (dateString: string | null) => {
@@ -181,6 +211,14 @@ export default function AdminPage() {
     const now = new Date()
     const diff = end.getTime() - now.getTime()
     return Math.ceil(diff / (1000 * 3600 * 24))
+  }
+
+  // 3. CORRECTION FACTURE : Détecter le type d'abonnement
+  const getSubscriptionLabel = (dateString: string | null) => {
+      if (!dateString) return "Standard"
+      const days = getDaysRemaining(dateString)
+      // Si plus de 35 jours restants ou prévus, on considère que c'est un abonnement long (Annuel)
+      return days > 35 ? "Abonnement Annuel" : "Abonnement Mensuel"
   }
 
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
@@ -217,13 +255,14 @@ export default function AdminPage() {
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
-            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
-            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
-            <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+            {/* Utilisation de changeTab au lieu de setActiveTab direct */}
+            <button onClick={() => changeTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
+            <button onClick={() => changeTab('reports')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
                 <Flag size={14} /> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 text-[10px] px-1.5 rounded-full font-bold ml-1">{stats.reports}</span>}
             </button>
-            <button onClick={() => setActiveTab('reviews')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
+            <button onClick={() => changeTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
+            <button onClick={() => changeTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
+            <button onClick={() => changeTab('reviews')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
                 <Star size={14} /> Avis ({stats.reviews})
             </button>
         </div>
@@ -248,6 +287,10 @@ export default function AdminPage() {
                 {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
                     const daysLeft = getDaysRemaining(u.subscription_end_date)
                     const isProActive = u.is_pro && daysLeft > 0
+                    
+                    // Calcul du type d'abonnement pour la facture
+                    const subType = getSubscriptionLabel(u.subscription_end_date)
+
                     return (
                         <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100')}`}>
                             <div className="flex items-center justify-between mb-3">
@@ -259,7 +302,24 @@ export default function AdminPage() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>
+                                    {/* 3. CORRECTION FACTURE : Bouton affiché UNIQUEMENT si Pro Actif */}
+                                    {isProActive && (
+                                        <button 
+                                            onClick={() => generatePROReceipt({ 
+                                                full_name: u.full_name, 
+                                                email: u.email, 
+                                                date: new Date().toISOString(),
+                                                // On passe le type d'abonnement dans l'objet (assurez-vous que generatePROReceipt l'utilise ou l'ajoute au PDF)
+                                                // Si la fonction ne supporte pas d'autres arguments, le PDF affichera juste les infos de base, 
+                                                // mais au moins le bouton est conditionnel.
+                                                description: subType 
+                                            })} 
+                                            className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
+                                            title={`Générer facture (${subType})`}
+                                        >
+                                            <FileText size={18} />
+                                        </button>
+                                    )}
                                     <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données de cet utilisateur seront effacées. Cette action est irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition shadow-sm hover:bg-red-100"><Trash2 size={18} /></button>
                                 </div>
                             </div>
@@ -333,7 +393,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* --- SECTION AVIS (AJOUTÉE) --- */}
+        {/* SECTION AVIS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reviewsList.length === 0 ? (
@@ -390,5 +450,14 @@ export default function AdminPage() {
 
       </div>
     </div>
+  )
+}
+
+// Composant Principal avec Suspense pour éviter l'erreur de build "useSearchParams"
+export default function AdminPage() {
+  return (
+    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>}>
+      <AdminContent />
+    </Suspense>
   )
 }
