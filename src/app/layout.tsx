@@ -50,8 +50,10 @@ export const metadata: Metadata = {
   },
 };
 
+// C'EST ICI QUE SE REGLE LE PROBLÈME DE LA LIGNE EN HAUT
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  // On met #F8FAFC (la couleur de fond de l'app) pour que la barre d'état se fonde dans le design
+  themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
