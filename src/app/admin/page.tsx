@@ -61,9 +61,14 @@ export default function AdminPage() {
         .select('*, product:products(*), reporter:profiles(*)')
         .order('created_at', { ascending: false })
 
+    // Récupération des avis avec les noms des utilisateurs
     const { data: reviewsData } = await supabase
         .from('reviews')
-        .select('*, reviewer:profiles!reviewer_id(full_name), target:profiles!target_id(full_name)')
+        .select(`
+            *,
+            reviewer:profiles!reviewer_id(full_name, avatar_url),
+            target:profiles!target_id(full_name)
+        `)
         .order('created_at', { ascending: false })
 
     if (profiles && items) {
@@ -141,19 +146,9 @@ export default function AdminPage() {
     if (!error) { toast.success(currentBan ? "Utilisateur débanni" : "Utilisateur BANNI"); fetchData() }
   }
 
-  // --- NOUVELLE FONCTION : SUPPRIMER UN COMPTE ---
   const deleteUserAccount = async (userId: string) => {
-    // Note: Pour une suppression complète (Auth + Profile), il faut idéalement utiliser une fonction RPC côté serveur (Supabase Edge Function) 
-    // car le client ne peut pas supprimer un utilisateur de la table auth.users directement.
-    // Ici, on appelle une RPC 'delete_user_by_admin' que vous devrez créer dans Supabase, 
-    // ou on supprime juste le profil (ce qui peut laisser l'auth orphelin selon vos cascades).
-    
-    // Option 1 : RPC (Recommandé)
     const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
     
-    // Option 2 (Fallback si pas de RPC) : Suppression manuelle des données publiques
-    // const { error } = await supabase.from('profiles').delete().eq('id', userId)
-
     if (error) {
         console.error(error)
         toast.error("Erreur suppression : " + error.message)
@@ -173,6 +168,7 @@ export default function AdminPage() {
       if(!error) { toast.success("Signalement traité"); fetchData() }
   }
 
+  // --- FONCTION SUPPRESSION AVIS ---
   const deleteReview = async (reviewId: string) => {
       const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
       if (error) toast.error("Erreur suppression avis")
@@ -222,11 +218,11 @@ export default function AdminPage() {
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
+            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
+            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
             <button onClick={() => setActiveTab('reports')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}>
                 <Flag size={14} /> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 text-[10px] px-1.5 rounded-full font-bold ml-1">{stats.reports}</span>}
             </button>
-            <button onClick={() => setActiveTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
-            <button onClick={() => setActiveTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
             <button onClick={() => setActiveTab('reviews')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex items-center gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}>
                 <Star size={14} /> Avis ({stats.reviews})
             </button>
@@ -245,7 +241,7 @@ export default function AdminPage() {
             </div>
         )}
 
-        {/* LISTE UTILISATEURS AVEC SUPPRESSION */}
+        {/* LISTE UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -264,7 +260,6 @@ export default function AdminPage() {
                                 </div>
                                 <div className="flex gap-2">
                                     <button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString() })} className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>
-                                    {/* BOUTON SUPPRIMER LE COMPTE */}
                                     <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données de cet utilisateur seront effacées. Cette action est irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition shadow-sm hover:bg-red-100"><Trash2 size={18} /></button>
                                 </div>
                             </div>
@@ -337,6 +332,62 @@ export default function AdminPage() {
                 ))}
             </div>
         )}
+
+        {/* --- SECTION AVIS (AJOUTÉE) --- */}
+        {activeTab === 'reviews' && (
+            <div className="space-y-4 animate-in slide-in-from-bottom-2">
+                {reviewsList.length === 0 ? (
+                    <p className="text-center text-gray-400 text-sm font-bold py-10">Aucun avis pour le moment.</p>
+                ) : (
+                    reviewsList.map(review => (
+                        <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <div className="flex justify-between items-start mb-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-400">
+                                        {review.reviewer?.avatar_url ? (
+                                            <Image src={review.reviewer.avatar_url} alt="" width={40} height={40} />
+                                        ) : (
+                                            review.reviewer?.full_name?.[0] || 'U'
+                                        )}
+                                    </div>
+                                    <div>
+                                        <p className="font-bold text-sm text-gray-900">{review.reviewer?.full_name || 'Utilisateur inconnu'}</p>
+                                        <div className="flex items-center gap-1 mt-0.5">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <Star 
+                                                    key={star} 
+                                                    size={10} 
+                                                    className={star <= review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"} 
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wide">Cible</p>
+                                    <p className="text-xs font-bold text-gray-700">{review.target?.full_name || 'Inconnu'}</p>
+                                </div>
+                            </div>
+                            
+                            <div className="bg-gray-50 p-3 rounded-xl mb-3">
+                                <p className="text-sm text-gray-600 italic">"{review.comment}"</p>
+                            </div>
+
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] text-gray-400 font-bold">{new Date(review.created_at).toLocaleDateString()}</span>
+                                <button 
+                                    onClick={() => askConfirm("Supprimer cet avis ?", "Action irréversible.", () => deleteReview(review.id))} 
+                                    className="text-[10px] bg-red-50 text-red-600 px-3 py-2 rounded-lg font-black uppercase tracking-widest flex items-center gap-1 transition active:scale-95 hover:bg-red-100"
+                                >
+                                    <Trash2 size={12}/> Supprimer
+                                </button>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+        )}
+
       </div>
     </div>
   )
