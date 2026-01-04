@@ -5,11 +5,16 @@ import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
 import { 
-  Camera, Loader2, DollarSign, Tag, Type, X, ChevronLeft, Lock, Crown, 
-  Layers, Phone, Ban, Mail, MessageCircle, AlertCircle, Sparkles, ShieldCheck 
+  Camera, Loader2, DollarSign, Type, X, ChevronLeft, Lock, Crown, 
+  Phone, Ban, Mail, MessageCircle, AlertCircle, Sparkles, ShieldCheck, GripVertical
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+
+// --- IMPORTS DRAG & DROP ---
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 
 const CATEGORIES_LIST = [
   { id: 1, label: 'Véhicules' }, { id: 2, label: 'Immobilier' }, { id: 3, label: 'Mode' },
@@ -33,11 +38,25 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
 const SUPPORT_EMAIL = "contact.comoresmarket@gmail.com"
 const SUPPORT_WA = "33758760743" 
 
-const isValidPhoneNumber = (phone: string) => {
-  const clean = phone.replace(/[\s\-\.]/g, '')
-  const comorosRegex = /^(?:\+269|00269)?3[234]\d{5}$/
-  const franceRegex = /^(?:\+33|0033|0)[67]\d{8}$/
-  return comorosRegex.test(clean) || franceRegex.test(clean)
+// --- COMPOSANT IMAGE TRIABLE ---
+function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
+    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
+    const style = { transform: CSS.Transform.toString(transform), transition }
+  
+    return (
+      <div ref={setNodeRef} style={style} className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border group touch-none">
+        <Image src={url} alt="" fill className="object-cover" />
+        
+        {/* Poignée de déplacement (Drag Handle) */}
+        <div {...attributes} {...listeners} className="absolute inset-0 bg-black/0 hover:bg-black/10 transition cursor-move flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <GripVertical className="text-white drop-shadow-md" />
+        </div>
+
+        <button type="button" onClick={onRemove} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full z-10 hover:bg-red-500 transition">
+            <X size={12} />
+        </button>
+      </div>
+    )
 }
 
 export default function PublierPage() {
@@ -48,7 +67,9 @@ export default function PublierPage() {
   const [uploading, setUploading] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false) 
   const [isRephrasing, setIsRephrasing] = useState(false) 
-  const [images, setImages] = useState<string[]>([])
+  
+  // On stocke des objets { id, url } pour le tri
+  const [images, setImages] = useState<{ id: string, url: string }[]>([])
   
   const [isPro, setIsPro] = useState(false)
   const [isBanned, setIsBanned] = useState(false)
@@ -65,6 +86,12 @@ export default function PublierPage() {
     title: '', price: '', description: '', category_id: '1', sub_category: '',
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
+
+  // Configuration Drag & Drop
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), // Pour éviter le drag accidentel au clic
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  )
 
   const currentSubCats = SUB_CATEGORIES[parseInt(formData.category_id)] || []
 
@@ -88,6 +115,98 @@ export default function PublierPage() {
     }
     checkUser()
   }, [router, supabase])
+
+  // --- FONCTION FILIGRANE (WATERMARK) ---
+  const addWatermark = (file: File): Promise<Blob> => {
+      return new Promise((resolve) => {
+          const img = new window.Image(); // Utilise l'objet Image natif du navigateur
+          img.src = URL.createObjectURL(file);
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              
+              // Taille Canvas = Taille Image
+              canvas.width = img.width;
+              canvas.height = img.height;
+              
+              if (ctx) {
+                  // 1. Dessiner l'image originale
+                  ctx.drawImage(img, 0, 0);
+
+                  // 2. Configurer le texte du filigrane
+                  const text = "ComoresMarket";
+                  const fontSize = Math.max(20, img.width * 0.05); // Taille adaptative (5% de la largeur)
+                  ctx.font = `900 ${fontSize}px Arial`; // Police grasse
+                  ctx.fillStyle = "rgba(255, 255, 255, 0.6)"; // Blanc semi-transparent
+                  ctx.textAlign = "right";
+                  ctx.textBaseline = "bottom";
+
+                  // 3. Ombre portée pour lisibilité
+                  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+                  ctx.shadowBlur = 4;
+                  ctx.shadowOffsetX = 2;
+                  ctx.shadowOffsetY = 2;
+
+                  // 4. Dessiner le texte (En bas à droite avec marge)
+                  const margin = img.width * 0.03;
+                  ctx.fillText(text, canvas.width - margin, canvas.height - margin);
+              }
+
+              // 5. Convertir en Blob pour upload
+              canvas.toBlob((blob) => {
+                  if (blob) resolve(blob);
+                  else resolve(file); // Fallback si erreur
+              }, 'image/jpeg', 0.90); // Qualité 90%
+          };
+      });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return
+    const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
+    
+    if (images.length + e.target.files.length > currentPhotoLimit) {
+        toast.error(`Limite de ${currentPhotoLimit} photos atteinte.`, { icon: <Lock size={16}/> })
+        return
+    }
+    
+    setUploading(true)
+    try {
+      const newImages: { id: string, url: string }[] = []
+      
+      await Promise.all(Array.from(e.target.files).map(async (file) => {
+          // 1. Appliquer le filigrane
+          const watermarkedBlob = await addWatermark(file);
+          
+          // 2. Upload vers Supabase
+          const fileName = `${Math.random()}.${file.name.split('.').pop()}`
+          const { error } = await supabase.storage.from('products').upload(fileName, watermarkedBlob)
+          
+          if (!error) {
+              const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+              newImages.push({ id: fileName, url: publicUrl }) // ID unique pour le tri
+          }
+      }))
+      
+      setImages(prev => [...prev, ...newImages])
+    } catch (error: any) { 
+        toast.error('Erreur upload.') 
+    } finally { 
+        setUploading(false) 
+    }
+  }
+
+  // --- LOGIQUE TRI DRAG & DROP ---
+  const handleDragEnd = (event: any) => {
+      const { active, over } = event
+      if (active.id !== over.id) {
+          setImages((items) => {
+              const oldIndex = items.findIndex(i => i.id === active.id)
+              const newIndex = items.findIndex(i => i.id === over.id)
+              return arrayMove(items, oldIndex, newIndex)
+          })
+      }
+  }
 
   const handleRephrase = async () => {
     if (!formData.description || formData.description.length < 5) {
@@ -133,26 +252,6 @@ export default function PublierPage() {
     reader.readAsDataURL(file)
   }
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files || e.target.files.length === 0) return
-    const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
-    if (images.length + e.target.files.length > currentPhotoLimit) {
-        toast.error(`Limite de ${currentPhotoLimit} photos atteinte.`, { icon: <Lock size={16}/> })
-        return
-    }
-    setUploading(true)
-    try {
-      const newImages: string[] = []
-      await Promise.all(Array.from(e.target.files).map(async (file) => {
-          const fileName = `${Math.random()}.${file.name.split('.').pop()}`
-          await supabase.storage.from('products').upload(fileName, file)
-          const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
-          newImages.push(publicUrl)
-      }))
-      setImages(prev => [...prev, ...newImages])
-    } catch (error: any) { toast.error('Erreur upload.') } finally { setUploading(false) }
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (isBanned) return
@@ -178,16 +277,14 @@ export default function PublierPage() {
 
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-          // 1. Insertion du produit
           const { error: productError } = await supabase.from('products').insert({
               ...formData,
               user_id: user.id,
-              images: JSON.stringify(images),
+              images: JSON.stringify(images.map(img => img.url)), // On extrait juste les URLs
               quality_score: check.quality_score
           })
 
           if (!productError) {
-              // 2. AUTOMATISATION NOTIFICATION (NOUVEAU)
               await supabase.from('notifications').insert({
                 user_id: user.id,
                 title: "La Sentinelle a validé votre annonce",
@@ -241,23 +338,35 @@ export default function PublierPage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-md mx-auto">
-            {/* PHOTOS */}
+            {/* PHOTOS TRIABLES */}
             <div className="space-y-2">
                 <div className="flex justify-between items-end px-1">
-                    <label className="text-sm font-bold text-gray-700">Photos</label>
+                    <label className="text-sm font-bold text-gray-700">Photos (Glissez pour ordonner)</label>
                     <span className="text-[10px] font-bold text-gray-400">{images.length} / {isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT}</span>
                 </div>
-                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                    <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer">
-                        {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-400" />}
-                    </div>
-                    {images.map((img, i) => (
-                        <div key={i} className="w-24 h-24 bg-gray-100 rounded-2xl relative shrink-0 overflow-hidden border">
-                        <Image src={img} alt="" fill className="object-cover" />
-                        <button type="button" onClick={() => setImages(images.filter((_, idx) => idx !== i))} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full"><X size={12} /></button>
+                
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                    <SortableContext items={images.map(i => i.id)} strategy={rectSortingStrategy}>
+                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center">
+                            
+                            {/* BOUTON AJOUT */}
+                            <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-50">
+                                {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-400" />}
+                            </div>
+
+                            {/* LISTE IMAGES */}
+                            {images.map((img) => (
+                                <SortableImage 
+                                    key={img.id} 
+                                    id={img.id} 
+                                    url={img.url} 
+                                    onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} 
+                                />
+                            ))}
                         </div>
-                    ))}
-                </div>
+                    </SortableContext>
+                </DndContext>
+                
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
             </div>
 
