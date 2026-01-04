@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 interface ReceiptData {
   full_name: string;
   email: string;
-  date: string; // Date de début
+  date: string;       // Date d'émission (Aujourd'hui)
   description?: string;
-  endDate?: string; // Optionnel (ignoré si on utilise le calcul strict)
+  customEndDate?: string; // IMPORTANT : La propriété qui permet de fixer la vraie date de fin
 }
 
 export const generatePROReceipt = (userData: ReceiptData) => {
@@ -20,16 +20,19 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     
     const offerTitle = isAnnual ? "ABONNEMENT ANNUEL PRO" : "ABONNEMENT MENSUEL PRO";
     const offerPrice = isAnnual ? "25 000 KMF" : "2 500 KMF";
-    const durationText = isAnnual ? "12 Mois (1 an)" : "30 Jours"; // Texte plus précis
+    const durationText = isAnnual ? "12 Mois (1 an)" : "30 Jours";
     const filePrefix = isAnnual ? "Facture_Annuelle" : "Facture_Mensuelle";
 
-    // --- LOGIQUE STRICTE 30 JOURS ---
-    const expiryDate = new Date(userData.date);
-    if (isAnnual) {
-        expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    // --- LOGIQUE DE DATE DE FIN (Cœur du correctif) ---
+    let expiryDate;
+    if (userData.customEndDate) {
+        // Cas 1 : On vient du PROFIL, on utilise la date réelle de la base de données
+        expiryDate = new Date(userData.customEndDate);
     } else {
-        // EXACTEMENT 30 JOURS PLUS TARD
-        expiryDate.setDate(expiryDate.getDate() + 30);
+        // Cas 2 : On vient de l'ADMIN (bouton simple), on calcule +30j / +1an
+        expiryDate = new Date(userData.date);
+        if (isAnnual) expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        else expiryDate.setDate(expiryDate.getDate() + 30);
     }
 
     // --- EN-TÊTE ---
@@ -110,7 +113,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setFont("helvetica", "italic");
     doc.text("TVA non applicable", 190, totalY + 6, { align: "right" });
 
-    // --- VALIDITÉ ---
+    // --- PIED DE PAGE ---
     const footerY = 250;
     doc.setDrawColor(22, 163, 74);
     doc.setLineWidth(0.5);
@@ -119,7 +122,8 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setTextColor(22, 163, 74);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    doc.text(`COMPTE VALIDE JUSQU'AU : ${expiryDate.toLocaleDateString('fr-FR')}`, 105, footerY + 9, { align: "center" });
+    // Texte corrigé ici
+    doc.text(`ABONNEMENT VALIDE JUSQU'AU : ${expiryDate.toLocaleDateString('fr-FR')}`, 105, footerY + 9, { align: "center" });
 
     doc.setTextColor(150, 150, 150);
     doc.setFont("helvetica", "normal");
@@ -127,12 +131,13 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.text("Comores Market - Plateforme Digitale - Moroni, Comores", 105, 280, { align: "center" });
     doc.text("Ce document est genere electroniquement.", 105, 285, { align: "center" });
 
-    const fileName = `${filePrefix}_${userData.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+    const cleanName = userData.full_name.replace(/[^a-zA-Z0-9]/g, '_');
+    const fileName = `${filePrefix}_${cleanName}.pdf`;
     doc.save(fileName);
     toast.success("Facture téléchargée !");
 
   } catch (error) {
     console.error("Erreur PDF:", error);
-    toast.error("Erreur technique.");
+    toast.error("Erreur technique lors de la génération.");
   }
 };

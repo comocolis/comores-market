@@ -82,7 +82,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     
-    // Si on n'a pas les données initiales, on les fetch
     if (!initialData) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', profileId).single()
         if (prof) setProfile(prof)
@@ -137,10 +136,19 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       setSubmittingReview(false)
   }
 
+  // LOGIQUE FACTURE
+  const getSubscriptionType = (endDate: string) => {
+      if (!endDate) return "Standard"
+      const end = new Date(endDate)
+      const now = new Date()
+      const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 3600 * 24))
+      return diffDays > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
+  }
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-[#F0F2F5]"><Loader2 className="animate-spin text-brand" /></div>
   if (!profile && !loading) return <div className="min-h-screen flex items-center justify-center text-gray-500">Profil introuvable.</div>
 
-  // --- LOGIQUE PRO ACTIVE ---
+  // PRO ACTIVE CHECK
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
@@ -194,7 +202,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           </div>
 
           <div className="space-y-1">
-            {/* ZÉRO TRANSFORMATION : Nom brut */}
             <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
               {profile.full_name || "Utilisateur"} 
               {isProActive && <Crown size={22} className="text-amber-500 fill-amber-500" />}
@@ -211,22 +218,32 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span></div>
           </div>
 
-          {/* ACTIONS : FACTURE & RÉSEAUX SOCIAUX */}
+          {/* ACTIONS : FACTURE (Corrigée) & RÉSEAUX SOCIAUX */}
           <div className="mt-6 flex flex-col items-center gap-5 w-full">
+            
+            {/* BOUTON FACTURE RE-INTEGRÉ ICI */}
             {isOwner && isProActive && (
               <button 
-                onClick={() => generatePROReceipt({ 
-                  full_name: profile.full_name, 
-                  email: currentUser?.email || '', 
-                  date: profile.created_at 
-                })}
-                className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-[1.5rem] shadow-sm border border-emerald-100 active:scale-95 transition-all"
+                onClick={() => {
+                    const subType = getSubscriptionType(profile.subscription_end_date);
+                    
+                    // ON PASSE LA DATE D'AUJOURD'HUI POUR L'ÉMISSION
+                    const today = new Date().toISOString();
+
+                    generatePROReceipt({ 
+                      full_name: profile.full_name, 
+                      email: currentUser?.email || 'vendeur@comores-market.com', 
+                      date: today, // Date d'émission = MAINTENANT
+                      description: subType,
+                      customEndDate: profile.subscription_end_date // Date de fin = CELLE DE LA BDD
+                    })
+                }}
+                className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-[1.5rem] shadow-sm border border-emerald-100 active:scale-95 transition-all hover:bg-emerald-50"
               >
                 <FileText size={14} /> Ma facture Prestige
               </button>
             )}
 
-            {/* RESTRICTION PRO : Disparaît si non-pro ou expiré */}
             {isProActive && (profile.facebook_url || profile.instagram_url) && (
               <div className="flex justify-center gap-3">
                 {profile.facebook_url && (
@@ -244,7 +261,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           </div>
 
           <div className="mt-6 space-y-4 w-full">
-            {/* ZÉRO TRANSFORMATION : Ville brute */}
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
@@ -274,13 +290,12 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                     {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
                                     {isBoosted && (
                                       <div className="absolute top-2 left-2 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
-                                        <Sparkles size={10} className="animate-pulse" /> Boosté
+                                          <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
                                     )}
                                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
                                   </div>
                                   <div className="pt-3 px-1">
-                                    {/* ZÉRO TRANSFORMATION : Titre brut */}
                                     <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
                                     <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
                                       <ShoppingBag size={10} /> {p.location_city}
@@ -289,7 +304,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                               </div>
                             </Link>
 
-                            {/* BOUTON BOOSTER (Propriétaire uniquement) */}
                             {isOwner && (
                               isBoosted ? (
                                 <div className="w-full bg-amber-50 text-amber-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
