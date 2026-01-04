@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 interface ReceiptData {
   full_name: string;
   email: string;
-  date: string;       // Date d'émission (Aujourd'hui)
+  date: string;       // Date d'émission
   description?: string;
-  customEndDate?: string; // IMPORTANT : La propriété qui permet de fixer la vraie date de fin
+  customEndDate?: string; // Date de fin réelle
 }
 
 export const generatePROReceipt = (userData: ReceiptData) => {
@@ -23,36 +23,48 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     const durationText = isAnnual ? "12 Mois (1 an)" : "30 Jours";
     const filePrefix = isAnnual ? "Facture_Annuelle" : "Facture_Mensuelle";
 
-    // --- LOGIQUE DE DATE DE FIN (Cœur du correctif) ---
+    // --- LOGIQUE DE DATE DE FIN ---
     let expiryDate;
     if (userData.customEndDate) {
-        // Cas 1 : On vient du PROFIL, on utilise la date réelle de la base de données
         expiryDate = new Date(userData.customEndDate);
     } else {
-        // Cas 2 : On vient de l'ADMIN (bouton simple), on calcule +30j / +1an
         expiryDate = new Date(userData.date);
         if (isAnnual) expiryDate.setFullYear(expiryDate.getFullYear() + 1);
         else expiryDate.setDate(expiryDate.getDate() + 30);
     }
 
-    // --- EN-TÊTE ---
+    // --- 1. EN-TÊTE ---
+    // Fond Vert (Identique à la page d'accueil)
     doc.setFillColor(22, 163, 74); 
     doc.rect(0, 0, 210, 45, 'F');
     
-    doc.setTextColor(255, 255, 255);
+    // CONSTRUCTION DU LOGO BICOLORE
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(28);
-    doc.text("COMORES  MARKET", 15, 22); 
+    doc.setFontSize(26);
+
+    // Partie "Comores" en BLANC
+    doc.setTextColor(255, 255, 255);
+    doc.text("Comores", 15, 22);
+
+    // On mesure la largeur du mot "Comores" pour coller "Market" juste après
+    const textWidth = doc.getTextWidth("Comores");
+
+    // Partie "Market" en JAUNE AMBRÉ (Brand Color)
+    doc.setTextColor(251, 191, 36); 
+    doc.text("Market", 15 + textWidth, 22);
     
+    // Sous-titre
+    doc.setTextColor(255, 255, 255);
     doc.setFontSize(9);
     doc.setFont("helvetica", "normal");
     doc.text("L'Application N°1 d'Achat et Vente aux Comores", 15, 30);
 
+    // Bloc Réf à droite
     doc.setFontSize(10);
     doc.text(`REF: ${transactionId}`, 195, 20, { align: "right" });
     doc.text(`DATE: ${activationDate.toLocaleDateString('fr-FR')}`, 195, 28, { align: "right" });
 
-    // --- INFO CLIENT ---
+    // --- 2. INFO CLIENT ---
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     doc.text("FACTURE A :", 15, 65);
@@ -64,7 +76,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setTextColor(80, 80, 80);
     doc.text(userData.email, 15, 77);
 
-    // --- TABLEAU ---
+    // --- 3. TABLEAU DÉTAILS ---
     const startY = 95;
     doc.setFillColor(245, 245, 245);
     doc.rect(15, startY - 5, 180, 10, 'F');
@@ -81,7 +93,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.text(durationText, 140, startY + 18, { align: "center" });
     doc.text(offerPrice, 190, startY + 18, { align: "right" });
 
-    // --- AVANTAGES ---
+    // --- 4. LISTE DES AVANTAGES ---
     doc.setFontSize(9);
     doc.setTextColor(80, 80, 80);
     const benefits = [
@@ -100,7 +112,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setDrawColor(230, 230, 230);
     doc.line(15, currentY + 5, 195, currentY + 5);
 
-    // --- TOTAL ---
+    // --- 5. TOTAL ---
     const totalY = currentY + 15;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(14);
@@ -113,7 +125,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setFont("helvetica", "italic");
     doc.text("TVA non applicable", 190, totalY + 6, { align: "right" });
 
-    // --- PIED DE PAGE ---
+    // --- 6. PIED DE PAGE ---
     const footerY = 250;
     doc.setDrawColor(22, 163, 74);
     doc.setLineWidth(0.5);
@@ -122,7 +134,6 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.setTextColor(22, 163, 74);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(10);
-    // Texte corrigé ici
     doc.text(`ABONNEMENT VALIDE JUSQU'AU : ${expiryDate.toLocaleDateString('fr-FR')}`, 105, footerY + 9, { align: "center" });
 
     doc.setTextColor(150, 150, 150);
@@ -131,13 +142,12 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     doc.text("Comores Market - Plateforme Digitale - Moroni, Comores", 105, 280, { align: "center" });
     doc.text("Ce document est genere electroniquement.", 105, 285, { align: "center" });
 
-    const cleanName = userData.full_name.replace(/[^a-zA-Z0-9]/g, '_');
-    const fileName = `${filePrefix}_${cleanName}.pdf`;
+    const fileName = `${filePrefix}_${userData.full_name.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
     doc.save(fileName);
     toast.success("Facture téléchargée !");
 
   } catch (error) {
     console.error("Erreur PDF:", error);
-    toast.error("Erreur technique lors de la génération.");
+    toast.error("Erreur technique.");
   }
 };

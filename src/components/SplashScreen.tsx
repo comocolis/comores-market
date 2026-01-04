@@ -2,7 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { useEffect, useState } from 'react'
-import Image from 'next/image' // Import indispensable
+import Image from 'next/image' 
 
 export default function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true)
@@ -23,7 +23,8 @@ export default function SplashScreen() {
           key="splash"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5 } }}
-          className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white"
+          // CORRECTION ICI : On centre et on limite la largeur pour imiter le mobile sur PC
+          className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[9999] flex flex-col items-center justify-center bg-white shadow-2xl"
         >
           
           <div className="relative flex flex-col items-center justify-center">
@@ -47,9 +48,6 @@ export default function SplashScreen() {
               }}
               className="relative w-32 h-32 mb-6"
             >
-               {/* ICI : ON AFFICHE VOTRE VRAIE IMAGE 
-                  Assurez-vous que le fichier 'logo.png' est bien dans le dossier 'public'
-               */}
                <Image 
                  src="/logo.png" 
                  alt="Logo Comores Market" 
