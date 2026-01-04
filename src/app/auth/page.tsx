@@ -4,15 +4,23 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, ChangeEvent } from 'react'
 import Image from 'next/image'
-import { Loader2, Mail, Lock, User, ArrowRight, Phone, MapPin, Camera, Eye, EyeOff, X } from 'lucide-react'
+import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
+// CONFIGURATION DES PAYS (Mise à jour)
 const ALLOWED_COUNTRIES = [
-  { label: '🇰🇲 Comores', code: '+269', placeholder: '332 00 00', regex: /^(3[234]\d{5})$/ },
+  // Comores : Accepte Telma (3xx) et Huri (4xx) -> 7 chiffres
+  { label: '🇰🇲 Comores', code: '+269', placeholder: '334 20 63 / 434 20 63', regex: /^(3[234]\d{5}|4\d{6})$/ },
+  
+  // Mayotte : Mobile commence par 06 39... -> 639 + 6 chiffres = 9 chiffres
   { label: '🇾🇹 Mayotte', code: '+262', placeholder: '639 00 00 00', regex: /^(639\d{6})$/ },
+  
+  // Réunion : Mobile commence par 06 92/93... -> 69x + 6 chiffres = 9 chiffres
   { label: '🇷🇪 La Réunion', code: '+262', placeholder: '692 00 00 00', regex: /^(69[23]\d{6})$/ },
-  { label: '🇫🇷 France', code: '+33', placeholder: '6 12 34 56 78', regex: /^[67]\d{8}$/ }, // 06 ou 07 sans le 0
+  
+  // France : Mobile commence par 06 ou 07 -> 6/7 + 8 chiffres = 9 chiffres
+  { label: '🇫🇷 France', code: '+33', placeholder: '6 12 34 56 78', regex: /^[67]\d{8}$/ }, 
 ]
 
 export default function AuthPage() {
@@ -64,11 +72,16 @@ export default function AuthPage() {
 
     try {
       if (view === 'register') {
+        // Nettoyage : On enlève les espaces et le premier 0 si présent
         const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '')
+        
         if (!cleanBody) throw new Error("Le numéro de téléphone est obligatoire.")
         if (!formData.city.trim()) throw new Error("La ville est obligatoire.")
+        
+        // VÉRIFICATION STRICTE BASÉE SUR LE PAYS CHOISI
         if (!selectedCountry.regex.test(cleanBody)) throw new Error(`Numéro invalide pour ${selectedCountry.label.split(' ')[1]}.`)
 
+        // Construction du numéro complet (+269...)
         const fullPhone = `${selectedCountry.code}${cleanBody}`
         let publicAvatarUrl = ''
 
@@ -140,16 +153,15 @@ export default function AuthPage() {
   }
 
   return (
-    // CONTENEUR PRINCIPAL : FOND GRIS CLAIR
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
       
-      {/* BANDEAU SUPERIEUR VERT (DECORATIF) */}
+      {/* BANDEAU SUPERIEUR VERT */}
       <div className="absolute top-0 left-0 w-full h-[45%] bg-brand rounded-b-[2.5rem] z-0 shadow-sm"></div>
 
-      {/* CONTENU (Z-INDEX 10 pour être au dessus du fond) */}
+      {/* CONTENU */}
       <div className="w-full max-w-sm relative z-10 flex flex-col items-center">
         
-        {/* LOGO (Sur fond vert, donc texte blanc) */}
+        {/* LOGO */}
         <div className="mb-8 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">
                 <span className="text-white">Comores</span>
