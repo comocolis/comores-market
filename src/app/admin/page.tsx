@@ -4,8 +4,9 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { 
+  // AJOUT ICI DES ICÔNES MANQUANTES
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
-  Flag, AlertTriangle, Star, Zap, FileText, Award, MapPin, Crown, CheckCircle, XCircle
+  Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, CheckCircle, XCircle, Shield, ShieldAlert
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -17,14 +18,20 @@ function AdminContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   
-  const ADMIN_EMAIL = "abdesisco1@gmail.com" 
+  // EMAIL DU SUPER ADMIN
+  const SUPER_ADMIN_EMAIL = "abdesisco1@gmail.com" 
 
   const [loading, setLoading] = useState(true)
+  
+  // Rôle de la personne connectée
+  const [currentUserRole, setCurrentUserRole] = useState<'user' | 'admin' | 'super_admin'>('user')
+  const [currentUserId, setCurrentUserId] = useState<string>('')
+
   const currentTab = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState(currentTab || 'dashboard')
   
   const [stats, setStats] = useState({ 
-    users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0 
+    users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0, admins: 0
   })
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
@@ -44,20 +51,29 @@ function AdminContent() {
   }
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkAccess = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      const currentEmail = user?.email?.trim().toLowerCase()
-      const adminEmail = ADMIN_EMAIL.trim().toLowerCase()
+      
+      if (!user) { router.push('/compte'); return }
 
-      if (!user || currentEmail !== adminEmail) {
-        toast.error("Accès réservé.")
+      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
+      
+      const isSuper = user.email?.trim().toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase()
+      const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+
+      if (!isSuper && !isAdmin) {
+        toast.error("Accès refusé.")
         router.push('/compte') 
         return
       }
+
+      setCurrentUserId(user.id)
+      setCurrentUserRole(isSuper ? 'super_admin' : (profile?.role as 'admin' | 'super_admin'))
+      
       await fetchData()
       setLoading(false)
     }
-    checkAdmin()
+    checkAccess()
   }, [router, supabase])
 
   const fetchData = async () => {
@@ -81,7 +97,8 @@ function AdminContent() {
             reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
             reviews: reviewsData?.length || 0,
             boosted: items.filter(p => p.boosted_until && new Date(p.boosted_until) > now).length,
-            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length
+            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length,
+            admins: profiles.filter(p => p.role === 'admin').length
         })
     }
   }
@@ -93,6 +110,22 @@ function AdminContent() {
   const executeAction = async (actionFn: () => Promise<void>) => { await actionFn(); closeConfirm() }
 
   // --- ACTIONS ---
+
+  const toggleAdminRole = async (targetId: string, currentRole: string) => {
+      if (currentUserRole !== 'super_admin') {
+          toast.error("Action réservée au Super Admin.")
+          return
+      }
+      const newRole = currentRole === 'admin' ? 'user' : 'admin'
+      const { error } = await supabase.from('profiles').update({ role: newRole }).eq('id', targetId)
+      
+      if (error) toast.error("Erreur technique")
+      else {
+          toast.success(newRole === 'admin' ? "Nouveau Admin nommé !" : "Admin rétrogradé.")
+          setUsers(prev => prev.map(u => u.id === targetId ? { ...u, role: newRole } : u))
+          setStats(prev => ({ ...prev, admins: newRole === 'admin' ? prev.admins + 1 : prev.admins - 1 }))
+      }
+  }
 
   const deleteReportOnly = async (reportId: string) => {
       const { error } = await supabase.from('reports').delete().eq('id', reportId)
@@ -106,7 +139,7 @@ function AdminContent() {
 
   const deleteReview = async (reviewId: string) => {
       const { error } = await supabase.from('reviews').delete().eq('id', reviewId)
-      if (error) { toast.error("Erreur suppression (Droits SQL)") } 
+      if (error) { toast.error("Erreur suppression") } 
       else { 
           toast.success("Avis supprimé")
           setReviewsList(prev => prev.filter(r => r.id !== reviewId))
@@ -149,10 +182,21 @@ function AdminContent() {
   }
 
   const deleteUserAccount = async (userId: string) => {
+    if (userId === currentUserId) {
+        toast.error("Vous ne pouvez pas vous supprimer vous-même !")
+        return
+    }
+    if (currentUserRole !== 'super_admin') {
+        toast.error("Seul le Super Admin peut supprimer des comptes.")
+        return
+    }
+
     const { error } = await supabase.rpc('delete_user_by_admin', { user_id: userId })
-    if (error) toast.error("Erreur suppression : " + error.message)
-    else {
-        toast.success("Compte supprimé")
+    if (error) {
+        console.error(error)
+        toast.error("Erreur : " + error.message)
+    } else {
+        toast.success("Compte supprimé définitivement")
         setUsers(prev => prev.filter(u => u.id !== userId))
         setStats(prev => ({ ...prev, users: Math.max(0, prev.users - 1) }))
     }
@@ -212,8 +256,13 @@ function AdminContent() {
       <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
         <div className="flex justify-between items-center mb-6">
             <div>
-                <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tighter"><ShieldCheck className="text-amber-500" /> ELITE ADMIN</h1>
-                <p className="text-gray-400 text-xs mt-1">Super Admin : {ADMIN_EMAIL}</p>
+                <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tighter">
+                    <ShieldCheck className={currentUserRole === 'super_admin' ? "text-amber-500" : "text-blue-400"} /> 
+                    {currentUserRole === 'super_admin' ? "SUPER ADMIN" : "ADMINISTRATION"}
+                </h1>
+                <p className="text-gray-400 text-xs mt-1 font-mono">
+                    {currentUserRole === 'super_admin' ? "Contrôle Total" : "Modérateur"}
+                </p>
             </div>
             <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
         </div>
@@ -233,11 +282,15 @@ function AdminContent() {
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
                 <div className="bg-white p-5 rounded-2xl shadow-sm border border-amber-200 bg-amber-50/30"><div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 mb-3"><Crown size={20} /></div><p className="text-2xl font-extrabold text-amber-600">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes Élite</p></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
+                {currentUserRole === 'super_admin' ? (
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-blue-200 bg-blue-50/30"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Shield size={20} /></div><p className="text-2xl font-extrabold text-blue-600">{stats.admins}</p><p className="text-xs text-gray-500 font-bold uppercase">Admins</p></div>
+                ) : (
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
+                )}
             </div>
         )}
 
-        {/* UTILISATEURS - LOGIQUE FACTURE FORCÉE À MAINTENANT */}
+        {/* UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -245,14 +298,23 @@ function AdminContent() {
                     const daysLeft = getDaysRemaining(u.subscription_end_date)
                     const isProActive = u.is_pro && daysLeft > 0
                     const subType = getSubscriptionType(u.subscription_end_date)
+                    
+                    const isTargetSelf = u.id === currentUserId
+                    const isTargetSuper = u.role === 'super_admin'
+                    const isTargetAdmin = u.role === 'admin'
 
                     return (
-                        <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100')}`}>
+                        <div key={u.id} className={`bg-white p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isTargetAdmin ? 'border-blue-300 bg-blue-50/30' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'border-gray-100'))}`}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-400">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
                                     <div>
-                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1">{u.full_name} {isProActive && <Crown size={12} className="text-amber-500" />}</p>
+                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                                            {u.full_name} 
+                                            {isProActive && <Crown size={12} className="text-amber-500" />}
+                                            {isTargetSuper && <ShieldCheck size={12} className="text-red-600" />}
+                                            {isTargetAdmin && !isTargetSuper && <Shield size={12} className="text-blue-500" />}
+                                        </p>
                                         <p className="text-[10px] text-gray-400 font-bold">{u.email}</p>
                                     </div>
                                 </div>
@@ -260,33 +322,44 @@ function AdminContent() {
                                     {isProActive && (
                                         <button 
                                             onClick={() => {
-                                                // DATE DU JOUR FORCÉE
                                                 const today = new Date().toISOString();
-                                                
-                                                // Message de debug pour vous (apparaîtra dans un bandeau noir en haut)
-                                                toast.info(`Génération facture pour le : ${new Date().toLocaleDateString()}`);
-
+                                                toast.info(`Facture pour le : ${new Date().toLocaleDateString()}`);
                                                 generatePROReceipt({ 
                                                     full_name: u.full_name, 
                                                     email: u.email, 
-                                                    date: today, // ON ENVOIE STRICTEMENT "MAINTENANT"
+                                                    date: today, 
                                                     description: subType 
                                                 })
                                             }} 
                                             className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
-                                            title="Générer Facture"
+                                            title="Facture"
                                         >
                                             <FileText size={18} />
                                         </button>
                                     )}
-                                    <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition hover:bg-red-100"><Trash2 size={18} /></button>
+
+                                    {currentUserRole === 'super_admin' && !isTargetSelf && (
+                                        <button 
+                                            onClick={() => toggleAdminRole(u.id, u.role)}
+                                            className={`p-2.5 rounded-xl border transition shadow-sm ${isTargetAdmin ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`}
+                                            title={isTargetAdmin ? "Rétrograder" : "Nommer Admin"}
+                                        >
+                                            <ShieldAlert size={18} />
+                                        </button>
+                                    )}
+
+                                    {currentUserRole === 'super_admin' && !isTargetSelf && !isTargetSuper && (
+                                        <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données seront effacées. Irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition hover:bg-red-100"><Trash2 size={18} /></button>
+                                    )}
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 gap-2">
                                 <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
                                 <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 An</button>
                                 <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>
-                                <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Action d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
+                                {!isTargetSuper && (
+                                    <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Action d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
+                                )}
                             </div>
                         </div>
                     )
@@ -294,7 +367,6 @@ function AdminContent() {
             </div>
         )}
 
-        {/* ... Autres onglets inchangés ... */}
         {/* PRODUITS */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
