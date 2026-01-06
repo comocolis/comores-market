@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     locale: 'fr_KM',
     type: 'website',
   },
-  // ASTUCE : On ajoute ?v=2 pour forcer le téléphone à re-télécharger le fichier
-  // et ainsi prendre en compte le changement de couleur de fond (Gris au lieu de Vert)
-  manifest: '/manifest.json?v=2',
+  // ASTUCE : On passe à la version 3 pour forcer le téléphone à re-télécharger le fichier
+  // et enfin prendre en compte que le thème est GRIS et non plus VERT.
+  manifest: '/manifest.json?v=3',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -43,7 +43,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // IMPORTANT : On force le gris clair (#F8FAFC) ici pour la barre système
+  // C'EST ICI LA CLÉ : On dit au navigateur que la couleur du système est GRIS CLAIR.
+  // Cela empêche la barre de statut ou le fond de rebond d'être vert.
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -60,26 +61,25 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
-        // CORRECTION TAILWIND v4 : 
-        // - min-h-dvh : Hauteur dynamique mobile
-        // - bg-[#F8FAFC] : Fond gris uniforme
-        // - font-sans : Police système
+        // 1. font-sans : Police système
+        // 2. bg-[#F8FAFC] : Fond gris uniforme
+        // 3. min-h-dvh : Hauteur dynamique (v4) pour coller à l'écran mobile
         className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
       >
-        {/* Écran de chargement au démarrage */}
+        {/* Écran de chargement */}
         <SplashScreen />
 
         {/* CONTENEUR PRINCIPAL */}
-        {/* CORRECTIONS : max-w-120 (480px en v4) + min-h-dvh + Fond gris */}
+        {/* max-w-120 (480px en v4) | min-h-dvh | fond gris */}
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
-          {/* Bannière d'installation PWA */}
+          {/* Bannière d'installation */}
           <InstallBanner />
 
-          {/* Notifications Toast */}
+          {/* Notifications */}
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu des pages */}
+          {/* Contenu principal : on remet le fond gris par sécurité */}
           <main className="flex-1 relative bg-[#F8FAFC]">
             {children}
           </main>
@@ -87,7 +87,7 @@ export default function RootLayout({
           {/* Assistant IA */}
           <EliteAssistant />
 
-          {/* Navigation du bas (Chargée en différé pour la perf) */}
+          {/* Navigation du bas */}
           <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>

@@ -1,21 +1,5 @@
-/* On définit le fond GRIS en CSS pur standard en premier (VS Code ne peut pas souligner ça) */
-:root {
-  background-color: #F8FAFC !important;
-}
-
-html, body {
-  background-color: #F8FAFC !important;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  overscroll-behavior-y: auto; /* Scroll élastique autorisé (gris sur gris) */
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Import Tailwind v4 après */
 @import "tailwindcss";
 
-/* Configuration du thème v4 */
 @theme {
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
@@ -24,12 +8,36 @@ html, body {
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* Suite des styles */
+/* --- LE CODE CSS DOIT ÊTRE APRÈS L'IMPORT --- */
+
+:root {
+  background-color: #F8FAFC !important;
+}
+
+html {
+  background-color: #F8FAFC !important;
+  height: 100%;
+}
+
+body {
+  background-color: #F8FAFC !important;
+  min-height: 100%;
+  overscroll-behavior-y: auto; 
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Force le gris sur le mode sombre système */
+@media (prefers-color-scheme: dark) {
+  :root, html, body {
+    background-color: #F8FAFC !important;
+  }
+}
+
 main {
   background-color: #F8FAFC;
 }
 
-/* Barre de chargement en JAUNE (pour ne plus jamais voir de ligne verte en haut) */
+/* Force la barre de chargement (si c'est elle la ligne verte) en Jaune */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
