@@ -1,44 +1,57 @@
 @import "tailwindcss";
 
 @theme {
-  /* Vos couleurs */
+  /* Vos variables de couleurs (Conservées) */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
+  
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
-  
+
+  /* Police système optimisée */
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. LA SOLUTION RADICALE */
-:root,
+/* 1. CONFIGURATION DU FOND (C'est ici qu'on tue la ligne verte) */
+:root, 
 html {
-  /* On force le gris clair sur la racine même du document */
-  background-color: #F8FAFC !important; 
+  /* On force le Gris Clair partout avec !important pour écraser le cache vert */
+  background-color: #F8FAFC !important;
   height: 100%;
 }
 
 body {
-  /* On s'assure que le corps est aussi gris */
+  /* On s'assure que le body est aussi gris */
   background-color: #F8FAFC !important;
   height: 100%;
   
-  /* On autorise l'effet élastique (pour actualiser) */
-  /* MAIS comme le fond derrière est gris (#F8FAFC), l'élastique sera gris sur gris = invisible */
+  /* On garde le scroll élastique (pour actualiser), mais comme le fond est gris, l'élastique sera invisible */
   overscroll-behavior-y: auto; 
   
+  /* Enlève le flash bleu au clic sur mobile */
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 2. Empêcher le vert de revenir via d'autres classes */
-.bg-brand {
-  /* Sécurité : on s'assure que bg-brand ne s'applique pas par erreur au body */
-  background-color: var(--color-brand);
+/* 2. STYLE DU CONTENU PRINCIPAL */
+main {
+  background-color: #F8FAFC; /* Uniformisation en gris */
 }
 
-/* Utilitaire scrollbar */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+/* 3. UTILITAIRES (Conservés) */
 
-.pt-safe { padding-top: env(safe-area-inset-top); }
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+/* Masquer la barre de défilement mais garder le scroll */
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+/* Zones de sécurité mobiles (encoches iPhone/Android) */
+.pt-safe { 
+  padding-top: env(safe-area-inset-top); 
+}
+.pb-safe { 
+  padding-bottom: env(safe-area-inset-bottom); 
+}

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "default", // On laisse default car le themeColor gère le reste
     title: "Comores Market",
   },
   icons: {
@@ -40,7 +40,9 @@ export const metadata: Metadata = {
   },
 };
 
+// CONFIGURATION VIEWPORT
 export const viewport: Viewport = {
+  // IMPORTANT : On force le gris clair (#F8FAFC) ici aussi pour la barre système
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -57,11 +59,16 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
-        className={`font-sans bg-gray-200 min-h-screen flex justify-center overflow-y-scroll`}
+        // CORRECTION : On met bg-[#F8FAFC] (gris) au lieu de bg-gray-200 pour uniformiser
+        className={`font-sans bg-[#F8FAFC] min-h-screen flex justify-center overflow-y-scroll`}
       >
+        {/* VOS COMPOSANTS EXISTANTS CONSERVÉS */}
         <SplashScreen />
 
-        {/* CORRECTION ICI : max-w-120 au lieu de max-w-[480px] */}
+        {/* CORRECTIONS ICI : 
+            1. max-w-120 (Syntaxe v4 pour 480px)
+            2. bg-[#F8FAFC] (Fond gris pour éviter la démarcation)
+        */}
         <div className="w-full max-w-120 min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           <InstallBanner />
