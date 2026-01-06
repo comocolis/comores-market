@@ -1,14 +1,19 @@
 @import "tailwindcss";
 
 @theme {
+  /* Vos variables de couleurs */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
+  
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* 1. CORRECTION MAJEURE : FOND GRIS PARTOUT */
 :root {
+  /* AVANT : #16a34a (Vert) -> C'était la cause de la ligne ! */
+  /* MAINTENANT : #F8FAFC (Gris clair) -> La ligne devient invisible */
   background-color: #F8FAFC !important;
 }
 
@@ -20,27 +25,19 @@ html {
 body {
   background-color: #F8FAFC !important;
   min-height: 100%;
-  overscroll-behavior-y: auto;
+  /* On autorise l'actualisation (pull-to-refresh) */
+  overscroll-behavior-y: auto; 
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 2. STYLE DU CONTENU */
 main {
   background-color: #F8FAFC;
 }
 
-.scrollbar-hide::-webkit-scrollbar { 
-  display: none; 
-}
+/* 3. UTILITAIRES */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-.scrollbar-hide { 
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
-}
-
-.pt-safe { 
-  padding-top: env(safe-area-inset-top); 
-}
-
-.pb-safe { 
-  padding-bottom: env(safe-area-inset-bottom); 
-}
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }

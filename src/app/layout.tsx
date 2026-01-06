@@ -41,6 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
+  // On force le gris clair ici aussi pour la barre système du navigateur
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -57,12 +58,11 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
-        // CORRECTION ICI : min-h-dvh (Standard v4)
         className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
       >
         <SplashScreen />
 
-        {/* CORRECTION ICI : min-h-dvh et max-w-120 */}
+        {/* CONTENEUR PRINCIPAL : max-w-120 (480px) et fond gris */}
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           <InstallBanner />
