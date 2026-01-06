@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     template: "%s | Comores Market"
   },
   description: "La première marketplace des Comores.",
+  // On pointe toujours vers le manifest
+  manifest: '/market.webmanifest',
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -24,13 +26,9 @@ export const metadata: Metadata = {
     type: 'website',
     images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
   },
-  
-  // On garde le manifest renommé pour maintenir le cache à jour
-  manifest: '/market.webmanifest',
-  
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default", // Le theme-color prendra le dessus
+    statusBarStyle: "default",
     title: "Comores Market",
   },
   icons: {
@@ -43,15 +41,8 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#F8FAFC", 
-  viewportFit: "cover",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  interactiveWidget: "resizes-content",
-};
+// NOTE : J'ai retiré "export const viewport" pour mettre la meta tag manuellement ci-dessous
+// C'est plus "direct" pour les navigateurs mobiles capricieux.
 
 export default function RootLayout({
   children,
@@ -60,26 +51,25 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning style={{ backgroundColor: '#F8FAFC' }}>
-      
-      {/* STRATÉGIE TOILE INFINIE : 
-         Le body prend toute la largeur et est gris.
-         Le contenu est centré via mx-auto.
-      */}
+      <head>
+        {/* INJECTION BRUTALE DE LA COULEUR */}
+        {/* On force le gris ici, directement dans le head HTML */}
+        <meta name="theme-color" content="#F8FAFC" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+      </head>
+
       <body 
-        className="font-sans min-h-dvh overflow-y-auto bg-[#F8FAFC]"
+        className="font-sans min-h-dvh flex justify-center overflow-y-auto"
         style={{ backgroundColor: '#F8FAFC', margin: 0, padding: 0 }}
       >
-        
         <NativeFeatures />
         <SplashScreen />
 
-        {/* Fond fixe de sécurité (Gris) */}
+        {/* Rideau de sécurité (Gris) */}
         <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
 
-        {/* CONTENEUR PRINCIPAL */}
-        {/* mx-auto : Centre le contenu horizontalement */}
-        {/* min-h-dvh : Force la hauteur minimale à l'écran entier */}
-        <div className="mx-auto w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+        {/* Conteneur Principal */}
+        <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />

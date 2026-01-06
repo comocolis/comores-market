@@ -1,8 +1,9 @@
 {
+  "id": "comores-market-app-v1",
   "name": "Comores Market",
   "short_name": "ComoresMarket",
   "description": "Le marché dans votre poche",
-  "start_url": "/",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8FAFC",
