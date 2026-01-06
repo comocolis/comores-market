@@ -8,13 +8,8 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* --- LE CODE CSS DOIT ÊTRE APRÈS L'IMPORT --- */
-
-:root {
-  background-color: #F8FAFC !important;
-}
-
-html {
+/* --- 1. CONFIGURATION DU FOND (ANTI-LIGNE VERTE) --- */
+:root, html {
   background-color: #F8FAFC !important;
   height: 100%;
 }
@@ -26,18 +21,40 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Force le gris sur le mode sombre système */
 @media (prefers-color-scheme: dark) {
   :root, html, body {
     background-color: #F8FAFC !important;
   }
 }
 
+/* --- 2. UX NATIVE (Application-like) --- */
+
+/* Désactive la sélection de texte et le menu contextuel (sauf champs de texte) */
+*:not(input):not(textarea) {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Réactive pour les inputs */
+input, textarea {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+  -webkit-touch-callout: default !important;
+}
+
+/* Empêche de faire glisser les images (Ghost image) */
+img {
+  /* Correction ici : On garde uniquement la version -webkit qui fonctionne */
+  -webkit-user-drag: none; 
+  pointer-events: none; 
+}
+
+/* --- 3. CONTENU --- */
 main {
   background-color: #F8FAFC;
 }
 
-/* Force la barre de chargement (si c'est elle la ligne verte) en Jaune */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
@@ -47,7 +64,7 @@ main {
   box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
 }
 
-/* Utilitaires */
+/* --- 4. UTILITAIRES --- */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .pt-safe { padding-top: env(safe-area-inset-top); }

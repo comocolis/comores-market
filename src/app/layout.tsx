@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
   },
-  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
+  description: "La première marketplace des Comores.",
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -22,9 +22,7 @@ export const metadata: Metadata = {
     locale: 'fr_KM',
     type: 'website',
   },
-  // ASTUCE : On passe à la version 3 pour forcer le téléphone à re-télécharger le fichier
-  // et enfin prendre en compte que le thème est GRIS et non plus VERT.
-  manifest: '/manifest.json?v=3',
+  manifest: '/manifest.json?v=6', // V6 pour forcer la mise à jour
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -43,14 +41,13 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // C'EST ICI LA CLÉ : On dit au navigateur que la couleur du système est GRIS CLAIR.
-  // Cela empêche la barre de statut ou le fond de rebond d'être vert.
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({
@@ -61,33 +58,24 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
-        // 1. font-sans : Police système
-        // 2. bg-[#F8FAFC] : Fond gris uniforme
-        // 3. min-h-dvh : Hauteur dynamique (v4) pour coller à l'écran mobile
         className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
       >
-        {/* Écran de chargement */}
         <SplashScreen />
 
-        {/* CONTENEUR PRINCIPAL */}
-        {/* max-w-120 (480px en v4) | min-h-dvh | fond gris */}
+        {/* Rideau de sécurité anti-ligne verte */}
+        <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
+
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
-          {/* Bannière d'installation */}
           <InstallBanner />
-
-          {/* Notifications */}
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu principal : on remet le fond gris par sécurité */}
-          <main className="flex-1 relative bg-[#F8FAFC]">
+          <main className="flex-1 relative bg-[#F8FAFC] z-0">
             {children}
           </main>
 
-          {/* Assistant IA */}
           <EliteAssistant />
 
-          {/* Navigation du bas */}
           <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>
