@@ -1,13 +1,12 @@
 @import "tailwindcss";
 
 @theme {
-  /* Définition des couleurs de la marque directement ici pour la v4 */
+  /* Variables de thème */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
   
-  /* On s'assure que la police système est utilisée */
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
@@ -15,8 +14,14 @@
 html,
 body {
   height: 100%;
-  background-color: #F8FAFC; /* Gris clair */
-  overscroll-behavior-y: none; /* Stop l'effet élastique */
+  
+  /* IMPORTANT : On garde le gris clair ici. 
+     Comme ça, quand on tire pour actualiser, le fond derrière est gris, pas vert. */
+  background-color: #F8FAFC; 
+  
+  /* CORRECTION ICI : On remet 'auto' pour autoriser le "Tirer pour actualiser" */
+  overscroll-behavior-y: auto; 
+  
   -webkit-tap-highlight-color: transparent;
 }
 
