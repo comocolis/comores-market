@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
-import NativeFeatures from '@/components/NativeFeatures'; // NOUVEAU COMPOSANT
+import NativeFeatures from '@/components/NativeFeatures';
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -15,30 +15,12 @@ export const metadata: Metadata = {
     template: "%s | Comores Market"
   },
   description: "La première marketplace des Comores.",
-  openGraph: {
-    title: "Comores Market",
-    description: "Les meilleures affaires des îles sont ici.",
-    url: 'https://comores-market.com',
-    siteName: 'Comores Market',
-    locale: 'fr_KM',
-    type: 'website',
-  },
-  // CHANGEMENT CRITIQUE : On pointe vers le nouveau nom de fichier
-  manifest: '/app.webmanifest',
+  // On revient au nom standard (plus sûr) mais avec v=7 pour forcer la maj
+  manifest: '/manifest.json?v=7', 
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Comores Market",
-  },
-  icons: {
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-    ],
-    shortcut: '/favicon.ico',
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
   },
 };
 
@@ -59,17 +41,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}>
+      <body className="font-sans bg-[#F8FAFC] h-dvh w-screen flex justify-center overflow-hidden">
         
-        {/* Active les blocages JS (Menu contextuel, etc.) */}
         <NativeFeatures />
-        
         <SplashScreen />
 
-        {/* Rideau de fond fixe */}
-        <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
+        {/* Fond fixe */}
+        <div className="fixed inset-0 bg-[#F8FAFC] -z-50" />
 
-        <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+        {/* --- LE SCROLL EST DÉPLACÉ ICI --- */}
+        {/* overflow-y-auto : C'est cette div qui scrolle, pas la page entière */}
+        {/* overscroll-contain : Empêche le rebond de se propager au body vert */}
+        <div 
+          id="app-container"
+          className="w-full max-w-120 h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10 overflow-y-auto overscroll-contain"
+        >
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
