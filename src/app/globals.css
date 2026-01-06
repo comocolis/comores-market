@@ -8,44 +8,46 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
+/* 1. FOND GRIS OBLIGATOIRE */
 :root, html {
   background-color: #F8FAFC !important;
-  height: 100%;
-  /* STOP : On empêche le navigateur de scroller ici */
-  overflow: hidden !important; 
+  /* On permet le scroll sur le html */
+  overflow-y: auto; 
 }
 
 body {
   background-color: #F8FAFC !important;
-  height: 100%;
-  width: 100%;
-  /* STOP : On empêche le body de scroller ou de rebondir */
-  overflow: hidden !important; 
-  overscroll-behavior: none !important;
-  position: fixed; /* Verrouille le body en place */
-  
+  min-height: 100vh;
+  /* CRUCIAL : On réactive l'effet élastique pour permettre le "Pull-to-Refresh" */
+  overscroll-behavior-y: auto; 
   -webkit-tap-highlight-color: transparent;
+  
+  /* Bloquage UX Native */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Réactive la sélection pour les inputs */
+/* Inputs débloqués */
 input, textarea {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
-/* --- LE RESTE EST INCHANGÉ --- */
-main { background-color: #F8FAFC; }
+main {
+  background-color: #F8FAFC;
+}
 
+/* Barre de chargement JAUNE (et non verte) */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
   z-index: 99999 !important;
 }
-#nprogress .peg { box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important; }
+#nprogress .peg {
+  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+}
 
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
