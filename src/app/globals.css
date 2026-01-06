@@ -8,38 +8,55 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. FOND GRIS OBLIGATOIRE */
-:root, html {
+/* --- 1. RÈGLES FONDAMENTALES (Anti-Vert) --- */
+:root {
   background-color: #F8FAFC !important;
-  /* On permet le scroll sur le html */
-  overflow-y: auto; 
+}
+
+html {
+  background-color: #F8FAFC !important;
+  height: 100%;
 }
 
 body {
   background-color: #F8FAFC !important;
-  min-height: 100vh;
-  /* CRUCIAL : On réactive l'effet élastique pour permettre le "Pull-to-Refresh" */
-  overscroll-behavior-y: auto; 
+  min-height: 100%; /* S'assure que le body prend toute la hauteur */
+  overscroll-behavior-y: auto; /* Autorise le Pull-to-refresh */
   -webkit-tap-highlight-color: transparent;
   
-  /* Bloquage UX Native */
+  /* Bloquage UX Native (Sélection texte, etc.) */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Inputs débloqués */
+/* En mode sombre système, on force quand même le gris clair */
+@media (prefers-color-scheme: dark) {
+  :root, html, body {
+    background-color: #F8FAFC !important;
+  }
+}
+
+/* --- 2. EXCEPTIONS UX --- */
+/* On réactive la sélection pour écrire des messages/recherches */
 input, textarea {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
+/* On empêche l'image fantôme au glisser-déposer */
+img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* --- 3. CONTENU --- */
 main {
   background-color: #F8FAFC;
 }
 
-/* Barre de chargement JAUNE (et non verte) */
+/* Barre de chargement en JAUNE (Mustard) */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
@@ -49,6 +66,7 @@ main {
   box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
 }
 
+/* --- 4. UTILITAIRES --- */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .pt-safe { padding-top: env(safe-area-inset-top); }

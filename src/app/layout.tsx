@@ -14,8 +14,9 @@ export const metadata: Metadata = {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
   },
-  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
+  description: "La première marketplace des Comores.",
   
+  // SEO : Image pour réseaux sociaux
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -23,18 +24,10 @@ export const metadata: Metadata = {
     siteName: 'Comores Market',
     locale: 'fr_KM',
     type: 'website',
-    images: [
-      {
-        url: '/logo.png', // Image utilisée pour les partages (WhatsApp/Facebook)
-        width: 512,
-        height: 512,
-        alt: 'Comores Market',
-      },
-    ],
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
   },
 
-  // 1. CHANGEMENT MANIFEST : On pointe vers 'market.webmanifest'
-  // Cela force le téléphone à ignorer l'ancien cache vert.
+  // PWA : On pointe vers le NOUVEAU fichier pour casser le cache du téléphone
   manifest: '/market.webmanifest',
   
   appleWebApp: {
@@ -43,24 +36,18 @@ export const metadata: Metadata = {
     title: "Comores Market",
   },
 
-  // 2. CORRECTION GOOGLE SEARCH :
-  // Google a besoin d'une icône de haute qualité (min 192px) déclarée ici.
+  // SEO : Icônes pour Google Search
   icons: {
     shortcut: '/favicon.ico',
     icon: [
-      // Icône standard pour l'onglet
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      // Icône HD pour GOOGLE SEARCH et Android (Assurez-vous que logo.png existe dans public/)
       { url: '/logo.png', sizes: '192x192', type: 'image/png' },
     ],
-    apple: [
-      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
 };
 
 export const viewport: Viewport = {
-  // 3. ANTI-LIGNE VERTE : On dit au navigateur système que le thème est GRIS
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -76,26 +63,28 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
-      <body className="font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto">
+    // INJECTION DE STYLE 1 : On force le fond gris sur le HTML directement
+    <html lang="fr" suppressHydrationWarning style={{ backgroundColor: '#F8FAFC' }}>
+      <body 
+        className="font-sans min-h-dvh flex justify-center overflow-y-auto"
+        // INJECTION DE STYLE 2 : On force le fond gris et on reset les marges sur le BODY
+        style={{ backgroundColor: '#F8FAFC', margin: 0, padding: 0 }}
+      >
         
-        {/* Bloque le clic droit et le drag-and-drop des images */}
+        {/* Bloque le clic droit et interactions natives */}
         <NativeFeatures />
         
         <SplashScreen />
 
-        {/* 4. RIDEAU DE SÉCURITÉ :
-            Ce fond fixe reste immobile même si l'écran "saute" au déverrouillage.
-            Il empêche de voir le fond vert du navigateur. */}
-        <div className="fixed inset-0 bg-[#F8FAFC] -z-50" />
+        {/* Rideau de sécurité fixe en arrière-plan */}
+        <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
 
-        {/* CONTENEUR PRINCIPAL */}
+        {/* Conteneur Principal (Max 480px, hauteur mobile dynamique) */}
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu principal */}
           <main className="flex-1 relative bg-[#F8FAFC] z-0">
             {children}
           </main>
