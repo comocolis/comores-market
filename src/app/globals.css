@@ -8,8 +8,12 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* --- 1. CONFIGURATION DU FOND (ANTI-LIGNE VERTE) --- */
-:root, html {
+/* On écrase TOUTES les couleurs de fond potentielles du navigateur */
+:root {
+  background-color: #F8FAFC !important;
+}
+
+html {
   background-color: #F8FAFC !important;
   height: 100%;
 }
@@ -17,44 +21,26 @@
 body {
   background-color: #F8FAFC !important;
   min-height: 100%;
-  overscroll-behavior-y: auto; 
+  overscroll-behavior-y: auto;
   -webkit-tap-highlight-color: transparent;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root, html, body {
-    background-color: #F8FAFC !important;
-  }
-}
-
-/* --- 2. UX NATIVE (Application-like) --- */
-
-/* Désactive la sélection de texte et le menu contextuel (sauf champs de texte) */
-*:not(input):not(textarea) {
+  /* Bloque la selection CSS en complément du JS */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Réactive pour les inputs */
+/* Réactive la sélection pour les inputs */
 input, textarea {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
-/* Empêche de faire glisser les images (Ghost image) */
-img {
-  /* Correction ici : On garde uniquement la version -webkit qui fonctionne */
-  -webkit-user-drag: none; 
-  pointer-events: none; 
-}
-
-/* --- 3. CONTENU --- */
 main {
   background-color: #F8FAFC;
 }
 
+/* Barre de chargement en JAUNE */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
@@ -64,7 +50,6 @@ main {
   box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
 }
 
-/* --- 4. UTILITAIRES --- */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .pt-safe { padding-top: env(safe-area-inset-top); }

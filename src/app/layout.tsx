@@ -5,6 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
+import NativeFeatures from '@/components/NativeFeatures'; // NOUVEAU COMPOSANT
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -22,7 +23,8 @@ export const metadata: Metadata = {
     locale: 'fr_KM',
     type: 'website',
   },
-  manifest: '/manifest.json?v=6', // V6 pour forcer la mise à jour
+  // CHANGEMENT CRITIQUE : On pointe vers le nouveau nom de fichier
+  manifest: '/app.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -57,12 +59,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body 
-        className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
-      >
+      <body className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}>
+        
+        {/* Active les blocages JS (Menu contextuel, etc.) */}
+        <NativeFeatures />
+        
         <SplashScreen />
 
-        {/* Rideau de sécurité anti-ligne verte */}
+        {/* Rideau de fond fixe */}
         <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
 
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
