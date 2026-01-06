@@ -22,16 +22,12 @@
   "[typescript]": {
     "editor.defaultFormatter": "denoland.vscode-deno"
   },
-  
-  // --- CORRECTIFS TAILWIND V4 ---
   "files.associations": {
     "*.css": "tailwindcss"
   },
   "editor.quickSuggestions": {
     "strings": true
   },
-  
-  // Ces lignes désactivent les alertes rouges pour @theme
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,

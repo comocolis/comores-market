@@ -1,57 +1,46 @@
 @import "tailwindcss";
 
 @theme {
-  /* Vos variables de couleurs (Conservées) */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
-  
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
-
-  /* Police système optimisée */
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. CONFIGURATION DU FOND (C'est ici qu'on tue la ligne verte) */
-:root, 
+:root {
+  background-color: #F8FAFC !important;
+}
+
 html {
-  /* On force le Gris Clair partout avec !important pour écraser le cache vert */
   background-color: #F8FAFC !important;
   height: 100%;
 }
 
 body {
-  /* On s'assure que le body est aussi gris */
   background-color: #F8FAFC !important;
-  height: 100%;
-  
-  /* On garde le scroll élastique (pour actualiser), mais comme le fond est gris, l'élastique sera invisible */
-  overscroll-behavior-y: auto; 
-  
-  /* Enlève le flash bleu au clic sur mobile */
+  min-height: 100%;
+  overscroll-behavior-y: auto;
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 2. STYLE DU CONTENU PRINCIPAL */
 main {
-  background-color: #F8FAFC; /* Uniformisation en gris */
+  background-color: #F8FAFC;
 }
 
-/* 3. UTILITAIRES (Conservés) */
-
-/* Masquer la barre de défilement mais garder le scroll */
 .scrollbar-hide::-webkit-scrollbar { 
   display: none; 
 }
+
 .scrollbar-hide { 
   -ms-overflow-style: none; 
   scrollbar-width: none; 
 }
 
-/* Zones de sécurité mobiles (encoches iPhone/Android) */
 .pt-safe { 
   padding-top: env(safe-area-inset-top); 
 }
+
 .pb-safe { 
   padding-bottom: env(safe-area-inset-bottom); 
 }
