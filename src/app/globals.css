@@ -8,52 +8,51 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. FOND DE BASE DU NAVIGATEUR */
+/* 1. RÉGLAGES GLOBAUX */
 :root, html {
   background-color: #F8FAFC !important;
   height: 100%;
+  /* Important pour permettre le dépassement vertical sans barre horizontale */
+  overflow-x: hidden; 
 }
 
 body {
   background-color: #F8FAFC !important;
-  min-height: 100%;
-  overscroll-behavior-y: auto; /* Scroll et actualisation activés */
+  /* On force un tout petit peu plus que 100% pour "tuer" le pixel manquant */
+  min-height: 100.1vh; 
+  overscroll-behavior-y: auto; 
   -webkit-tap-highlight-color: transparent;
+  overflow-x: hidden;
   
-  /* UX Native */
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* Inputs débloqués */
 input, textarea {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
-img {
-  -webkit-user-drag: none;
-  pointer-events: none;
-}
-
-/* Contenu */
 main {
   background-color: #F8FAFC;
 }
 
-/* Scrollbar cachée */
+/* Barre de chargement en JAUNE */
+#nprogress .bar {
+  background: #fbbf24 !important;
+  height: 3px !important;
+  z-index: 99999 !important;
+}
+#nprogress .peg {
+  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+}
+
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
-/* DÉFINITION EXPLICITE DES VARIABLES SAFE-AREA POUR TAILWIND v4 */
-@utility pb-safe {
-  padding-bottom: env(safe-area-inset-bottom);
-}
-@utility pt-safe {
-  padding-top: env(safe-area-inset-top);
-}
-@utility h-safe-bottom {
-  height: env(safe-area-inset-bottom);
-}
+/* Variables Safe Area */
+@utility pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+@utility pt-safe { padding-top: env(safe-area-inset-top); }
+@utility h-safe-bottom { height: env(safe-area-inset-bottom); }
