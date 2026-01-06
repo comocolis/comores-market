@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
@@ -11,38 +11,25 @@ import { Suspense } from "react";
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
   title: {
-    default: "Comores Market - Achat et Vente aux Comores",
+    default: "Comores Market",
     template: "%s | Comores Market"
   },
-  description: "La première marketplace des Comores.",
-  // On pointe toujours vers le manifest
-  manifest: '/market.webmanifest',
-  openGraph: {
-    title: "Comores Market",
-    description: "Les meilleures affaires des îles sont ici.",
-    url: 'https://comores-market.com',
-    siteName: 'Comores Market',
-    locale: 'fr_KM',
-    type: 'website',
-    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
-  },
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "default",
-    title: "Comores Market",
-  },
+  description: "Achat et Vente aux Comores",
+  manifest: '/market.webmanifest', // Assurez-vous que ce fichier existe bien dans public/
   icons: {
-    shortcut: '/favicon.ico',
-    icon: [
-      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/logo.png', sizes: '192x192', type: 'image/png' },
-    ],
-    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+    icon: '/favicon.ico',
+    apple: '/apple-touch-icon.png',
   },
 };
 
-// NOTE : J'ai retiré "export const viewport" pour mettre la meta tag manuellement ci-dessous
-// C'est plus "direct" pour les navigateurs mobiles capricieux.
+export const viewport: Viewport = {
+  themeColor: "#F8FAFC",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover", // INDISPENSABLE pour couvrir la zone verte
+};
 
 export default function RootLayout({
   children,
@@ -50,31 +37,39 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="fr" suppressHydrationWarning style={{ backgroundColor: '#F8FAFC' }}>
+    <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* INJECTION BRUTALE DE LA COULEUR */}
-        {/* On force le gris ici, directement dans le head HTML */}
-        <meta name="theme-color" content="#F8FAFC" />
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        {/* INJECTION DIRECTE : On force le navigateur à peindre en GRIS avant de charger quoi que ce soit */}
+        <style>{`
+          :root, html, body {
+            background-color: #F8FAFC !important;
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            overscroll-behavior-y: none; /* Bloque le rebond vert temporairement */
+          }
+          /* On cache la barre de scroll tout en permettant le défilement */
+          body::-webkit-scrollbar { display: none; }
+        `}</style>
       </head>
-
-      <body 
-        className="font-sans min-h-dvh flex justify-center overflow-y-auto"
-        style={{ backgroundColor: '#F8FAFC', margin: 0, padding: 0 }}
-      >
+      
+      {/* On applique le gris sur le body aussi */}
+      <body className="font-sans min-h-dvh w-full bg-[#F8FAFC] text-gray-900 overflow-x-hidden antialiased">
+        
         <NativeFeatures />
         <SplashScreen />
 
-        {/* Rideau de sécurité (Gris) */}
-        <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
+        {/* DOUBLE RIDEAU DE SÉCURITÉ */}
+        <div className="fixed inset-0 bg-[#F8FAFC] -z-50" />
 
-        {/* Conteneur Principal */}
-        <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+        {/* CONTENEUR PRINCIPAL */}
+        <div className="relative w-full max-w-120 min-h-dvh mx-auto bg-[#F8FAFC] shadow-2xl shadow-black/5 flex flex-col">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          <main className="flex-1 relative bg-[#F8FAFC] z-0">
+          {/* Le contenu principal */}
+          <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-20">
             {children}
           </main>
 
