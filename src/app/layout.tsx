@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     template: "%s | Comores Market"
   },
   description: "Achat et Vente aux Comores",
-  manifest: '/market.webmanifest',
+  manifest: '/app.webmanifest', // Assurez-vous que c'est le bon nom
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
@@ -34,13 +34,16 @@ export default function RootLayout({
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
       </head>
       
-      {/* min-h-[100.1vh] pour forcer le dépassement du pixel manquant */}
-      <body className="font-sans min-h-[100.1vh] w-full bg-[#F8FAFC] text-gray-900 overflow-x-hidden antialiased">
+      {/* CORRECTION 1 : overflow-hidden sur le body pour éviter une barre de scroll à cause du dépassement */}
+      <body className="font-sans h-dvh w-full bg-[#F8FAFC] text-gray-900 overflow-hidden antialiased">
         <NativeFeatures />
         <SplashScreen />
 
         {/* CONTENEUR PRINCIPAL */}
-        <div className="relative w-full max-w-120 min-h-[100.1vh] mx-auto bg-[#F8FAFC] shadow-2xl shadow-black/5 flex flex-col">
+        {/* CORRECTION 2 : min-h-[calc(100dvh+5px)] 
+            C'est ici qu'on applique votre idée. On force la hauteur à être 
+            5 pixels plus grande que l'écran. Le "bas" réel est donc caché 5px sous l'écran. */}
+        <div className="relative w-full max-w-120 mx-auto bg-[#F8FAFC] shadow-2xl shadow-black/5 flex flex-col h-[calc(100dvh+5px)] overflow-y-auto overscroll-y-none">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
@@ -52,10 +55,9 @@ export default function RootLayout({
 
           <EliteAssistant />
 
-          {/* --- LE DOCK FIXE "OVERLAP" --- */}
-          {/* CORRECTION v4 : -bottom-px (au lieu de bottom-[-1px]) 
-              Cela place la barre 1 pixel en dessous du bord pour écraser la ligne noire. */}
-          <div className="fixed -bottom-px left-0 w-full z-50 bg-[#F8FAFC]">
+          {/* --- LE DOCK FIXE --- */}
+          {/* On le garde fixe en bas de l'écran VISIBLE */}
+          <div className="fixed bottom-0 left-0 w-full z-50 bg-[#F8FAFC] shadow-[0_50px_0_#F8FAFC]">
              
              {/* Navigation */}
              <div className="w-full max-w-120 mx-auto border-t border-gray-100 bg-[#F8FAFC]">
@@ -64,8 +66,7 @@ export default function RootLayout({
                </Suspense>
              </div>
 
-             {/* FILLER EXTENSIBLE */}
-             {/* +2px pour compenser le décalage vers le bas */}
+             {/* Filler de sécurité */}
              <div className="w-full h-[calc(env(safe-area-inset-bottom)+2px)] bg-[#F8FAFC]" />
           </div>
 
