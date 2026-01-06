@@ -3,7 +3,7 @@
   "short_name": "ComoresMarket",
   "description": "Le marché dans votre poche",
   "start_url": "/",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "#F8FAFC",
   "theme_color": "#F8FAFC",

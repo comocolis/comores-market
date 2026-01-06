@@ -15,8 +15,6 @@ export const metadata: Metadata = {
     template: "%s | Comores Market"
   },
   description: "La première marketplace des Comores.",
-  
-  // SEO : Image pour réseaux sociaux
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -26,17 +24,15 @@ export const metadata: Metadata = {
     type: 'website',
     images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
   },
-
-  // PWA : On pointe vers le NOUVEAU fichier pour casser le cache du téléphone
+  
+  // On garde le manifest renommé pour maintenir le cache à jour
   manifest: '/market.webmanifest',
   
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "default", // Le theme-color prendra le dessus
     title: "Comores Market",
   },
-
-  // SEO : Icônes pour Google Search
   icons: {
     shortcut: '/favicon.ico',
     icon: [
@@ -63,24 +59,27 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // INJECTION DE STYLE 1 : On force le fond gris sur le HTML directement
     <html lang="fr" suppressHydrationWarning style={{ backgroundColor: '#F8FAFC' }}>
+      
+      {/* STRATÉGIE TOILE INFINIE : 
+         Le body prend toute la largeur et est gris.
+         Le contenu est centré via mx-auto.
+      */}
       <body 
-        className="font-sans min-h-dvh flex justify-center overflow-y-auto"
-        // INJECTION DE STYLE 2 : On force le fond gris et on reset les marges sur le BODY
+        className="font-sans min-h-dvh overflow-y-auto bg-[#F8FAFC]"
         style={{ backgroundColor: '#F8FAFC', margin: 0, padding: 0 }}
       >
         
-        {/* Bloque le clic droit et interactions natives */}
         <NativeFeatures />
-        
         <SplashScreen />
 
-        {/* Rideau de sécurité fixe en arrière-plan */}
+        {/* Fond fixe de sécurité (Gris) */}
         <div className="fixed inset-0 bg-[#F8FAFC] -z-50 w-full h-full" />
 
-        {/* Conteneur Principal (Max 480px, hauteur mobile dynamique) */}
-        <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+        {/* CONTENEUR PRINCIPAL */}
+        {/* mx-auto : Centre le contenu horizontalement */}
+        {/* min-h-dvh : Force la hauteur minimale à l'écran entier */}
+        <div className="mx-auto w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
