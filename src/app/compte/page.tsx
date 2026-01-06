@@ -70,7 +70,6 @@ export default function ComptePage() {
 
     const { data, error } = await supabase
         .from('profiles')
-        // CORRECTION ICI : On ajoute 'role' à la sélection
         .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date, email, role') 
         .eq('id', user.id)
         .single()
@@ -164,12 +163,11 @@ export default function ComptePage() {
     }
   }
 
-  // --- SAUVEGARDE COMPLÈTE (Table + Auth Metadata) ---
+  // --- SAUVEGARDE COMPLÈTE ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
 
-    // 1. Sauvegarde dans la TABLE (via RPC pour contourner les droits)
     const { error: rpcError } = await supabase.rpc('update_profile', {
         p_full_name: formData.full_name,
         p_city: formData.city,
@@ -182,7 +180,6 @@ export default function ComptePage() {
 
     if (rpcError) {
         console.error("Erreur RPC:", rpcError)
-        // Fallback: update classique
         const { error: tableError } = await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
         if (tableError) {
             toast.error("Erreur de sauvegarde")
@@ -191,9 +188,6 @@ export default function ComptePage() {
         }
     }
 
-    // 2. CRUCIAL : Sauvegarde dans les METADATA AUTH
-    // C'est ici que l'on empêche le trigger d'écraser les données au prochain login.
-    // On envoie TOUT le formulaire dans les métadonnées.
     const { error: authError } = await supabase.auth.updateUser({
         data: { 
             full_name: formData.full_name,
@@ -255,7 +249,6 @@ export default function ComptePage() {
       if (!endDate) return "Standard"
       const end = new Date(endDate)
       const now = new Date()
-      // Si la date de fin est dans plus de 40 jours, on considère que c'est un abonnement annuel
       const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 3600 * 24))
       return diffDays > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
   }
@@ -267,24 +260,25 @@ export default function ComptePage() {
       generatePROReceipt({
           full_name: profile.full_name || "Client",
           email: profile.email || user?.email || "",
-          date: new Date().toISOString(), // Date d'émission = Aujourd'hui
+          date: new Date().toISOString(),
           description: subType,
-          customEndDate: profile.subscription_end_date // Date de fin réelle
+          customEndDate: profile.subscription_end_date
       });
   }
 
-  // --- VÉRIFICATION ACCÈS ADMIN ---
   const canAccessAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-brand" size={32} /></div>
+  // CORRECTION: min-h-dvh ici aussi pour le loader
+  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] pb-32 font-sans text-gray-900" suppressHydrationWarning>
+    // CORRECTION CRITIQUE (Ligne verte) : min-h-dvh + w-full + relative + overflow-x-hidden
+    <div className="min-h-dvh w-full bg-[#F8FAFC] pb-32 font-sans text-gray-900 overflow-x-hidden relative" suppressHydrationWarning>
       
       {/* MODALE SUPPRESSION */}
       <AnimatePresence>
         {showDeleteModal && (
-          <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
+          <div className="fixed inset-0 z-200 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 text-red-600"><AlertTriangle size={32} /></div>
                   <h3 className="font-black text-xl mb-2">Clôturer le compte ?</h3>
@@ -303,11 +297,19 @@ export default function ComptePage() {
       <div className="bg-white p-8 pb-12 rounded-b-[3.5rem] shadow-sm relative z-10 border-b border-gray-100">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tighter">Réglages</h1>
+            
+            {/* CORRECTION ICÔNES : Accès Profil (Bleu) & Déconnexion (Rouge) */}
             <div className="flex gap-2">
-              <Link href={`/profil/${user?.id}`} className="bg-gray-50 p-3 rounded-2xl text-gray-400 hover:text-brand transition active:scale-90 border border-white">
+              <Link 
+                href={`/profil/${user?.id}`} 
+                className="bg-blue-50 p-3 rounded-2xl text-blue-600 border border-blue-100 transition active:scale-90 shadow-sm"
+              >
                 <ExternalLink size={20} />
               </Link>
-              <button onClick={handleSignOut} className="bg-gray-50 p-3 rounded-2xl text-gray-400 hover:text-red-500 transition active:scale-90 border border-white">
+              <button 
+                onClick={handleSignOut} 
+                className="bg-red-50 p-3 rounded-2xl text-red-600 border border-red-100 transition active:scale-90 shadow-sm"
+              >
                 <LogOut size={20} />
               </button>
             </div>
@@ -367,7 +369,6 @@ export default function ComptePage() {
         {/* SHORTCUTS */}
         <div className="flex flex-col gap-4">
           
-          {/* BOUTON ADMIN CORRIGÉ : S'affiche si Super Admin OU Admin */}
           {canAccessAdmin && (
                <Link href="/admin" className="w-full bg-gray-900 text-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-2xl border border-white/10 active:scale-95 transition">
                   <div className="flex items-center gap-4">
@@ -387,8 +388,6 @@ export default function ComptePage() {
           </Link>
         </div>
 
-        {/* ... (Reste du code identique : Liens Annonces, Favoris, Identité, Sécurité...) */}
-        
         <div className="grid grid-cols-2 gap-4">
             <Link href="/mes-annonces" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition">
                 <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl w-fit"><Package size={22} /></div>

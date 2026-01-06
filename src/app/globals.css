@@ -8,65 +8,38 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* --- 1. RÈGLES FONDAMENTALES (Anti-Vert) --- */
+/* Base propre : Fond gris */
 :root {
-  background-color: #F8FAFC !important;
+  background-color: #F8FAFC;
 }
 
-html {
-  background-color: #F8FAFC !important;
+html, body {
   height: 100%;
+  background-color: #F8FAFC;
+  /* On réactive le scroll normal */
+  overscroll-behavior-y: auto; 
+  -webkit-tap-highlight-color: transparent;
 }
 
-body {
-  background-color: #F8FAFC !important;
-  min-height: 100%; /* S'assure que le body prend toute la hauteur */
-  overscroll-behavior-y: auto; /* Autorise le Pull-to-refresh */
-  -webkit-tap-highlight-color: transparent;
-  
-  /* Bloquage UX Native (Sélection texte, etc.) */
+/* UX Native (Bloquer la sélection) */
+*:not(input):not(textarea) {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
 
-/* En mode sombre système, on force quand même le gris clair */
-@media (prefers-color-scheme: dark) {
-  :root, html, body {
-    background-color: #F8FAFC !important;
-  }
-}
-
-/* --- 2. EXCEPTIONS UX --- */
-/* On réactive la sélection pour écrire des messages/recherches */
 input, textarea {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
 
-/* On empêche l'image fantôme au glisser-déposer */
 img {
   -webkit-user-drag: none;
   pointer-events: none;
 }
 
-/* --- 3. CONTENU --- */
-main {
-  background-color: #F8FAFC;
-}
-
-/* Barre de chargement en JAUNE (Mustard) */
-#nprogress .bar {
-  background: #fbbf24 !important;
-  height: 3px !important;
-  z-index: 99999 !important;
-}
-#nprogress .peg {
-  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
-}
-
-/* --- 4. UTILITAIRES --- */
+/* Utilitaires */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .pt-safe { padding-top: env(safe-area-inset-top); }

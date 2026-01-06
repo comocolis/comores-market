@@ -6,11 +6,11 @@ import { useEffect, useState, useRef, TouchEvent, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { 
-  MapPin, Phone, ArrowLeft, Send, Heart, Loader2, 
+  MapPin, ArrowLeft, Send, Heart, Loader2, 
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
   X, Crown, Sparkles, MessageCircle, Clock,
   AlertTriangle, ShieldCheck, Smartphone,
-  Grid, Tag, Camera
+  Grid, Camera
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -245,7 +245,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           className="object-cover opacity-90 transition duration-700" 
           priority 
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+        {/* CORRECTION v4 : bg-linear-to-t */}
+        <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
         
         <div className="absolute bottom-16 left-6 flex gap-2">
             {isBoosted && <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg flex items-center gap-1"><Sparkles size={10} /> Sponsorisé</span>}
@@ -345,14 +346,16 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             {!isOwner && (
                 <div className="space-y-4 pb-20">
-                    <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
+                    {/* CORRECTION v4 : rounded-4xl */}
+                    <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-4xl flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
                         <Smartphone size={20} fill="currentColor" /> WhatsApp Direct
                     </button>
                     
                     <div className="bg-gray-50 p-7 rounded-[2.5rem] border border-white">
                         <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
-                            <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-[100px] resize-none shadow-sm" placeholder="Votre message..." value={message} onChange={(e) => setMessage(e.target.value)} />
+                            {/* CORRECTION v4 : min-h-25 */}
+                            <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm" placeholder="Votre message..." value={message} onChange={(e) => setMessage(e.target.value)} />
                             <button type="submit" disabled={sending || !message.trim()} className="absolute right-4 bottom-4 bg-brand text-white p-3.5 rounded-xl shadow-lg active:scale-90 transition disabled:opacity-30">
                                 {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                             </button>
@@ -367,7 +370,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       <AnimatePresence>
         {lightboxIndex !== null && (
           <div 
-            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[1000] bg-black animate-in fade-in flex justify-center"
+            // CORRECTION v4 : max-w-120 et z-1000
+            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1000 bg-black animate-in fade-in flex justify-center"
             onTouchStart={onTouchStart} 
             onTouchMove={onTouchMove} 
             onTouchEnd={onTouchEndAction}
@@ -377,7 +381,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                   {/* Bouton Fermer avec fond */}
                   <button 
                     onClick={() => setLightboxIndex(null)} 
-                    className="absolute top-8 right-6 z-[1020] p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
+                    // CORRECTION v4 : z-1020
+                    className="absolute top-8 right-6 z-1020 p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
                   >
                     <X size={24} />
                   </button>
@@ -401,14 +406,16 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                       <>
                           <button 
                             onClick={prevImage} 
-                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                            // CORRECTION v4 : z-1010
+                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronLeft size={32} strokeWidth={3} />
                           </button>
                           
                           <button 
                             onClick={nextImage} 
-                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                            // CORRECTION v4 : z-1010
+                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronRightIcon size={32} strokeWidth={3} />
                           </button>
@@ -420,11 +427,14 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
         {/* MODALE SIGNALEMENT (CORRIGÉE PC) */}
         {showReportModal && (
-          <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[1100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
+          // CORRECTION v4 : max-w-120 et z-1100
+          <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
-                  <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
+                  {/* CORRECTION v4 : rounded-4xl */}
+                  <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
                   <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
-                  <textarea className="w-full bg-gray-50 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-[120px] resize-none mb-6 shadow-inner" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
+                  {/* CORRECTION v4 : min-h-30 */}
+                  <textarea className="w-full bg-gray-50 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-30 resize-none mb-6 shadow-inner" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
                   <div className="flex flex-col gap-3">
                       <button onClick={submitReport} disabled={reporting || !reportReason.trim()} className="w-full py-5 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-xl shadow-red-500/20 uppercase text-[10px] tracking-widest">{reporting ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Envoyer l'alerte"}</button>
                       <button onClick={() => setShowReportModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-400 bg-gray-50 active:scale-95 transition uppercase text-[10px] tracking-widest">Annuler</button>
