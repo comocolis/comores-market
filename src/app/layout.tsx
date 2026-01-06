@@ -22,7 +22,9 @@ export const metadata: Metadata = {
     locale: 'fr_KM',
     type: 'website',
   },
-  manifest: '/manifest.json',
+  // ASTUCE : On ajoute ?v=2 pour forcer le téléphone à re-télécharger le fichier
+  // et ainsi prendre en compte le changement de couleur de fond (Gris au lieu de Vert)
+  manifest: '/manifest.json?v=2',
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // IMPORTANT : On force le gris clair (#F8FAFC) ici pour la barre système (Anti-ligne verte)
+  // IMPORTANT : On force le gris clair (#F8FAFC) ici pour la barre système
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -58,14 +60,17 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
-        // CORRECTION : Police système 'font-sans' + Fond gris forcé + Hauteur dynamique mobile 'min-h-dvh'
+        // CORRECTION TAILWIND v4 : 
+        // - min-h-dvh : Hauteur dynamique mobile
+        // - bg-[#F8FAFC] : Fond gris uniforme
+        // - font-sans : Police système
         className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
       >
         {/* Écran de chargement au démarrage */}
         <SplashScreen />
 
         {/* CONTENEUR PRINCIPAL */}
-        {/* CORRECTIONS : max-w-120 (Tailwind v4) + min-h-dvh + Fond gris uniforme */}
+        {/* CORRECTIONS : max-w-120 (480px en v4) + min-h-dvh + Fond gris */}
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
           {/* Bannière d'installation PWA */}
