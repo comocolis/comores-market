@@ -10,42 +10,35 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. RÉGLAGES GLOBAUX */
+/* 1. LA SOLUTION RADICALE */
+:root,
 html {
-  /* IMPORTANT : On force le gris avec !important pour écraser tout reste de vert */
-  background-color: #F8FAFC !important;
+  /* On force le gris clair sur la racine même du document */
+  background-color: #F8FAFC !important; 
   height: 100%;
 }
 
 body {
-  height: 100%;
+  /* On s'assure que le corps est aussi gris */
   background-color: #F8FAFC !important;
-  /* On autorise le "Tirer pour actualiser" mais sur fond gris */
+  height: 100%;
+  
+  /* On autorise l'effet élastique (pour actualiser) */
+  /* MAIS comme le fond derrière est gris (#F8FAFC), l'élastique sera gris sur gris = invisible */
   overscroll-behavior-y: auto; 
+  
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 2. LA SOLUTION POUR LA BARRE DE PROGRESSION (Loading Bar) */
-/* Si une librairie comme NProgress est active, ce code va changer sa couleur */
-#nprogress .bar {
-  background: #fbbf24 !important; /* On la met en JAUNE (Mustard) ou 'transparent' pour la cacher */
-  height: 3px !important;
-  z-index: 99999 !important;
+/* 2. Empêcher le vert de revenir via d'autres classes */
+.bg-brand {
+  /* Sécurité : on s'assure que bg-brand ne s'applique pas par erreur au body */
+  background-color: var(--color-brand);
 }
 
-/* Cache l'effet de flou autour de la barre */
-#nprogress .peg {
-  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
-}
-
-/* Masquer la scrollbar */
-.scrollbar-hide::-webkit-scrollbar { 
-  display: none; 
-}
-.scrollbar-hide { 
-  -ms-overflow-style: none; 
-  scrollbar-width: none; 
-}
+/* Utilitaire scrollbar */
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 .pt-safe { padding-top: env(safe-area-inset-top); }
 .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
