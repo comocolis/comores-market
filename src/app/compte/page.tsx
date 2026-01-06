@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
+import { generatePROReceipt } from '@/utils/generateReceipt'
 
 // --- UTILITAIRE DE REDIMENSIONNEMENT ÉLITE ---
 const getOptimizedAvatar = (url: string | null, size = 200) => {
@@ -28,8 +29,6 @@ export default function ComptePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  const ADMIN_EMAIL = "abdesisco1@gmail.com"
-
   const [user, setUser] = useState<any>(null)
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -71,7 +70,8 @@ export default function ComptePage() {
 
     const { data, error } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date')
+        // CORRECTION ICI : On ajoute 'role' à la sélection
+        .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date, email, role') 
         .eq('id', user.id)
         .single()
 
@@ -250,6 +250,32 @@ export default function ComptePage() {
   
   const isProActive = profile?.is_pro && daysRemaining > 0
 
+  // --- LOGIQUE FACTURE ---
+  const getSubscriptionType = (endDate: string) => {
+      if (!endDate) return "Standard"
+      const end = new Date(endDate)
+      const now = new Date()
+      // Si la date de fin est dans plus de 40 jours, on considère que c'est un abonnement annuel
+      const diffDays = Math.ceil((end.getTime() - now.getTime()) / (1000 * 3600 * 24))
+      return diffDays > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
+  }
+
+  const downloadMyInvoice = () => {
+      if (!profile) return;
+      const subType = getSubscriptionType(profile.subscription_end_date);
+      
+      generatePROReceipt({
+          full_name: profile.full_name || "Client",
+          email: profile.email || user?.email || "",
+          date: new Date().toISOString(), // Date d'émission = Aujourd'hui
+          description: subType,
+          customEndDate: profile.subscription_end_date // Date de fin réelle
+      });
+  }
+
+  // --- VÉRIFICATION ACCÈS ADMIN ---
+  const canAccessAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
+
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
@@ -314,8 +340,17 @@ export default function ComptePage() {
                 <h2 className="font-black text-xl truncate tracking-tight leading-none mb-2">{profile?.full_name || "Nom du Showroom"}</h2>
                 <p className="text-[10px] text-gray-400 font-black truncate tracking-widest mb-3">{user?.email}</p>
                 {isProActive ? (
-                    <div className="inline-flex flex-col items-start bg-amber-500 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20">
-                        <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"><Crown size={10} fill="currentColor" /> Expert Pro</span>
+                    <div className="flex flex-col items-start gap-2">
+                        <div className="inline-flex flex-col items-start bg-amber-500 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20">
+                            <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"><Crown size={10} fill="currentColor" /> Expert Pro</span>
+                        </div>
+                        {/* BOUTON FACTURE */}
+                        <button 
+                            onClick={downloadMyInvoice}
+                            className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition active:scale-95"
+                        >
+                            <FileText size={12} /> Ma Facture
+                        </button>
                     </div>
                 ) : (
                     <Link href="/pro" className="group inline-flex items-center gap-2 bg-gray-900 text-white text-[10px] font-black px-6 py-3 rounded-2xl shadow-xl shadow-gray-900/20 active:scale-95 transition-all hover:bg-black border border-gray-800">
@@ -331,7 +366,9 @@ export default function ComptePage() {
         
         {/* SHORTCUTS */}
         <div className="flex flex-col gap-4">
-          {user?.email === ADMIN_EMAIL && (
+          
+          {/* BOUTON ADMIN CORRIGÉ : S'affiche si Super Admin OU Admin */}
+          {canAccessAdmin && (
                <Link href="/admin" className="w-full bg-gray-900 text-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-2xl border border-white/10 active:scale-95 transition">
                   <div className="flex items-center gap-4">
                       <div className="bg-brand/20 p-3 rounded-2xl text-brand"><LayoutDashboard size={24} /></div>
@@ -350,6 +387,8 @@ export default function ComptePage() {
           </Link>
         </div>
 
+        {/* ... (Reste du code identique : Liens Annonces, Favoris, Identité, Sécurité...) */}
+        
         <div className="grid grid-cols-2 gap-4">
             <Link href="/mes-annonces" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition">
                 <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl w-fit"><Package size={22} /></div>

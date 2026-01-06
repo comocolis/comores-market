@@ -1,6 +1,4 @@
 import type { Metadata, Viewport } from "next";
-// 1. SUPPRESSION de l'import qui bloque le build Netlify
-// import { Inter } from "next/font/google"; 
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
@@ -8,14 +6,6 @@ import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
 import { Suspense } from "react";
-
-// 2. SUPPRESSION de la configuration de la police
-/* const inter = Inter({ 
-  subsets: ["latin"],
-  display: 'swap',
-  variable: '--font-inter',
-});
-*/
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -50,9 +40,9 @@ export const metadata: Metadata = {
   },
 };
 
-// C'EST ICI QUE SE REGLE LE PROBLÈME DE LA LIGNE EN HAUT
+// CONFIGURATION VIEWPORT (Pour cacher la barre verte du navigateur)
 export const viewport: Viewport = {
-  // On met #F8FAFC (la couleur de fond de l'app) pour que la barre d'état se fonde dans le design
+  // On utilise la même couleur que le fond (#F8FAFC)
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -68,30 +58,30 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* 3. UTILISATION de 'font-sans' (police système) au lieu de inter.className */}
+      {/* Utilisation de font-sans système */}
       <body 
         className={`font-sans bg-gray-200 min-h-screen flex justify-center overflow-y-scroll`}
       >
-        {/* SPLASH SCREEN ANIMÉ : S'affiche au-dessus de tout au chargement */}
+        {/* SPLASH SCREEN */}
         <SplashScreen />
 
-        {/* LE CONTENEUR MOBILE */}
+        {/* CONTENEUR MOBILE CENTRÉ (Max 480px) */}
         <div className="w-full max-w-[480px] min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
-          {/* Bannière PWA (Intégrée dans le flux mobile) */}
+          {/* Bannière PWA */}
           <InstallBanner />
 
-          {/* Notifications Toast */}
+          {/* Notifications */}
           <Toaster richColors position="top-center" duration={3000} />
           
           <main className="flex-1 relative">
             {children}
           </main>
 
-          {/* L'assistant Elite CM */}
+          {/* Assistant Elite */}
           <EliteAssistant />
 
-          {/* Navigation du bas */}
+          {/* Navigation Basse */}
           <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>

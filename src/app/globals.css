@@ -1,30 +1,26 @@
 @import "tailwindcss";
 
 @theme {
-  /* Variables de thème : Uniquement des définitions ici */
+  /* Définition des couleurs de la marque directement ici pour la v4 */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
-  
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
+  
+  /* On s'assure que la police système est utilisée */
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. STYLES DE BASE POUR ÉLIMINER LE FLASH BLANC */
-/* On force le fond vert sur les couches les plus basses du navigateur */
-:root {
-  background-color: #16a34a;
+/* RÉGLAGES GLOBAUX */
+html,
+body {
+  height: 100%;
+  background-color: #F8FAFC; /* Gris clair */
+  overscroll-behavior-y: none; /* Stop l'effet élastique */
+  -webkit-tap-highlight-color: transparent;
 }
 
-
-/* 2. STYLES DU CONTENU */
-/* Une fois l'application chargée, le fond gris s'applique uniquement au contenu */
-main {
-  background-color: #f3f4f6; /* bg-gray-100 */
-}
-
-/* 3. UTILITAIRES SPÉCIFIQUES */
-
-/* Masquer la barre de défilement mais garder le scroll */
+/* Utilitaire pour masquer la scrollbar */
 .scrollbar-hide::-webkit-scrollbar { 
   display: none; 
 }
@@ -33,7 +29,7 @@ main {
   scrollbar-width: none; 
 }
 
-/* Zones de sécurité mobiles (encoches iPhone/Android) */
+/* Zones de sécurité */
 .pt-safe { 
   padding-top: env(safe-area-inset-top); 
 }

@@ -1,8 +1,5 @@
 {
-  "[typescript]": {
-    "editor.defaultFormatter": "denoland.vscode-deno"
-  },
-  "css.lint.unknownAtRules": "ignore",
+  "deno.enable": true,
   "deno.enablePaths": [
     "supabase/functions"
   ],
@@ -22,5 +19,28 @@
     "http",
     "net"
   ],
-  "scss.lint.unknownAtRules": "ignore"
+  "[typescript]": {
+    "editor.defaultFormatter": "denoland.vscode-deno"
+  },
+
+  // --- CONFIGURATION TAILWIND V4 & CSS ---
+
+  // 1. Associer les fichiers CSS au mode Tailwind
+  "files.associations": {
+    "*.css": "tailwindcss"
+  },
+
+  // 2. Suggestions intelligentes
+  "editor.quickSuggestions": {
+    "strings": true
+  },
+
+  // 3. LA SOLUTION : On ignore spécifiquement les règles inconnues (@theme, @tailwind)
+  "css.lint.unknownAtRules": "ignore",
+  "scss.lint.unknownAtRules": "ignore",
+  "less.lint.unknownAtRules": "ignore",
+
+  // 4. (Optionnel) Désactiver complètement la validation native si le point 3 ne suffit pas
+  "css.validate": false,
+  "scss.validate": false
 }

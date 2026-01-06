@@ -6,14 +6,18 @@ import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
 import { 
   Camera, Loader2, DollarSign, Type, X, ChevronLeft, Lock, Crown, 
-  Phone, Ban, Mail, MessageCircle, AlertCircle, Sparkles, ShieldCheck, GripVertical
+  Phone, Ban, Mail, MessageCircle, AlertCircle, Sparkles, ShieldCheck, GripHorizontal,
+  Calendar, Gauge, Fuel, Smartphone, HardDrive, Home, Maximize, Layers,
+  Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
+  Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
+  MapPin, Star // AJOUT DES IMPORTS MANQUANTS ICI
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
 // --- IMPORTS DRAG & DROP ---
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
+import { DndContext, closestCenter, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
 const CATEGORIES_LIST = [
@@ -35,24 +39,186 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
 }
 
+// --- CONFIGURATION EXPERTE DES CHAMPS ---
+const SPECIFIC_FIELDS: Record<string, any[]> = {
+    // === 1. VÉHICULES ===
+    'Voitures': [
+        { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: 'Ex: 2018' },
+        { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: 'Ex: 85000' },
+        { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Essence', 'Diesel', 'Hybride', 'Électrique'] },
+        { key: 'transmission', label: 'Boîte', icon: Layers, type: 'select', options: ['Manuelle', 'Automatique'] }
+    ],
+    'Motos': [
+        { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2020' },
+        { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: '15000' },
+        { key: 'cc', label: 'Cylindrée (cc)', icon: Zap, type: 'number', placeholder: '125' }
+    ],
+    'Camions': [
+        { key: 'tonnage', label: 'Tonnage', icon: Truck, type: 'number', placeholder: 'Ex: 3.5' },
+        { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2015' },
+        { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Diesel', 'Essence'] }
+    ],
+    'Bateaux': [
+        { key: 'type', label: 'Type', icon: Anchor, type: 'select', options: ['Vedette', 'Barque', 'Boutre', 'Moteur Hors-bord'] },
+        { key: 'length', label: 'Longueur (m)', icon: Ruler, type: 'number', placeholder: 'Ex: 7' }
+    ],
+    'Pièces Détachées': [
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion', 'Reconditionné'] },
+        { key: 'compatibility', label: 'Compatible avec', icon: Wrench, type: 'text', placeholder: 'Ex: Toyota Yaris 2010...' }
+    ],
+
+    // === 2. IMMOBILIER ===
+    'Vente Maison': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '120' },
+        { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '4' },
+        { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] }
+    ],
+    'Vente Terrain': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '500' },
+        { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] },
+        { key: 'access', label: 'Accès Voiture', icon: Truck, type: 'select', options: ['Oui', 'Non', 'Piste'] }
+    ],
+    'Location Maison': [
+        { key: 'rooms', label: 'Chambres', icon: Home, type: 'number', placeholder: '3' },
+        { key: 'furnished', label: 'Meublé', icon: Layers, type: 'select', options: ['Oui', 'Non', 'Partiellement'] },
+        { key: 'period', label: 'Paiement', icon: Calendar, type: 'select', options: ['Mensuel', 'Journalier'] }
+    ],
+    'Bureaux & Commerces': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '50' },
+        { key: 'location', label: 'Emplacement', icon: MapPin, type: 'select', options: ['Bord de route', 'Centre-ville', 'Quartier calme'] }
+    ],
+
+    // === 3. MODE ===
+    'Chaussures': [
+        { key: 'size', label: 'Pointure', icon: Ruler, type: 'number', placeholder: '42' },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Nike, Adidas...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
+    ],
+    'Vêtements Homme': [
+        { key: 'size', label: 'Taille', icon: Shirt, type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Zara, H&M...' }
+    ],
+    'Vêtements Femme': [
+        { key: 'size', label: 'Taille', icon: Shirt, type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '34', '36', '38', '40', '42'] },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Mango, Shein...' }
+    ],
+    'Montres & Bijoux': [
+        { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué'] },
+        { key: 'brand', label: 'Marque', icon: Watch, type: 'text', placeholder: 'Rolex, Seiko, Casio...' }
+    ],
+
+    // === 4. TECH ===
+    'Téléphones': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, Apple, Huawei...' },
+        { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go', '512 Go', '1 To'] },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf (Scellé)', 'Comme neuf', 'Bon état', 'Écran fissuré'] }
+    ],
+    'Ordinateurs': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'HP, Dell, Apple...' },
+        { key: 'processor', label: 'Processeur', icon: Zap, type: 'text', placeholder: 'Core i5, Ryzen 7...' },
+        { key: 'ram', label: 'RAM', icon: Layers, type: 'select', options: ['4 Go', '8 Go', '16 Go', '32 Go'] }
+    ],
+    'Consoles & Jeux': [
+        { key: 'platform', label: 'Plateforme', icon: Zap, type: 'select', options: ['PS5', 'PS4', 'Xbox', 'Switch', 'PC'] },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
+    ],
+
+    // === 5. MAISON ===
+    'Meubles': [
+        { key: 'material', label: 'Matière', icon: Layers, type: 'text', placeholder: 'Bois rouge, Métal, Verre...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
+    ],
+    'Électroménager': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, LG...' },
+        { key: 'energy', label: 'Conso', icon: Zap, type: 'select', options: ['Faible consommation', 'Normale'] }
+    ],
+
+    // === 6. LOISIRS ===
+    'Instruments de musique': [
+        { key: 'type', label: 'Instrument', icon: Music, type: 'text', placeholder: 'Guitare, Piano...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
+    ],
+    'Livres': [
+        { key: 'genre', label: 'Genre', icon: Book, type: 'text', placeholder: 'Roman, Scolaire, Religion...' },
+        { key: 'lang', label: 'Langue', icon: Type, type: 'select', options: ['Français', 'Arabe', 'Anglais', 'Shikomori'] }
+    ],
+    'Voyages & Billets': [
+        { key: 'dest', label: 'Destination', icon: Plane, type: 'text', placeholder: 'Dubaï, Tanzanie, France...' },
+        { key: 'date', label: 'Départ prévu', icon: Calendar, type: 'text', placeholder: 'JJ/MM/AAAA' }
+    ],
+
+    // === 7. ALIMENTATION (Spécial Comores) ===
+    'Fruits & Légumes': [
+        { key: 'origin', label: 'Origine', icon: MapPin, type: 'select', options: ['Local (Comores)', 'Importé'] },
+        { key: 'unit', label: 'Vendu par', icon: DollarSign, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
+    ],
+    'Plats cuisinés': [
+        { key: 'type', label: 'Type', icon: Utensils, type: 'select', options: ['Salé', 'Sucré', 'Traiteur'] },
+        { key: 'availability', label: 'Dispo', icon: Clock, type: 'select', options: ['Sur commande', 'Immédiat'] }
+    ],
+    'Produits frais': [
+        { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé'] }
+    ],
+
+    // === 8. SERVICES ===
+    'Cours & Formations': [
+        { key: 'level', label: 'Niveau', icon: GraduationCap, type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'] },
+        { key: 'mode', label: 'Format', icon: Layers, type: 'select', options: ['En ligne', 'Présentiel'] }
+    ],
+    'Réparations': [
+        { key: 'domain', label: 'Spécialité', icon: Wrench, type: 'text', placeholder: 'Plomberie, Mécanique, Froid...' },
+        { key: 'travel', label: 'Déplacement', icon: Truck, type: 'select', options: ['Oui', 'Non', 'À définir'] }
+    ],
+
+    // === 9. BEAUTÉ ===
+    'Parfums': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Dior, Sauvage...' },
+        { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile'] },
+        { key: 'authenticity', label: 'Authenticité', icon: ShieldCheck, type: 'select', options: ['Original', 'Générique/Copie'] }
+    ],
+    'Coiffure': [
+        { key: 'service', label: 'Service', icon: Scissors, type: 'select', options: ['Tresses', 'Lissage', 'Coupe', 'Perruques'] },
+        { key: 'place', label: 'Lieu', icon: Home, type: 'select', options: ['À domicile', 'Au salon'] }
+    ],
+
+    // === 10. EMPLOI ===
+    'Offres d\'emploi': [
+        { key: 'contract', label: 'Contrat', icon: Briefcase, type: 'select', options: ['CDI', 'CDD', 'Stage', 'Freelance'] },
+        { key: 'sector', label: 'Secteur', icon: Layers, type: 'text', placeholder: 'Commerce, BTP, Santé...' }
+    ],
+    'Demandes d\'emploi': [
+        { key: 'exp', label: 'Expérience', icon: Star, type: 'select', options: ['Débutant', '1-3 ans', '3-5 ans', '+5 ans'] },
+        { key: 'diploma', label: 'Diplôme', icon: GraduationCap, type: 'text', placeholder: 'Bac, Licence...' }
+    ]
+}
+
 const SUPPORT_EMAIL = "contact.comoresmarket@gmail.com"
 const SUPPORT_WA = "33758760743" 
 
 // --- COMPOSANT IMAGE TRIABLE ---
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
-    const { attributes, listeners, setNodeRef, transform, transition } = useSortable({ id })
-    const style = { transform: CSS.Transform.toString(transform), transition }
+    const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+    
+    const style = { 
+        transform: CSS.Transform.toString(transform), 
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    }
   
     return (
-      <div ref={setNodeRef} style={style} className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border group touch-none">
-        <Image src={url} alt="" fill className="object-cover" />
+      <div ref={setNodeRef} style={style} {...attributes} {...listeners} className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border group select-none touch-none">
+        <Image src={url} alt="" fill className="object-cover pointer-events-none" />
         
-        {/* Poignée de déplacement (Drag Handle) */}
-        <div {...attributes} {...listeners} className="absolute inset-0 bg-black/0 hover:bg-black/10 transition cursor-move flex items-center justify-center opacity-0 group-hover:opacity-100">
-            <GripVertical className="text-white drop-shadow-md" />
+        <div className="absolute bottom-0 w-full bg-black/30 h-5 flex items-center justify-center">
+            <GripHorizontal className="text-white/80" size={12} />
         </div>
 
-        <button type="button" onClick={onRemove} className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full z-10 hover:bg-red-500 transition">
+        <button 
+            type="button" 
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); onRemove() }} 
+            className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full z-10 hover:bg-red-500 transition"
+        >
             <X size={12} />
         </button>
       </div>
@@ -68,7 +234,6 @@ export default function PublierPage() {
   const [isGenerating, setIsGenerating] = useState(false) 
   const [isRephrasing, setIsRephrasing] = useState(false) 
   
-  // On stocke des objets { id, url } pour le tri
   const [images, setImages] = useState<{ id: string, url: string }[]>([])
   
   const [isPro, setIsPro] = useState(false)
@@ -87,13 +252,23 @@ export default function PublierPage() {
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
 
-  // Configuration Drag & Drop
+  // Specs : Valeurs dynamiques
+  const [specs, setSpecs] = useState<any>({})
+
+  // Reset des specs si on change de sous-catégorie
+  useEffect(() => {
+      setSpecs({})
+  }, [formData.sub_category])
+
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), // Pour éviter le drag accidentel au clic
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 5 } })
   )
 
   const currentSubCats = SUB_CATEGORIES[parseInt(formData.category_id)] || []
+  
+  // LOGIQUE INTELLIGENTE : On récupère les champs liés à la SOUS-CATÉGORIE
+  const currentSpecFields = SPECIFIC_FIELDS[formData.sub_category] || []
 
   useEffect(() => {
     const checkUser = async () => {
@@ -116,47 +291,35 @@ export default function PublierPage() {
     checkUser()
   }, [router, supabase])
 
-  // --- FONCTION FILIGRANE (WATERMARK) ---
   const addWatermark = (file: File): Promise<Blob> => {
       return new Promise((resolve) => {
-          const img = new window.Image(); // Utilise l'objet Image natif du navigateur
+          const img = new window.Image();
           img.src = URL.createObjectURL(file);
           img.onload = () => {
               const canvas = document.createElement('canvas');
               const ctx = canvas.getContext('2d');
-              
-              // Taille Canvas = Taille Image
               canvas.width = img.width;
               canvas.height = img.height;
               
               if (ctx) {
-                  // 1. Dessiner l'image originale
                   ctx.drawImage(img, 0, 0);
-
-                  // 2. Configurer le texte du filigrane
                   const text = "ComoresMarket";
-                  const fontSize = Math.max(20, img.width * 0.05); // Taille adaptative (5% de la largeur)
-                  ctx.font = `900 ${fontSize}px Arial`; // Police grasse
-                  ctx.fillStyle = "rgba(255, 255, 255, 0.6)"; // Blanc semi-transparent
+                  const fontSize = Math.max(20, img.width * 0.05);
+                  ctx.font = `900 ${fontSize}px Arial`;
+                  ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
                   ctx.textAlign = "right";
                   ctx.textBaseline = "bottom";
-
-                  // 3. Ombre portée pour lisibilité
-                  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-                  ctx.shadowBlur = 4;
-                  ctx.shadowOffsetX = 2;
-                  ctx.shadowOffsetY = 2;
-
-                  // 4. Dessiner le texte (En bas à droite avec marge)
+                  ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+                  ctx.shadowBlur = 6;
+                  ctx.shadowOffsetX = 3;
+                  ctx.shadowOffsetY = 3;
                   const margin = img.width * 0.03;
                   ctx.fillText(text, canvas.width - margin, canvas.height - margin);
               }
-
-              // 5. Convertir en Blob pour upload
               canvas.toBlob((blob) => {
                   if (blob) resolve(blob);
-                  else resolve(file); // Fallback si erreur
-              }, 'image/jpeg', 0.90); // Qualité 90%
+                  else resolve(file);
+              }, 'image/jpeg', 0.90);
           };
       });
   };
@@ -175,28 +338,20 @@ export default function PublierPage() {
       const newImages: { id: string, url: string }[] = []
       
       await Promise.all(Array.from(e.target.files).map(async (file) => {
-          // 1. Appliquer le filigrane
           const watermarkedBlob = await addWatermark(file);
-          
-          // 2. Upload vers Supabase
           const fileName = `${Math.random()}.${file.name.split('.').pop()}`
           const { error } = await supabase.storage.from('products').upload(fileName, watermarkedBlob)
           
           if (!error) {
               const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
-              newImages.push({ id: fileName, url: publicUrl }) // ID unique pour le tri
+              newImages.push({ id: fileName, url: publicUrl })
           }
       }))
       
       setImages(prev => [...prev, ...newImages])
-    } catch (error: any) { 
-        toast.error('Erreur upload.') 
-    } finally { 
-        setUploading(false) 
-    }
+    } catch (error: any) { toast.error('Erreur upload.') } finally { setUploading(false) }
   }
 
-  // --- LOGIQUE TRI DRAG & DROP ---
   const handleDragEnd = (event: any) => {
       const { active, over } = event
       if (active.id !== over.id) {
@@ -210,7 +365,7 @@ export default function PublierPage() {
 
   const handleRephrase = async () => {
     if (!formData.description || formData.description.length < 5) {
-      toast.error("Écrivez un début de texte pour que l'IA puisse le sublimer.")
+      toast.error("Écrivez un début de texte.")
       return
     }
     setIsRephrasing(true)
@@ -224,7 +379,7 @@ export default function PublierPage() {
       if (data.text) {
         const clean = data.text.replace(/\*\*/g, '').replace(/#/g, '').normalize("NFC")
         setFormData(prev => ({ ...prev, description: clean }))
-        toast.success("Texte sublimé !", { icon: <Sparkles className="text-blue-500" /> })
+        toast.success("Texte sublimé !")
       }
     } catch (err) { toast.error("Erreur reformulation.") } finally { setIsRephrasing(false) }
   }
@@ -245,7 +400,7 @@ export default function PublierPage() {
         if (data.text) {
           const clean = data.text.replace(/\*\*/g, '').replace(/#/g, '').normalize("NFC")
           setFormData(prev => ({ ...prev, description: clean }))
-          toast.success("Description générée !", { icon: <Sparkles className="text-amber-500" /> })
+          toast.success("Description générée !")
         }
       } catch (err) { toast.error("Erreur Vision.") } finally { setIsGenerating(false) }
     }
@@ -262,10 +417,23 @@ export default function PublierPage() {
 
     setLoading(true)
     try {
+      // FORMATAGE DES SPECS DANS LA DESCRIPTION
+      let finalDescription = formData.description;
+      
+      if (Object.keys(specs).length > 0) {
+          let specsText = "\n\n--- ✨ CARACTÉRISTIQUES ---\n";
+          currentSpecFields.forEach((field: any) => {
+              if (specs[field.key]) {
+                  specsText += `• ${field.label} : ${specs[field.key]}\n`;
+              }
+          });
+          finalDescription += specsText;
+      }
+
       const moderateRes = await fetch('/api/moderate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, description: finalDescription }),
       })
       const check = await moderateRes.json()
 
@@ -279,16 +447,17 @@ export default function PublierPage() {
       if (user) {
           const { error: productError } = await supabase.from('products').insert({
               ...formData,
+              description: finalDescription,
               user_id: user.id,
-              images: JSON.stringify(images.map(img => img.url)), // On extrait juste les URLs
+              images: JSON.stringify(images.map(img => img.url)),
               quality_score: check.quality_score
           })
 
           if (!productError) {
               await supabase.from('notifications').insert({
                 user_id: user.id,
-                title: "La Sentinelle a validé votre annonce",
-                message: `Votre annonce "${formData.title}" est en ligne avec un score de ${check.quality_score}/10.`,
+                title: "Annonce en ligne",
+                message: `Votre annonce "${formData.title}" est publiée.`,
                 type: 'sentinel'
               })
 
@@ -306,15 +475,9 @@ export default function PublierPage() {
   if (isBanned) {
     return (
         <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-            <div className="bg-white p-8 rounded-3xl shadow-xl max-w-sm w-full">
-                <Ban size={32} className="text-red-600 mx-auto mb-4" />
-                <h1 className="text-2xl font-black mb-2">Compte Suspendu</h1>
-                <p className="text-gray-500 mb-6 text-sm font-medium">Contactez le support pour régulariser votre situation.</p>
-                <div className="space-y-3">
-                    <a href={`mailto:${SUPPORT_EMAIL}`} className="flex items-center justify-center gap-2 w-full bg-gray-100 py-3 rounded-xl font-bold"><Mail size={18} /> Email</a>
-                    <a href={`https://wa.me/${SUPPORT_WA}`} target="_blank" className="flex items-center justify-center gap-2 w-full bg-green-500 text-white py-3 rounded-xl font-bold shadow-lg shadow-green-500/20"><MessageCircle size={18} /> WhatsApp</a>
-                </div>
-            </div>
+            <Ban size={32} className="text-red-600 mx-auto mb-4" />
+            <h1 className="text-2xl font-black mb-2">Compte Suspendu</h1>
+            <p className="text-gray-500 mb-6 text-sm font-medium">Contactez le support.</p>
         </div>
     )
   }
@@ -338,49 +501,75 @@ export default function PublierPage() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-md mx-auto">
-            {/* PHOTOS TRIABLES */}
+            {/* 1. PHOTOS (Drag & Drop + Watermark) */}
             <div className="space-y-2">
                 <div className="flex justify-between items-end px-1">
-                    <label className="text-sm font-bold text-gray-700">Photos (Glissez pour ordonner)</label>
+                    <label className="text-sm font-bold text-gray-700">Photos (Maintenez pour déplacer)</label>
                     <span className="text-[10px] font-bold text-gray-400">{images.length} / {isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT}</span>
                 </div>
                 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-                    <SortableContext items={images.map(i => i.id)} strategy={rectSortingStrategy}>
-                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center">
-                            
-                            {/* BOUTON AJOUT */}
+                    <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
+                        <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x">
                             <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-50">
                                 {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-400" />}
                             </div>
-
-                            {/* LISTE IMAGES */}
                             {images.map((img) => (
-                                <SortableImage 
-                                    key={img.id} 
-                                    id={img.id} 
-                                    url={img.url} 
-                                    onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} 
-                                />
+                                <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
                             ))}
                         </div>
                     </SortableContext>
                 </DndContext>
-                
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
             </div>
 
-            {/* CHAMPS INFOS PRINCIPALES */}
+            {/* 2. INFOS PRINCIPALES */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Titre</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200"><Type size={18} className="text-gray-400" /><input type="text" className="w-full bg-transparent p-3 outline-none text-sm font-bold" placeholder="iPhone 12 Pro..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} /></div></div>
                 <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label><div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200"><DollarSign size={18} className="text-gray-400" /><input type="number" className="w-full bg-transparent p-3 outline-none text-sm font-bold" placeholder="150000" value={formData.price} onChange={e => setFormData({...formData, price: e.target.value})} /></div></div>
+                
                 <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Catégorie</label><select className="w-full bg-gray-50 p-3 rounded-xl text-sm font-bold outline-none border border-gray-200" value={formData.category_id} onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}>{CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id}>{cat.label}</option>))}</select></div>
                     <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Sous-catégorie</label><select className="w-full bg-gray-50 p-3 rounded-xl text-sm font-bold outline-none border border-gray-200" value={formData.sub_category} onChange={e => setFormData({ ...formData, sub_category: e.target.value })}><option value="">Choisir...</option>{currentSubCats.map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}</select></div>
                 </div>
+
+                {/* 3. CHAMPS INTELLIGENTS DYNAMIQUES */}
+                {currentSpecFields.length > 0 && (
+                    <div className="animate-in slide-in-from-top-2 fade-in pt-2 border-t border-dashed border-gray-100 mt-2">
+                        <p className="text-xs font-black text-brand uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
+                        <div className="grid grid-cols-2 gap-3">
+                            {currentSpecFields.map((field: any) => (
+                                <div key={field.key} className={field.key === 'fuel' || field.key === 'storage' ? "col-span-2" : ""}>
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">{field.label}</label>
+                                    <div className="flex items-center bg-gray-50 rounded-xl px-3 border border-gray-200 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 transition">
+                                        <field.icon size={16} className="text-gray-400 mr-2 shrink-0" />
+                                        {field.type === 'select' ? (
+                                            <select 
+                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold"
+                                                value={specs[field.key] || ''}
+                                                onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                                            >
+                                                <option value="">Sélectionner...</option>
+                                                {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                            </select>
+                                        ) : (
+                                            <input 
+                                                type={field.type} 
+                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold" 
+                                                placeholder={field.placeholder}
+                                                value={specs[field.key] || ''}
+                                                onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
 
-            {/* LOCALISATION & WHATSAPP SÉCURISÉ */}
+            {/* 4. LOCALISATION */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div><label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label><select className="w-full bg-gray-50 rounded-xl p-3 text-sm font-bold border border-gray-200" value={formData.location_island} onChange={e => setFormData({...formData, location_island: e.target.value})}><option>Ngazidja</option><option>Ndzouani</option><option>Mwali</option><option>Maore</option></select></div>
@@ -392,7 +581,7 @@ export default function PublierPage() {
                 </div>
             </div>
 
-            {/* DESCRIPTION PRESTIGE */}
+            {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
                     <label className="text-xs font-bold text-gray-400 uppercase">Description Prestige</label>
@@ -411,7 +600,6 @@ export default function PublierPage() {
                 <textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-[160px] outline-none focus:ring-2 focus:ring-brand/20 transition resize-none" placeholder="Décrivez votre produit avec élégance..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
 
-            {/* BADGE SÉCURITÉ IA */}
             <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
             <ShieldCheck className="text-amber-600 mt-0.5" size={20} />
             <div>

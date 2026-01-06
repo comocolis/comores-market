@@ -9,11 +9,14 @@ import {
   MapPin, Phone, ArrowLeft, Send, Heart, Loader2, 
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
   X, Crown, Sparkles, MessageCircle, Clock,
-  AlertTriangle, CheckCircle2, ShieldCheck, Smartphone
+  AlertTriangle, ShieldCheck, Smartphone,
+  Grid, Tag, Camera
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
+import { formatDistanceToNow } from 'date-fns'
+import { fr } from 'date-fns/locale'
 
 // --- UTILITAIRE IMAGE ---
 const getOptimizedImage = (url: string | null, width = 800) => {
@@ -53,6 +56,15 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const minSwipeDistance = 50 
   const viewLogged = useRef(false)
 
+  // --- PARSING CARACTÉRISTIQUES ---
+  const descriptionParts = product?.description?.split('--- ✨ CARACTÉRISTIQUES ---') || []
+  const mainDescription = descriptionParts[0]?.trim() || ''
+  const rawSpecs = descriptionParts.length > 1 ? descriptionParts[1].trim() : null
+  
+  const specsList = rawSpecs 
+    ? rawSpecs.split('\n').filter((line: string) => line.trim() !== '').map((line: string) => line.replace('• ', '').split(' : ')) 
+    : []
+
   const getData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
@@ -66,10 +78,10 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       const { data: productData } = await supabase
         .from('products')
         .select(`
-          id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until,
-          profiles(full_name, avatar_url, is_pro, subscription_end_date)
+          id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until, sub_category,
+          profiles(full_name, avatar_url, is_pro, subscription_end_date, phone_number)
         `)
-        .eq('id', params.id) // Correction : 2 arguments
+        .eq('id', params.id) 
         .single()
       
       if (productData) setProduct(productData)
@@ -201,22 +213,15 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden flex flex-col relative">
       
-      {/* ICÔNES RONDES FLOTTANTES (Design Profil)
-          - sticky + h-0 : Reste dans le cadre sans barre de fond.
-          - z-10 : Laisse la bannière PWA (index élevé) passer devant.
-          - pointer-events-none : N'empêche pas de toucher l'image.
-      */}
+      {/* HEADER ACTIONS RONDES */}
       <div className="sticky top-0 w-full h-0 overflow-visible z-10 pointer-events-none">
           <div className="p-4 pt-safe flex justify-between items-center w-full">
-            {/* Bouton Retour Rond */}
             <button 
                 onClick={() => router.back()} 
                 className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto"
             >
                 <ArrowLeft size={22} strokeWidth={2.5} />
             </button>
-            
-            {/* Groupe Boutons Actions Ronds */}
             <div className="flex gap-2 pointer-events-auto">
                 <button onClick={handleShare} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
                     <Share2 size={20} strokeWidth={2.5} />
@@ -231,7 +236,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           </div>
       </div>
 
-      {/* GALERIE PHOTO */}
+      {/* GALERIE PHOTO (Mode Normal) */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
           src={getOptimizedImage(images[selectedImageIndex]) || '/placeholder.png'} 
@@ -242,6 +247,13 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         
+        <div className="absolute bottom-16 left-6 flex gap-2">
+            {isBoosted && <span className="bg-amber-500 text-white px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-lg flex items-center gap-1"><Sparkles size={10} /> Sponsorisé</span>}
+            <span className="bg-black/60 backdrop-blur text-white px-3 py-1 rounded-full text-[10px] font-bold shadow-lg flex items-center gap-1">
+                <Camera size={10} /> {selectedImageIndex + 1}/{images.length}
+            </span>
+        </div>
+
         <div className="absolute bottom-12 left-0 w-full flex justify-center gap-2 px-6 overflow-x-auto scrollbar-hide">
             {images.map((img: string, i: number) => (
                 <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
@@ -252,7 +264,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </div>
 
-      {/* CONTENU */}
+      {/* CONTENU INFO */}
       <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-[3.5rem] relative z-10 min-h-screen shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             
@@ -264,7 +276,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             <div className="flex justify-between items-start mb-8 gap-4">
                 <div className="flex-1">
-                    <h1 className="text-2xl font-black leading-tight mb-2 tracking-tight flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-gray-900 leading-snug mb-2 tracking-tight flex items-center gap-2">
                         {product.title} 
                         {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
@@ -277,13 +289,13 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                     </p>
                     <div className="flex items-center justify-end gap-1 text-[9px] text-gray-300 font-black uppercase mt-1 tracking-tighter">
-                        <Clock size={10} /> {new Date(product.created_at).toLocaleDateString()}
+                        <Clock size={10} /> {formatDistanceToNow(new Date(product.created_at), { addSuffix: true, locale: fr })}
                     </div>
                 </div>
             </div>
 
-            {/* VENDEUR */}
-            <div className="flex flex-col gap-4 mb-12">
+            {/* PROFIL VENDEUR */}
+            <div className="flex flex-col gap-4 mb-8">
               <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
@@ -305,17 +317,36 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
               </Link>
             </div>
 
+            {/* FICHE TECHNIQUE */}
+            {specsList.length > 0 && (
+                <div className="bg-[#F8FAFC] p-6 rounded-[2.5rem] border border-gray-100 mb-8">
+                    <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-4 flex items-center gap-2">
+                        <Grid size={14} /> Fiche Technique
+                    </h3>
+                    <div className="grid grid-cols-2 gap-3">
+                        {specsList.map(([label, value]: string[], i: number) => (
+                            value && (
+                                <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-white flex flex-col">
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase mb-1">{label}</span>
+                                    <span className="text-sm font-bold text-gray-900 truncate">{value}</span>
+                                </div>
+                            )
+                        ))}
+                    </div>
+                </div>
+            )}
+
             <div className="mb-12">
                 <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Description</h3>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line font-medium italic border-l-4 border-gray-50 pl-6 py-2">
-                  "{product.description}"
+                  "{mainDescription}"
                 </p>
             </div>
 
             {!isOwner && (
                 <div className="space-y-4 pb-20">
                     <button onClick={handleWhatsAppClick} className="w-full bg-[#25D366] text-white font-black py-5 rounded-[2rem] flex items-center justify-center gap-3 shadow-xl shadow-green-500/20 active:scale-95 transition text-[11px] uppercase tracking-[0.2em]">
-                        <Phone size={20} fill="currentColor" /> WhatsApp Direct
+                        <Smartphone size={20} fill="currentColor" /> WhatsApp Direct
                     </button>
                     
                     <div className="bg-gray-50 p-7 rounded-[2.5rem] border border-white">
@@ -332,29 +363,64 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX & MODALS */}
+      {/* LIGHTBOX (MODAL PLEIN ÉCRAN CORRIGÉ PC) */}
       <AnimatePresence>
         {lightboxIndex !== null && (
-          <div className="fixed inset-0 z-[1000] bg-black animate-in fade-in flex justify-center">
-              <div className="w-full max-w-[480px] h-full relative flex items-center">
-                  <button onClick={() => setLightboxIndex(null)} className="absolute top-12 right-8 z-[1010] p-3 bg-white/10 backdrop-blur-md text-white rounded-full"><X size={24} /></button>
+          <div 
+            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[1000] bg-black animate-in fade-in flex justify-center"
+            onTouchStart={onTouchStart} 
+            onTouchMove={onTouchMove} 
+            onTouchEnd={onTouchEndAction}
+          >
+              <div className="w-full h-full relative flex items-center justify-center">
+                  
+                  {/* Bouton Fermer avec fond */}
+                  <button 
+                    onClick={() => setLightboxIndex(null)} 
+                    className="absolute top-8 right-6 z-[1020] p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
+                  >
+                    <X size={24} />
+                  </button>
+                  
                   <TransformWrapper centerOnInit={true}>
-                    <TransformComponent wrapperStyle={{ width: "100%", height: "100%" }}>
-                      <img src={images[lightboxIndex]} alt="" className="max-h-screen max-w-full object-contain mx-auto" />
+                    <TransformComponent 
+                        wrapperStyle={{ width: "100%", height: "100%" }} 
+                        contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
+                    >
+                      {/* Image : 100% du conteneur parent (qui est 480px max) */}
+                      <img 
+                        src={images[lightboxIndex]} 
+                        alt="" 
+                        className="w-full h-full object-contain" 
+                      />
                     </TransformComponent>
                   </TransformWrapper>
+                  
+                  {/* Navigation avec fond */}
                   {images.length > 1 && (
                       <>
-                          <button onClick={prevImage} className="absolute top-1/2 left-4 -translate-y-1/2 p-4 text-white z-[1010] active:scale-75 transition"><ChevronLeft size={48} strokeWidth={3} /></button>
-                          <button onClick={nextImage} className="absolute top-1/2 right-4 -translate-y-1/2 p-4 text-white z-[1010] active:scale-75 transition"><ChevronRightIcon size={48} strokeWidth={3} /></button>
+                          <button 
+                            onClick={prevImage} 
+                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                          >
+                            <ChevronLeft size={32} strokeWidth={3} />
+                          </button>
+                          
+                          <button 
+                            onClick={nextImage} 
+                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                          >
+                            <ChevronRightIcon size={32} strokeWidth={3} />
+                          </button>
                       </>
                   )}
               </div>
           </div>
         )}
 
+        {/* MODALE SIGNALEMENT (CORRIGÉE PC) */}
         {showReportModal && (
-          <div className="fixed inset-0 z-[1100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
+          <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[1100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
                   <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
