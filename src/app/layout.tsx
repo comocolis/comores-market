@@ -41,7 +41,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // On force le gris clair ici aussi pour la barre système du navigateur
+  // IMPORTANT : On force le gris clair (#F8FAFC) ici pour la barre système (Anti-ligne verte)
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -58,22 +58,31 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <body 
+        // CORRECTION : Police système 'font-sans' + Fond gris forcé + Hauteur dynamique mobile 'min-h-dvh'
         className={`font-sans bg-[#F8FAFC] min-h-dvh flex justify-center overflow-y-auto`}
       >
+        {/* Écran de chargement au démarrage */}
         <SplashScreen />
 
-        {/* CONTENEUR PRINCIPAL : max-w-120 (480px) et fond gris */}
+        {/* CONTENEUR PRINCIPAL */}
+        {/* CORRECTIONS : max-w-120 (Tailwind v4) + min-h-dvh + Fond gris uniforme */}
         <div className="w-full max-w-120 min-h-dvh bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
+          {/* Bannière d'installation PWA */}
           <InstallBanner />
+
+          {/* Notifications Toast */}
           <Toaster richColors position="top-center" duration={3000} />
           
+          {/* Contenu des pages */}
           <main className="flex-1 relative bg-[#F8FAFC]">
             {children}
           </main>
 
+          {/* Assistant IA */}
           <EliteAssistant />
 
+          {/* Navigation du bas (Chargée en différé pour la perf) */}
           <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>

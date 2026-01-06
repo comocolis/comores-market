@@ -1,23 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-  /* Vos variables de couleurs */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
+  
   --color-mustard: #fbbf24; 
   --color-mustard-dark: #d97706;
   
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. CORRECTION MAJEURE : FOND GRIS PARTOUT */
-:root {
-  /* AVANT : #16a34a (Vert) -> C'était la cause de la ligne ! */
-  /* MAINTENANT : #F8FAFC (Gris clair) -> La ligne devient invisible */
-  background-color: #F8FAFC !important;
-}
-
-html {
+/* --- 1. CONFIGURATION DU FOND (ANTI-LIGNE VERTE) --- */
+:root, html {
   background-color: #F8FAFC !important;
   height: 100%;
 }
@@ -25,19 +19,121 @@ html {
 body {
   background-color: #F8FAFC !important;
   min-height: 100%;
-  /* On autorise l'actualisation (pull-to-refresh) */
+  
+  /* On garde l'effet élastique pour le "Pull-to-refresh" */
+  /* Comme le fond est gris, l'élasticité sera invisible */
   overscroll-behavior-y: auto; 
+  
   -webkit-tap-highlight-color: transparent;
 }
 
-/* 2. STYLE DU CONTENU */
+/* Force le gris même si le téléphone passe en mode sombre système */
+@media (prefers-color-scheme: dark) {
+  :root, html, body {
+    background-color: #F8FAFC !important;
+  }
+}
+
+/* --- 2. CONTENU PRINCIPAL --- */
 main {
   background-color: #F8FAFC;
 }
 
-/* 3. UTILITAIRES */
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+/* --- 3. BARRE DE CHARGEMENT (Si présente) --- */
+/* On la force en JAUNE pour ne plus voir de ligne verte en haut */
+#nprogress .bar {
+  background: #fbbf24 !important;
+  height: 3px !important;
+  z-index: 99999 !important;
+}
 
-.pt-safe { padding-top: env(safe-area-inset-top); }
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+#nprogress .peg {
+  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+}
+
+/* --- 4. UTILITAIRES --- */
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+.pt-safe { 
+  padding-top: env(safe-area-inset-top); 
+}
+
+.pb-safe { 
+  padding-bottom: env(safe-area-inset-bottom); 
+}@import "tailwindcss";
+
+@theme {
+  --color-brand: #16a34a; 
+  --color-brand-dark: #15803d;
+  
+  --color-mustard: #fbbf24; 
+  --color-mustard-dark: #d97706;
+  
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+}
+
+/* --- 1. CONFIGURATION DU FOND (ANTI-LIGNE VERTE) --- */
+:root, html {
+  background-color: #F8FAFC !important;
+  height: 100%;
+}
+
+body {
+  background-color: #F8FAFC !important;
+  min-height: 100%;
+  
+  /* On garde l'effet élastique pour le "Pull-to-refresh" */
+  /* Comme le fond est gris, l'élasticité sera invisible */
+  overscroll-behavior-y: auto; 
+  
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Force le gris même si le téléphone passe en mode sombre système */
+@media (prefers-color-scheme: dark) {
+  :root, html, body {
+    background-color: #F8FAFC !important;
+  }
+}
+
+/* --- 2. CONTENU PRINCIPAL --- */
+main {
+  background-color: #F8FAFC;
+}
+
+/* --- 3. BARRE DE CHARGEMENT (Si présente) --- */
+/* On la force en JAUNE pour ne plus voir de ligne verte en haut */
+#nprogress .bar {
+  background: #fbbf24 !important;
+  height: 3px !important;
+  z-index: 99999 !important;
+}
+
+#nprogress .peg {
+  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+}
+
+/* --- 4. UTILITAIRES --- */
+.scrollbar-hide::-webkit-scrollbar { 
+  display: none; 
+}
+
+.scrollbar-hide { 
+  -ms-overflow-style: none; 
+  scrollbar-width: none; 
+}
+
+.pt-safe { 
+  padding-top: env(safe-area-inset-top); 
+}
+
+.pb-safe { 
+  padding-bottom: env(safe-area-inset-bottom); 
+}
