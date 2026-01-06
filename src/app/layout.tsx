@@ -1,4 +1,4 @@
-import type { Metadata, Viewport } from "next";
+import type { Metadata } from "next";
 import "./globals.css";
 import { Toaster } from 'sonner';
 import BottomNav from '@/components/BottomNav';
@@ -15,21 +15,15 @@ export const metadata: Metadata = {
     template: "%s | Comores Market"
   },
   description: "Achat et Vente aux Comores",
-  manifest: '/market.webmanifest', // Assurez-vous que ce fichier existe bien dans public/
+  manifest: '/market.webmanifest',
   icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
   },
 };
 
-export const viewport: Viewport = {
-  themeColor: "#F8FAFC",
-  width: "device-width",
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: "cover", // INDISPENSABLE pour couvrir la zone verte
-};
+// On retire l'export viewport constant pour le gérer manuellement plus bas
+// pour être sûr que le navigateur mobile le prenne en compte.
 
 export default function RootLayout({
   children,
@@ -39,28 +33,19 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* INJECTION DIRECTE : On force le navigateur à peindre en GRIS avant de charger quoi que ce soit */}
+        {/* FORCE LA COULEUR DU NAVIGATEUR EN GRIS (Anti ligne noire/verte) */}
+        <meta name="theme-color" content="#F8FAFC" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+        
+        {/* STYLE INLINE DE SECOURS : S'applique avant le chargement du CSS */}
         <style>{`
-          :root, html, body {
-            background-color: #F8FAFC !important;
-            min-height: 100%;
-            margin: 0;
-            padding: 0;
-            overscroll-behavior-y: none; /* Bloque le rebond vert temporairement */
-          }
-          /* On cache la barre de scroll tout en permettant le défilement */
-          body::-webkit-scrollbar { display: none; }
+          html, body { background-color: #F8FAFC; }
         `}</style>
       </head>
       
-      {/* On applique le gris sur le body aussi */}
       <body className="font-sans min-h-dvh w-full bg-[#F8FAFC] text-gray-900 overflow-x-hidden antialiased">
-        
         <NativeFeatures />
         <SplashScreen />
-
-        {/* DOUBLE RIDEAU DE SÉCURITÉ */}
-        <div className="fixed inset-0 bg-[#F8FAFC] -z-50" />
 
         {/* CONTENEUR PRINCIPAL */}
         <div className="relative w-full max-w-120 min-h-dvh mx-auto bg-[#F8FAFC] shadow-2xl shadow-black/5 flex flex-col">
@@ -68,16 +53,22 @@ export default function RootLayout({
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Le contenu principal */}
-          <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-20">
+          {/* Contenu : z-0 pour rester sous les éléments fixes */}
+          <main className="flex-1 relative bg-[#F8FAFC] z-0">
             {children}
           </main>
 
           <EliteAssistant />
 
-          <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
-            <BottomNav />
-          </Suspense>
+          {/* Navigation du bas */}
+          {/* On l'enveloppe dans une div grise pour combler les trous en bas */}
+          <div className="sticky bottom-0 z-50 w-full bg-[#F8FAFC]">
+             <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
+               <BottomNav />
+             </Suspense>
+             {/* Zone de sécurité pour iPhone/Android gestes (fond gris forcé) */}
+             <div className="h-[env(safe-area-inset-bottom)] w-full bg-[#F8FAFC]" />
+          </div>
         </div>
       </body>
     </html>
