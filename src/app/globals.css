@@ -8,21 +8,16 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. LA SOLUTION AUX LIGNES NOIRES/VERTES */
-:root {
-  background-color: #F8FAFC !important; /* Gris clair */
-}
-
-html {
-  background-color: #F8FAFC !important; /* Si on tire la page, le fond est gris */
+/* 1. FOND DE BASE DU NAVIGATEUR */
+:root, html {
+  background-color: #F8FAFC !important;
   height: 100%;
 }
 
 body {
   background-color: #F8FAFC !important;
   min-height: 100%;
-  /* ON RÉACTIVE L'ACTUALISATION */
-  overscroll-behavior-y: auto; 
+  overscroll-behavior-y: auto; /* Scroll et actualisation activés */
   -webkit-tap-highlight-color: transparent;
   
   /* UX Native */
@@ -38,23 +33,27 @@ input, textarea {
   -webkit-touch-callout: default !important;
 }
 
-/* Contenu principal */
-main {
-  background-color: #F8FAFC;
+img {
+  -webkit-user-drag: none;
+  pointer-events: none;
 }
 
-/* Barre de chargement en JAUNE */
-#nprogress .bar {
-  background: #fbbf24 !important;
-  height: 3px !important;
-  z-index: 99999 !important;
-}
-#nprogress .peg {
-  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+/* Contenu */
+main {
+  background-color: #F8FAFC;
 }
 
 /* Scrollbar cachée */
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-.pt-safe { padding-top: env(safe-area-inset-top); }
-.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+
+/* DÉFINITION EXPLICITE DES VARIABLES SAFE-AREA POUR TAILWIND v4 */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}

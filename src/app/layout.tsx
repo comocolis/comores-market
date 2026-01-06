@@ -22,9 +22,6 @@ export const metadata: Metadata = {
   },
 };
 
-// On retire l'export viewport constant pour le gérer manuellement plus bas
-// pour être sûr que le navigateur mobile le prenne en compte.
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,14 +30,8 @@ export default function RootLayout({
   return (
     <html lang="fr" suppressHydrationWarning>
       <head>
-        {/* FORCE LA COULEUR DU NAVIGATEUR EN GRIS (Anti ligne noire/verte) */}
         <meta name="theme-color" content="#F8FAFC" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
-        
-        {/* STYLE INLINE DE SECOURS : S'applique avant le chargement du CSS */}
-        <style>{`
-          html, body { background-color: #F8FAFC; }
-        `}</style>
       </head>
       
       <body className="font-sans min-h-dvh w-full bg-[#F8FAFC] text-gray-900 overflow-x-hidden antialiased">
@@ -53,22 +44,33 @@ export default function RootLayout({
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu : z-0 pour rester sous les éléments fixes */}
-          <main className="flex-1 relative bg-[#F8FAFC] z-0">
+          {/* CONTENU PRINCIPAL */}
+          {/* pb-32 : On laisse une grande marge en bas pour que le dernier élément
+              ne soit pas caché par la barre de navigation fixe */}
+          <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-32">
             {children}
           </main>
 
           <EliteAssistant />
 
-          {/* Navigation du bas */}
-          {/* On l'enveloppe dans une div grise pour combler les trous en bas */}
-          <div className="sticky bottom-0 z-50 w-full bg-[#F8FAFC]">
-             <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
-               <BottomNav />
-             </Suspense>
-             {/* Zone de sécurité pour iPhone/Android gestes (fond gris forcé) */}
-             <div className="h-[env(safe-area-inset-bottom)] w-full bg-[#F8FAFC]" />
+          {/* --- LE DOCK FIXE (NAVIGATION + SAFE AREA) --- */}
+          {/* Il est fixé en bas de l'écran, par-dessus tout le reste */}
+          <div className="fixed bottom-0 left-0 w-full z-50 bg-[#F8FAFC]">
+             
+             {/* 1. La Navigation */}
+             {/* On centre la nav pour qu'elle ne dépasse pas sur grand écran */}
+             <div className="w-full max-w-120 mx-auto border-t border-gray-100 bg-[#F8FAFC]">
+               <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
+                 <BottomNav />
+               </Suspense>
+             </div>
+
+             {/* 2. LE "FILLER" DE ZONE DE SÉCURITÉ */}
+             {/* Cette div a exactement la hauteur de la barre de geste (env safe-area) */}
+             {/* Elle est FORCEE en gris (#F8FAFC) pour recouvrir la ligne noire/verte */}
+             <div className="w-full h-safe-bottom bg-[#F8FAFC]" />
           </div>
+
         </div>
       </body>
     </html>
