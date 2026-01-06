@@ -40,9 +40,7 @@ export const metadata: Metadata = {
   },
 };
 
-// CONFIGURATION VIEWPORT (Pour cacher la barre verte du navigateur)
 export const viewport: Viewport = {
-  // On utilise la même couleur que le fond (#F8FAFC)
   themeColor: "#F8FAFC", 
   viewportFit: "cover",
   width: "device-width",
@@ -58,30 +56,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* Utilisation de font-sans système */}
       <body 
         className={`font-sans bg-gray-200 min-h-screen flex justify-center overflow-y-scroll`}
       >
-        {/* SPLASH SCREEN */}
         <SplashScreen />
 
-        {/* CONTENEUR MOBILE CENTRÉ (Max 480px) */}
-        <div className="w-full max-w-[480px] min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
+        {/* CORRECTION ICI : max-w-120 au lieu de max-w-[480px] */}
+        <div className="w-full max-w-120 min-h-screen bg-[#F8FAFC] shadow-2xl relative flex flex-col shadow-black/10">
           
-          {/* Bannière PWA */}
           <InstallBanner />
-
-          {/* Notifications */}
           <Toaster richColors position="top-center" duration={3000} />
           
           <main className="flex-1 relative">
             {children}
           </main>
 
-          {/* Assistant Elite */}
           <EliteAssistant />
 
-          {/* Navigation Basse */}
           <Suspense fallback={<div className="h-20 w-full bg-white border-t border-gray-50" />}>
             <BottomNav />
           </Suspense>

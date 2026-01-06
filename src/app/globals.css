@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Variables de thème */
+  /* Vos couleurs */
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
   --color-mustard: #fbbf24; 
@@ -10,22 +10,35 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* RÉGLAGES GLOBAUX */
-html,
+/* 1. RÉGLAGES GLOBAUX */
+html {
+  /* IMPORTANT : On force le gris avec !important pour écraser tout reste de vert */
+  background-color: #F8FAFC !important;
+  height: 100%;
+}
+
 body {
   height: 100%;
-  
-  /* IMPORTANT : On garde le gris clair ici. 
-     Comme ça, quand on tire pour actualiser, le fond derrière est gris, pas vert. */
-  background-color: #F8FAFC; 
-  
-  /* CORRECTION ICI : On remet 'auto' pour autoriser le "Tirer pour actualiser" */
+  background-color: #F8FAFC !important;
+  /* On autorise le "Tirer pour actualiser" mais sur fond gris */
   overscroll-behavior-y: auto; 
-  
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Utilitaire pour masquer la scrollbar */
+/* 2. LA SOLUTION POUR LA BARRE DE PROGRESSION (Loading Bar) */
+/* Si une librairie comme NProgress est active, ce code va changer sa couleur */
+#nprogress .bar {
+  background: #fbbf24 !important; /* On la met en JAUNE (Mustard) ou 'transparent' pour la cacher */
+  height: 3px !important;
+  z-index: 99999 !important;
+}
+
+/* Cache l'effet de flou autour de la barre */
+#nprogress .peg {
+  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+}
+
+/* Masquer la scrollbar */
 .scrollbar-hide::-webkit-scrollbar { 
   display: none; 
 }
@@ -34,10 +47,5 @@ body {
   scrollbar-width: none; 
 }
 
-/* Zones de sécurité */
-.pt-safe { 
-  padding-top: env(safe-area-inset-top); 
-}
-.pb-safe { 
-  padding-bottom: env(safe-area-inset-bottom); 
-}
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
