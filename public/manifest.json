@@ -1,11 +1,9 @@
 {
-  "id": "comores-market-v2",
-  "name": "Comores Market",
-  "short_name": "ComoresMarket",
+  "name": "Comores Market +",
+  "short_name": "ComoresMarket+",
   "description": "Le marché dans votre poche",
-  "start_url": "/?source=pwa_v2",
+  "start_url": "/",
   "display": "standalone",
-  "orientation": "portrait",
   "background_color": "#F8FAFC",
   "theme_color": "#F8FAFC",
   "icons": [
