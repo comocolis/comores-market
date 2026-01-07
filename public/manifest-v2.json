@@ -1,7 +1,7 @@
 {
-  "name": "Comores Market +",
-  "short_name": "ComoresMarket+",
-  "description": "Le marché dans votre poche",
+  "name": "Comores Market V2",
+  "short_name": "ComoresMarket",
+  "description": "Achat et Vente aux Comores",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#F8FAFC",
