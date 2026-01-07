@@ -1,9 +1,10 @@
 {
-  "name": "Comores Market V2",
+  "name": "Comores Market",
   "short_name": "ComoresMarket",
   "description": "Achat et Vente aux Comores",
   "start_url": "/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "orientation": "portrait",
   "background_color": "#F8FAFC",
   "theme_color": "#F8FAFC",
   "icons": [

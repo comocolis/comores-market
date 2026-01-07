@@ -30,7 +30,8 @@ export const metadata: Metadata = {
   
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    // "black-translucent" permet à l'app de passer sous la barre d'état (Heure/Batterie)
+    statusBarStyle: "black-translucent",
     title: "Comores Market",
   },
   
@@ -62,20 +63,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* bg-gray-200 : Sur PC, on voit un fond gris foncé autour de l'app.
-          min-h-dvh : Hauteur dynamique.
-      */}
+      {/* Fond gris foncé sur le body pour le mode PC */}
       <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
         <NativeFeatures />
         <SplashScreen />
 
-        {/* LE CADRE DU TÉLÉPHONE 
-            relative : Sert de repère pour le contenu absolu interne.
-            max-w-120 : Limite la largeur à environ 480px (taille mobile).
-            mx-auto : Centre le cadre sur l'écran PC.
-            shadow-2xl : Donne un effet de profondeur sur PC.
-        */}
+        {/* CADRE MOBILE : Centré sur PC (max-w-120), Plein écran sur Mobile */}
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           
           <InstallBanner />
@@ -87,17 +81,13 @@ export default function RootLayout({
 
           <EliteAssistant />
 
-          {/* NAVIGATION DU BAS (CORRIGÉE PC)
-              fixed : Reste en bas de l'écran.
-              bottom-0 : Collé en bas.
-              left-1/2 -translate-x-1/2 : Centré horizontalement par rapport à la fenêtre PC.
-              w-full max-w-120 : Force la largeur à respecter celle du téléphone (pas d'étirement).
-          */}
+          {/* DOCK DE NAVIGATION */}
+          {/* Fixé en bas, centré sur PC, ne dépasse pas la largeur du téléphone */}
           <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
              <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
                <BottomNav />
              </Suspense>
-             {/* Padding pour la barre de geste (Safe Area) */}
+             {/* Espace pour la barre de geste (Safe Area) */}
              <div className="h-safe-bottom w-full bg-[#F8FAFC]" />
           </div>
 
