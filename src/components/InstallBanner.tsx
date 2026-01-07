@@ -1,100 +1,149 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Smartphone, Share, PlusSquare } from 'lucide-react'
+import { X, Download, Share, PlusSquare } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
 
 export default function InstallBanner() {
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isVisible, setIsVisible] = useState(false)
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isIOS, setIsIOS] = useState(false)
+  const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
-    // 1. Vérifier si l'app est déjà installée
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
-    if (isStandalone) return
+    // 1. Vérifier si l'app est déjà installée (Mode Standalone)
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    if (isStandalone) return; // On ne montre rien si déjà installé
 
-    // 2. Détection iOS
-    const userAgent = window.navigator.userAgent.toLowerCase()
-    const isIosDevice = /iphone|ipad|ipod/.test(userAgent)
-    setIsIOS(isIosDevice)
+    // 2. Vérifier si on a déjà fermé la bannière dans cette session
+    if (sessionStorage.getItem('installBannerDismissed')) return;
 
-    // 3. Gestion Android (Event standard)
-    const handler = (e: any) => {
-      e.preventDefault()
-      setDeferredPrompt(e)
-      setIsVisible(true)
-    }
+    // 3. Détection iOS
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
+    setIsIOS(isIosDevice);
 
-    // 4. Gestion iOS (Pas d'event, on force l'affichage)
     if (isIosDevice) {
-        setTimeout(() => setIsVisible(true), 2000)
+        // Sur iOS, on affiche la bannière après 2 secondes (car pas d'événement système)
+        setTimeout(() => setIsVisible(true), 2000);
     }
 
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
+    // 4. Détection Android/Chrome (L'événement natif)
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault(); // Empêche le mini-bandeau natif moche
+      setDeferredPrompt(e);
+      setIsVisible(true); // Affiche notre belle bannière
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    const { outcome } = await deferredPrompt.userChoice
-    if (outcome === 'accepted') {
-      setIsVisible(false)
+    if (isIOS) {
+        // Sur iOS, on ne peut pas forcer l'install, on montre les instructions
+        setShowInstructions(true);
+    } else if (deferredPrompt) {
+        // Sur Android, on déclenche le prompt natif
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setIsVisible(false);
+        }
+        setDeferredPrompt(null);
+    } else {
+        // Cas rare (Navigateur PC ou non supporté)
+        alert("Pour installer, cherchez l'option 'Ajouter à l'écran d'accueil' dans le menu de votre navigateur.");
     }
-    setDeferredPrompt(null)
-  }
+  };
 
-  if (!isVisible) return null
+  const handleDismiss = () => {
+    setIsVisible(false);
+    sessionStorage.setItem('installBannerDismissed', 'true');
+  };
 
   return (
-    // CONTENEUR PRINCIPAL (Votre design conservé)
-    <div className="fixed top-0 inset-x-0 z-[9999] p-4 animate-in slide-in-from-top duration-500 pointer-events-none">
-      
-      <div className="bg-gray-900/95 backdrop-blur-md text-white p-3 rounded-2xl shadow-2xl flex items-center justify-between gap-3 border border-white/10 max-w-[480px] mx-auto pointer-events-auto">
-        
-        {/* LOGO */}
-        <div className="bg-brand p-2 rounded-xl shrink-0">
-            <Smartphone size={20} className="text-white" />
-        </div>
+    <AnimatePresence>
+      {/* BANNIÈRE PRINCIPALE */}
+      {isVisible && !showInstructions && (
+        <motion.div 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            // Positionnée au-dessus du BottomNav (environ 80px du bas)
+            className="fixed bottom-24 left-4 right-4 z-40 bg-gray-900 text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between border border-gray-700"
+        >
+          <div className="flex items-center gap-4">
+            <div className="bg-brand p-3 rounded-2xl text-white shadow-lg">
+                <Download size={24} />
+            </div>
+            <div>
+                <p className="font-black text-sm">Installer l'App</p>
+                <p className="text-[10px] text-gray-400 font-medium">Plus rapide, accès hors ligne</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+              <button 
+                onClick={handleInstallClick} 
+                className="bg-white text-gray-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition"
+              >
+                Installer
+              </button>
+              <button onClick={handleDismiss} className="p-2 text-gray-400 hover:text-white">
+                <X size={20} />
+              </button>
+          </div>
+        </motion.div>
+      )}
 
-        {/* TEXTE ADAPTATIF */}
-        <div className="flex-1 min-w-0">
-            {isIOS ? (
-                <div className="flex flex-col gap-0.5">
-                    <p className="font-bold text-sm leading-tight">Installer sur iPhone</p>
-                    <p className="text-[9px] text-gray-300 flex items-center gap-1 whitespace-nowrap">
-                       Appuyez sur <Share size={10} /> puis <span className="font-bold">Sur l'écran d'accueil</span> <PlusSquare size={10} />
-                    </p>
-                </div>
-            ) : (
-                <>
-                    <p className="font-bold text-sm leading-tight">Installer l'app</p>
-                    <p className="text-[10px] text-gray-300 truncate">Accès rapide & hors ligne.</p>
-                </>
-            )}
-        </div>
+      {/* MODALE D'INSTRUCTIONS iOS */}
+      {showInstructions && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end pb-10"
+            onClick={() => setShowInstructions(false)}
+          >
+              <motion.div 
+                initial={{ y: "100%" }}
+                animate={{ y: 0 }}
+                className="bg-white rounded-t-[2.5rem] p-8 pb-12 relative"
+                onClick={(e) => e.stopPropagation()}
+              >
+                  <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8" />
+                  
+                  <h3 className="text-xl font-black text-center mb-6 text-gray-900">Installer sur iPhone</h3>
+                  
+                  <div className="space-y-6">
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl">
+                          <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl">
+                              <Share size={24} />
+                          </div>
+                          <p className="text-sm font-bold text-gray-600">1. Appuyez sur le bouton <span className="text-gray-900 font-black">Partager</span> en bas de Safari.</p>
+                      </div>
 
-        {/* ACTIONS */}
-        <div className="flex items-center gap-2">
-            {/* Le bouton Installer ne s'affiche que sur Android/PC */}
-            {!isIOS && (
-                <button 
-                    onClick={handleInstallClick}
-                    className="bg-white text-gray-900 px-3 py-1.5 rounded-lg text-xs font-bold hover:bg-gray-200 transition flex items-center gap-1 shadow-sm active:scale-95"
-                >
-                    <Download size={14} /> <span className="hidden sm:inline">Installer</span>
-                </button>
-            )}
-            
-            <button 
-                onClick={() => setIsVisible(false)}
-                className="p-1.5 hover:bg-white/10 rounded-full transition text-gray-400 hover:text-white active:scale-90"
-            >
-                <X size={16} />
-            </button>
-        </div>
+                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl">
+                          <div className="bg-gray-200 text-gray-600 p-3 rounded-2xl">
+                              <PlusSquare size={24} />
+                          </div>
+                          <p className="text-sm font-bold text-gray-600">2. Cherchez et appuyez sur <span className="text-gray-900 font-black">Sur l'écran d'accueil</span>.</p>
+                      </div>
+                  </div>
 
-      </div>
-    </div>
+                  <button 
+                    onClick={() => setShowInstructions(false)} 
+                    className="w-full bg-brand text-white font-black py-5 rounded-3xl mt-8 text-xs uppercase tracking-widest shadow-xl shadow-brand/20"
+                  >
+                    J'ai compris
+                  </button>
+              </motion.div>
+          </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

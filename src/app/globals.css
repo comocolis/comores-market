@@ -8,22 +8,22 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. RÉGLAGES GLOBAUX */
-:root, html {
-  background-color: #F8FAFC !important;
-  height: 100%;
-  /* Important pour permettre le dépassement vertical sans barre horizontale */
-  overflow-x: hidden; 
+/* 1. CONFIGURATION DU FOND (GRIS) */
+:root {
+  background-color: #F8FAFC; 
 }
 
-body {
-  background-color: #F8FAFC !important;
-  /* On force un tout petit peu plus que 100% pour "tuer" le pixel manquant */
-  min-height: 100.1vh; 
-  overscroll-behavior-y: auto; 
+html, body {
+  height: 100%;
+  background-color: #F8FAFC;
+  /* Scroll fluide et UX mobile */
+  scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
-  overflow-x: hidden;
-  
+  overscroll-behavior-y: auto;
+}
+
+/* 2. UX NATIVE (Bloquer la sélection sauf inputs) */
+*:not(input):not(textarea) {
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
@@ -35,24 +35,39 @@ input, textarea {
   -webkit-touch-callout: default !important;
 }
 
+img {
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* 3. STYLES SPÉCIFIQUES */
 main {
   background-color: #F8FAFC;
 }
 
-/* Barre de chargement en JAUNE */
+/* Barre de chargement NProgress (Jaune) */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
   z-index: 99999 !important;
 }
-#nprogress .peg {
-  box-shadow: 0 0 10px #fbbf24, 0 0 5px #fbbf24 !important;
+
+/* Utilitaires Scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.scrollbar-hide::-webkit-scrollbar { display: none; }
-.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
-
-/* Variables Safe Area */
-@utility pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-@utility pt-safe { padding-top: env(safe-area-inset-top); }
-@utility h-safe-bottom { height: env(safe-area-inset-bottom); }
+/* Utilitaires Safe Area (Tailwind v4) */
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+@utility h-safe-bottom {
+  height: env(safe-area-inset-bottom);
+}

@@ -25,7 +25,7 @@ export default function GlobalError({
         <div className="bg-white w-full max-w-sm rounded-[3rem] p-10 text-center shadow-2xl shadow-black/5 border border-white">
           
           {/* Icône d'alerte */}
-          <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-red-500 shadow-inner">
+          <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-6 text-red-500 shadow-inner">
             <AlertTriangle size={36} strokeWidth={2.5} />
           </div>
 

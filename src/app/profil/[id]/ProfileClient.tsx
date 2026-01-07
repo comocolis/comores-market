@@ -15,7 +15,6 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-// INTERFACE POUR LES DONNÉES INITIALES
 interface ProfileClientProps {
   initialData?: any
   id?: string
@@ -27,7 +26,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   
-  // Utilisation de initialData si disponible
   const [profile, setProfile] = useState<any>(initialData || null)
   const [products, setProducts] = useState<any[]>([])
   const [reviews, setReviews] = useState<any[]>([])
@@ -136,7 +134,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       setSubmittingReview(false)
   }
 
-  // LOGIQUE FACTURE
   const getSubscriptionType = (endDate: string) => {
       if (!endDate) return "Standard"
       const end = new Date(endDate)
@@ -148,7 +145,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" /></div>
   if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Profil introuvable.</div>
 
-  // PRO ACTIVE CHECK
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
@@ -163,9 +159,13 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
             src={profile.cover_url || "/cover-default.jpg"}
-            alt="Couverture" fill className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" priority
+            alt="Couverture" 
+            fill 
+            className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" 
+            // CORRECTION 1 : Priority pour LCP + sizes
+            priority={true}
+            sizes="100vw"
         />
-        {/* CORRECTION v4 : bg-linear-to-t */}
         <div className="absolute inset-0 bg-linear-to-t from-[#F8FAFC] via-transparent to-black/50" />
 
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
@@ -193,7 +193,18 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           
           <div className="relative -mt-16 mb-4">
             <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50' : 'bg-gray-100'}`}>
-                {profile.avatar_url ? <Image src={profile.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>}
+                {profile.avatar_url ? (
+                    <Image 
+                        src={profile.avatar_url} 
+                        alt="" 
+                        fill 
+                        className="object-cover" 
+                        // CORRECTION 2 : sizes pour l'avatar principal
+                        sizes="(max-width: 768px) 33vw, 128px"
+                    />
+                ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>
+                )}
             </div>
             {isProActive && (
               <div className="absolute -bottom-2 -right-2 bg-amber-50 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white flex items-center justify-center">
@@ -221,8 +232,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
           {/* ACTIONS */}
           <div className="mt-6 flex flex-col items-center gap-5 w-full">
-            
-            {/* BOUTON FACTURE */}
             {isOwner && isProActive && (
               <button 
                 onClick={() => {
@@ -236,7 +245,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                       customEndDate: profile.subscription_end_date
                     })
                 }}
-                // CORRECTION v4 : rounded-3xl (1.5rem)
                 className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-3xl shadow-sm border border-emerald-100 active:scale-95 transition-all hover:bg-emerald-50"
               >
                 <FileText size={14} /> Ma facture Prestige
@@ -267,7 +275,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic leading-relaxed">"{profile.description}"</p>}
           </div>
 
-          {/* TABS - CORRECTION v4 rounded-3xl pour les boutons */}
           <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-3xl">
               <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Showroom</button>
               <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Avis clients</button>
@@ -287,9 +294,17 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                             <Link href={`/annonce/${p.id}`} className="group relative">
                               <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
                                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
-                                    {img && <Image src={img} alt="" fill className="object-cover group-hover:scale-110 transition-transform duration-700" />}
+                                    {img && (
+                                        <Image 
+                                            src={img} 
+                                            alt="" 
+                                            fill 
+                                            className="object-cover group-hover:scale-110 transition-transform duration-700" 
+                                            // CORRECTION 3 : sizes pour les miniatures produit
+                                            sizes="(max-width: 768px) 50vw, 300px"
+                                        />
+                                    )}
                                     {isBoosted && (
-                                      // CORRECTION v4 : bg-linear-to-r
                                       <div className="absolute top-2 left-2 bg-linear-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
                                           <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
@@ -313,7 +328,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                               ) : (
                                 <Link 
                                   href={`/boost/${p.id}`}
-                                  // CORRECTION v4 : bg-linear-to-r
                                   className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >
                                   <Zap size={14} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
@@ -328,22 +342,32 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             ) : (
                 <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     {currentUser && currentUser.id !== profileId && (
-                        // CORRECTION v4 : rounded-4xl
                         <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-4xl flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
                           <Plus size={18} /> Partager un avis
                         </button>
                     )}
                     {reviews.map(r => (
-                        // CORRECTION v4 : rounded-4xl
                         <div key={r.id} className="bg-white p-7 rounded-4xl shadow-sm border border-white space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 shadow-inner">{r.reviewer?.avatar_url ? <Image src={r.reviewer.avatar_url} alt="" fill className="object-cover" /> : <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>}</div>
+                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 shadow-inner">
+                                        {r.reviewer?.avatar_url ? (
+                                            <Image 
+                                                src={r.reviewer.avatar_url} 
+                                                alt="" 
+                                                fill 
+                                                className="object-cover"
+                                                // CORRECTION 4 : sizes pour avatar avis
+                                                sizes="40px" 
+                                            />
+                                        ) : (
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>
+                                        )}
+                                    </div>
                                     <div><p className="font-black text-sm text-gray-900">{r.reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
                                 </div>
                                 <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
                             </div>
-                            {/* CORRECTION v4 : rounded-3xl */}
                             {r.comment && <div className="bg-[#F5F7F9] p-5 rounded-3xl"><p className="text-gray-600 text-sm leading-relaxed">"{r.comment}"</p></div>}
                         </div>
                     ))}
@@ -355,14 +379,11 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
       <AnimatePresence>
         {showReviewModal && (
-          // CORRECTION v4 : z-200
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-200 bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
                   <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} className="p-2 bg-gray-50 rounded-full text-gray-400"><X size={20}/></button></div>
                   <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
-                  {/* CORRECTION v4 : rounded-3xl */}
                   <textarea className="w-full bg-[#F5F7F9] border-none rounded-3xl p-5 text-sm min-h-32 outline-none focus:ring-4 focus:ring-brand/5 transition" placeholder="Votre avis..." value={newComment} onChange={e => setNewComment(e.target.value)} />
-                  {/* CORRECTION v4 : rounded-3xl */}
                   <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-3xl shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>
               </motion.div>
           </motion.div>
