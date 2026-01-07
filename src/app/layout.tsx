@@ -14,9 +14,8 @@ export const metadata: Metadata = {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
   },
-  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones. Vendez et achetez en toute sécurité à Ngazidja, Ndzouani et Mwali.",
+  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones.",
   
-  // OPTIMISATION SEO & PARTAGE
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -24,24 +23,21 @@ export const metadata: Metadata = {
     siteName: 'Comores Market',
     locale: 'fr_KM',
     type: 'website',
-    images: [
-      {
-        url: '/logo.png', // Image utilisée pour les partages WhatsApp/Facebook
-        width: 512,
-        height: 512,
-        alt: 'Comores Market',
-      },
-    ],
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
   },
-
+  
   manifest: '/manifest.json',
   
-  // OPTIMISATION GOOGLE SEARCH (Icônes HD)
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Comores Market",
+  },
+  
   icons: {
     shortcut: '/favicon.ico',
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      // C'est cette ligne que Google utilise pour afficher le logo dans les résultats
       { url: '/logo.png', sizes: '192x192', type: 'image/png' },
     ],
     apple: [
@@ -66,30 +62,42 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className="font-sans min-h-dvh bg-[#F8FAFC] text-gray-900 antialiased overflow-y-auto">
+      {/* bg-gray-200 : Sur PC, on voit un fond gris foncé autour de l'app.
+          min-h-dvh : Hauteur dynamique.
+      */}
+      <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
         <NativeFeatures />
         <SplashScreen />
 
-        {/* Conteneur Principal Standard */}
-        <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/5">
+        {/* LE CADRE DU TÉLÉPHONE 
+            relative : Sert de repère pour le contenu absolu interne.
+            max-w-120 : Limite la largeur à environ 480px (taille mobile).
+            mx-auto : Centre le cadre sur l'écran PC.
+            shadow-2xl : Donne un effet de profondeur sur PC.
+        */}
+        <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          {/* Contenu principal */}
-          <main className="flex-1 relative z-0">
+          <main className="flex-1 relative bg-[#F8FAFC] z-0">
             {children}
           </main>
 
           <EliteAssistant />
 
-          {/* Navigation standard en bas */}
-          <div className="sticky bottom-0 z-50 w-full bg-[#F8FAFC] border-t border-gray-100">
+          {/* NAVIGATION DU BAS (CORRIGÉE PC)
+              fixed : Reste en bas de l'écran.
+              bottom-0 : Collé en bas.
+              left-1/2 -translate-x-1/2 : Centré horizontalement par rapport à la fenêtre PC.
+              w-full max-w-120 : Force la largeur à respecter celle du téléphone (pas d'étirement).
+          */}
+          <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
              <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
                <BottomNav />
              </Suspense>
-             {/* Padding pour la barre de geste */}
+             {/* Padding pour la barre de geste (Safe Area) */}
              <div className="h-safe-bottom w-full bg-[#F8FAFC]" />
           </div>
 

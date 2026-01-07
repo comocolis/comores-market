@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Share, PlusSquare } from 'lucide-react'
+import { X, Download, Share, PlusSquare, MoreVertical, Sparkles } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 
 export default function InstallBanner() {
@@ -11,43 +11,36 @@ export default function InstallBanner() {
   const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
-    // 1. Vérifier si l'app est déjà installée (Mode Standalone)
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    if (isStandalone) return; // On ne montre rien si déjà installé
+    if (isStandalone) return;
 
-    // 2. Vérifier si on a déjà fermé la bannière dans cette session
     if (sessionStorage.getItem('installBannerDismissed')) return;
 
-    // 3. Détection iOS
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
-    if (isIosDevice) {
-        // Sur iOS, on affiche la bannière après 2 secondes (car pas d'événement système)
-        setTimeout(() => setIsVisible(true), 2000);
-    }
+    const fallbackTimer = setTimeout(() => {
+        if (!isVisible) setIsVisible(true);
+    }, 3000);
 
-    // 4. Détection Android/Chrome (L'événement natif)
     const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault(); // Empêche le mini-bandeau natif moche
+      e.preventDefault();
+      clearTimeout(fallbackTimer);
       setDeferredPrompt(e);
-      setIsVisible(true); // Affiche notre belle bannière
+      setIsVisible(true);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      clearTimeout(fallbackTimer);
     };
-  }, []);
+  }, [isVisible]);
 
   const handleInstallClick = async () => {
-    if (isIOS) {
-        // Sur iOS, on ne peut pas forcer l'install, on montre les instructions
-        setShowInstructions(true);
-    } else if (deferredPrompt) {
-        // Sur Android, on déclenche le prompt natif
+    if (deferredPrompt) {
         deferredPrompt.prompt();
         const { outcome } = await deferredPrompt.userChoice;
         if (outcome === 'accepted') {
@@ -55,8 +48,7 @@ export default function InstallBanner() {
         }
         setDeferredPrompt(null);
     } else {
-        // Cas rare (Navigateur PC ou non supporté)
-        alert("Pour installer, cherchez l'option 'Ajouter à l'écran d'accueil' dans le menu de votre navigateur.");
+        setShowInstructions(true);
     }
   };
 
@@ -67,77 +59,102 @@ export default function InstallBanner() {
 
   return (
     <AnimatePresence>
-      {/* BANNIÈRE PRINCIPALE */}
+      {/* === BANNIÈRE COMPACTE & PREMIUM === */}
       {isVisible && !showInstructions && (
         <motion.div 
-            initial={{ y: 100, opacity: 0 }}
+            initial={{ y: -100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            // Positionnée au-dessus du BottomNav (environ 80px du bas)
-            className="fixed bottom-24 left-4 right-4 z-40 bg-gray-900 text-white p-4 rounded-3xl shadow-2xl flex items-center justify-between border border-gray-700"
+            exit={{ y: -100, opacity: 0 }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            // DESIGN "COMPACT PILL" :
+            // - p-2 : Padding fin pour éviter l'espace vide
+            // - gap-3 : Espace réduit entre les éléments
+            // - bg-[#0F172A]/95 : Fond très sombre et quasi opaque pour la lisibilité
+            className="fixed top-4 pt-safe left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-100 bg-[#0F172A]/95 backdrop-blur-md text-white p-2 pr-3 rounded-full shadow-2xl shadow-black/30 flex items-center justify-between border border-white/10 ring-1 ring-black/5"
         >
-          <div className="flex items-center gap-4">
-            <div className="bg-brand p-3 rounded-2xl text-white shadow-lg">
-                <Download size={24} />
+          {/* GAUCHE : Icône + Texte */}
+          <div className="flex items-center gap-3 min-w-0 flex-1">
+            {/* Icône ronde */}
+            <div className="bg-brand h-10 w-10 rounded-full flex items-center justify-center text-white shadow-lg shadow-brand/20 shrink-0">
+                <Download size={20} strokeWidth={2.5} />
             </div>
-            <div>
-                <p className="font-black text-sm">Installer l'App</p>
-                <p className="text-[10px] text-gray-400 font-medium">Plus rapide, accès hors ligne</p>
+            
+            {/* Texte dense */}
+            <div className="flex flex-col justify-center min-w-0 pr-2">
+                <p className="font-bold text-[13px] leading-none text-white truncate">Installer l'App</p>
+                <p className="text-[10px] text-gray-400 font-medium mt-1 leading-none truncate">Accès rapide & hors ligne</p>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
+          {/* DROITE : Boutons */}
+          <div className="flex items-center gap-2 shrink-0">
               <button 
                 onClick={handleInstallClick} 
-                className="bg-white text-gray-900 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest active:scale-90 transition"
+                className="bg-white text-gray-900 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wider transition-transform active:scale-95 shadow-sm hover:bg-gray-100"
               >
                 Installer
               </button>
-              <button onClick={handleDismiss} className="p-2 text-gray-400 hover:text-white">
-                <X size={20} />
+              <button 
+                onClick={handleDismiss} 
+                className="h-8 w-8 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:text-white hover:bg-white/20 transition-colors"
+              >
+                <X size={16} />
               </button>
           </div>
         </motion.div>
       )}
 
-      {/* MODALE D'INSTRUCTIONS iOS */}
+      {/* MODALE D'INSTRUCTIONS (Reste identique pour la clarté) */}
       {showInstructions && (
           <motion.div 
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end pb-10"
+            className="fixed inset-0 z-60 bg-black/80 backdrop-blur-md flex flex-col justify-end pb-0 sm:items-center sm:justify-center"
             onClick={() => setShowInstructions(false)}
           >
               <motion.div 
                 initial={{ y: "100%" }}
                 animate={{ y: 0 }}
-                className="bg-white rounded-t-[2.5rem] p-8 pb-12 relative"
+                className="bg-white rounded-t-[2.5rem] sm:rounded-[2.5rem] p-8 pb-12 w-full max-w-sm relative shadow-2xl"
                 onClick={(e) => e.stopPropagation()}
               >
-                  <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8" />
+                  <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-8 sm:hidden" />
                   
-                  <h3 className="text-xl font-black text-center mb-6 text-gray-900">Installer sur iPhone</h3>
-                  
-                  <div className="space-y-6">
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl">
-                          <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl">
-                              <Share size={24} />
-                          </div>
-                          <p className="text-sm font-bold text-gray-600">1. Appuyez sur le bouton <span className="text-gray-900 font-black">Partager</span> en bas de Safari.</p>
-                      </div>
-
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl">
-                          <div className="bg-gray-200 text-gray-600 p-3 rounded-2xl">
-                              <PlusSquare size={24} />
-                          </div>
-                          <p className="text-sm font-bold text-gray-600">2. Cherchez et appuyez sur <span className="text-gray-900 font-black">Sur l'écran d'accueil</span>.</p>
-                      </div>
-                  </div>
+                  {isIOS ? (
+                      <>
+                        <h3 className="text-xl font-black text-center mb-6 text-gray-900 tracking-tight">Installer sur iPhone</h3>
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                                <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl shrink-0"><Share size={24} /></div>
+                                <p className="text-sm font-bold text-gray-600">1. Appuyez sur <span className="text-gray-900 font-black">Partager</span> en bas.</p>
+                            </div>
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                                <div className="bg-gray-200 text-gray-600 p-3 rounded-2xl shrink-0"><PlusSquare size={24} /></div>
+                                <p className="text-sm font-bold text-gray-600">2. Appuyez sur <span className="text-gray-900 font-black">Sur l'écran d'accueil</span>.</p>
+                            </div>
+                        </div>
+                      </>
+                  ) : (
+                      <>
+                        <h3 className="text-xl font-black text-center mb-6 text-gray-900 tracking-tight">Installation Manuelle</h3>
+                        <p className="text-center text-xs text-gray-500 mb-6 px-4 font-medium">L'installation automatique est bloquée. Suivez ces étapes :</p>
+                        <div className="space-y-5">
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                                <div className="bg-gray-200 text-gray-600 p-3 rounded-2xl shrink-0"><MoreVertical size={24} /></div>
+                                <p className="text-sm font-bold text-gray-600">1. Ouvrez le <span className="text-gray-900 font-black">Menu</span> du navigateur.</p>
+                            </div>
+                            <div className="flex items-center gap-4 p-4 bg-gray-50 rounded-3xl border border-gray-100">
+                                <div className="bg-brand/10 text-brand p-3 rounded-2xl shrink-0"><PlusSquare size={24} /></div>
+                                <p className="text-sm font-bold text-gray-600">2. Sélectionnez <span className="text-gray-900 font-black">Ajouter à l'écran d'accueil</span>.</p>
+                            </div>
+                        </div>
+                      </>
+                  )}
 
                   <button 
                     onClick={() => setShowInstructions(false)} 
-                    className="w-full bg-brand text-white font-black py-5 rounded-3xl mt-8 text-xs uppercase tracking-widest shadow-xl shadow-brand/20"
+                    className="w-full bg-brand text-white font-black py-5 rounded-3xl mt-8 text-xs uppercase tracking-[0.2em] shadow-xl shadow-brand/20 active:scale-95 transition"
                   >
                     J'ai compris
                   </button>

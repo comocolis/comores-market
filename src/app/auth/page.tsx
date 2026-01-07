@@ -167,7 +167,7 @@ export default function AuthPage() {
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
             </h1>
-            <p className="text-white/90 text-sm mt-2 font-medium">Achat et vente entre les îles</p>
+            <p className="text-white/90 text-sm mt-2 font-medium">Achat et vente entre les îles<br></br> (NAM KARIBU)</p>
         </div>
 
         {/* CARTE BLANCHE */}

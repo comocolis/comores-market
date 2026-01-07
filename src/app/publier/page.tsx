@@ -10,7 +10,7 @@ import {
   Calendar, Gauge, Fuel, Smartphone, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
   Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
-  MapPin, Star // AJOUT DES IMPORTS MANQUANTS ICI
+  MapPin, Star
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -19,6 +19,9 @@ import Link from 'next/link'
 import { DndContext, closestCenter, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+
+// --- IMPORT COMPRESSION ---
+import { compressImage } from '@/utils/compressImage'
 
 const CATEGORIES_LIST = [
   { id: 1, label: 'Véhicules' }, { id: 2, label: 'Immobilier' }, { id: 3, label: 'Mode' },
@@ -192,9 +195,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
     ]
 }
 
-const SUPPORT_EMAIL = "contact.comoresmarket@gmail.com"
-const SUPPORT_WA = "33758760743" 
-
 // --- COMPOSANT IMAGE TRIABLE ---
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
@@ -291,6 +291,7 @@ export default function PublierPage() {
     checkUser()
   }, [router, supabase])
 
+  // --- FILIGRANE ET CONVERSION WEBP ---
   const addWatermark = (file: File): Promise<Blob> => {
       return new Promise((resolve) => {
           const img = new window.Image();
@@ -316,14 +317,16 @@ export default function PublierPage() {
                   const margin = img.width * 0.03;
                   ctx.fillText(text, canvas.width - margin, canvas.height - margin);
               }
+              // EXPORT EN WEBP POUR POIDS MINIMAL
               canvas.toBlob((blob) => {
                   if (blob) resolve(blob);
                   else resolve(file);
-              }, 'image/jpeg', 0.90);
+              }, 'image/webp', 0.85); // Qualité 85%
           };
       });
   };
 
+  // --- UPLOAD OPTIMISÉ (COMPRESSION + WEBP) ---
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const currentPhotoLimit = isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT
@@ -337,19 +340,42 @@ export default function PublierPage() {
     try {
       const newImages: { id: string, url: string }[] = []
       
-      await Promise.all(Array.from(e.target.files).map(async (file) => {
-          const watermarkedBlob = await addWatermark(file);
-          const fileName = `${Math.random()}.${file.name.split('.').pop()}`
-          const { error } = await supabase.storage.from('products').upload(fileName, watermarkedBlob)
-          
-          if (!error) {
-              const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
-              newImages.push({ id: fileName, url: publicUrl })
+      // Utilisation de boucle séquentielle pour ne pas saturer la mémoire du téléphone
+      for (const file of Array.from(e.target.files)) {
+          try {
+              // 1. Compression Client (réduit taille et dimensions)
+              const compressedFile = await compressImage(file);
+
+              // 2. Ajout Filigrane (sur l'image légère)
+              const watermarkedBlob = await addWatermark(compressedFile);
+              
+              // 3. Upload Supabase (Format WebP)
+              const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+              
+              const { error } = await supabase.storage
+                  .from('products')
+                  .upload(fileName, watermarkedBlob, {
+                      contentType: 'image/webp',
+                      upsert: false
+                  })
+              
+              if (!error) {
+                  const { data: { publicUrl } } = supabase.storage.from('products').getPublicUrl(fileName)
+                  newImages.push({ id: fileName, url: publicUrl })
+              }
+          } catch (innerErr) {
+              console.error("Erreur image unique:", innerErr)
           }
-      }))
+      }
       
       setImages(prev => [...prev, ...newImages])
-    } catch (error: any) { toast.error('Erreur upload.') } finally { setUploading(false) }
+      if (newImages.length > 0) toast.success("Photos ajoutées !")
+      
+    } catch (error: any) { 
+        toast.error('Erreur upload global.') 
+    } finally { 
+        setUploading(false) 
+    }
   }
 
   const handleDragEnd = (event: any) => {
@@ -388,6 +414,9 @@ export default function PublierPage() {
     const file = e.target.files?.[0]
     if (!file) return
     setIsGenerating(true)
+    // On compresse aussi l'image pour l'IA pour que ça aille vite !
+    const compressedForAI = await compressImage(file);
+    
     const reader = new FileReader()
     reader.onloadend = async () => {
       try {
@@ -404,7 +433,7 @@ export default function PublierPage() {
         }
       } catch (err) { toast.error("Erreur Vision.") } finally { setIsGenerating(false) }
     }
-    reader.readAsDataURL(file)
+    reader.readAsDataURL(compressedForAI)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -597,7 +626,7 @@ export default function PublierPage() {
                     </div>
                     <input type="file" ref={visionInputRef} onChange={handleVisionAI} className="hidden" accept="image/*" />
                 </div>
-                <textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-[160px] outline-none focus:ring-2 focus:ring-brand/20 transition resize-none" placeholder="Décrivez votre produit avec élégance..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                <textarea className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none" placeholder="Décrivez votre produit avec élégance..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
             </div>
 
             <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">

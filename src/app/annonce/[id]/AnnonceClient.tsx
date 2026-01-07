@@ -18,10 +18,14 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
+// --- OPTIMISATION SUPABASE ---
+// Transforme l'URL pour demander une version redimensionnée et légère (WebP)
 const getOptimizedImage = (url: string | null, width = 800) => {
   if (!url) return '/placeholder.png';
   if (url.includes('supabase.co')) {
-    return `${url}?width=${width}&quality=75&resize=contain`;
+    // quality=60 : Suffisant pour mobile, gain de poids énorme
+    // format=webp : Standard moderne rapide
+    return `${url}?width=${width}&quality=60&resize=contain&format=webp`;
   }
   return url;
 };
@@ -237,14 +241,13 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       {/* GALERIE PHOTO (Mode Normal) */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
-          src={getOptimizedImage(images[selectedImageIndex]) || '/placeholder.png'} 
+          // 1. IMAGE PRINCIPALE (LCP) : On demande une qualité raisonnable (800px)
+          src={getOptimizedImage(images[selectedImageIndex], 1000) || '/placeholder.png'} 
           alt={product.title} 
           fill 
           className="object-cover opacity-90 transition duration-700" 
-          // CORRECTION 1 : 'priority' pour charger l'image immédiatement (LCP)
-          priority={true} 
-          // CORRECTION 2 : 'sizes' pour dire au navigateur de ne pas charger la version 4K sur mobile
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
+          priority={true} // Chargement prioritaire
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px" // Optimisation responsive
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
         
@@ -260,13 +263,13 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 ${selectedImageIndex === i ? 'border-brand scale-110 shadow-xl' : 'border-white/40 opacity-50'}`}>
                     <Image 
-                        src={getOptimizedImage(img, 100) || '/placeholder.png'} 
+                        // 2. MINIATURES : On demande du très léger (150px)
+                        src={getOptimizedImage(img, 150) || '/placeholder.png'} 
                         alt="" 
                         width={48} 
                         height={48} 
                         className="object-cover w-full h-full"
-                        // CORRECTION 3 : sizes pour les miniatures
-                        sizes="48px" 
+                        sizes="48px"
                     />
                 </button>
             ))}
@@ -310,12 +313,12 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                       <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
                           {seller?.avatar_url ? (
                             <Image 
-                                src={getOptimizedImage(seller.avatar_url, 150) || '/placeholder.png'} 
+                                // 3. AVATAR : Qualité moyenne (200px)
+                                src={getOptimizedImage(seller.avatar_url, 200) || '/placeholder.png'} 
                                 alt="" 
                                 fill 
                                 className="object-cover" 
-                                // CORRECTION 4 : sizes pour l'avatar
-                                sizes="64px" 
+                                sizes="64px"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={24} /></div>
@@ -379,7 +382,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX */}
+      {/* LIGHTBOX (Zoom) */}
       <AnimatePresence>
         {lightboxIndex !== null && (
           <div 
@@ -402,7 +405,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
                     >
                       <img 
-                        src={images[lightboxIndex]} 
+                        // 4. LIGHTBOX : Qualité MAX (1200px) pour le zoom
+                        src={getOptimizedImage(images[lightboxIndex], 1200)} 
                         alt="" 
                         className="w-full h-full object-contain" 
                       />
@@ -430,6 +434,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           </div>
         )}
 
+        {/* MODALE SIGNALEMENT */}
         {showReportModal && (
           <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
