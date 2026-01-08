@@ -1,80 +1,87 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialisation de Supabase
+// 1. SETUP SUPABASE
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// 2. SETUP GROQ
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 export async function POST(req: Request) {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) return NextResponse.json({ error: "Clé API manquante" }, { status: 500 });
+  if (!process.env.GROQ_API_KEY) {
+    return NextResponse.json({ text: "Erreur serveur : Clé API Groq manquante." });
+  }
 
   try {
     const { message, history } = await req.json();
 
-    // 1. RÉCUPÉRATION DU CONTEXTE MARCHÉ (Plus riche)
-    // On récupère aussi l'île et l'ID pour que l'IA comprenne la géographie
-    const { data: products } = await supabase
-      .from('products')
-      .select('id, title, price, category, sub_category, location_island')
-      .order('created_at', { ascending: false }) // Les plus récents d'abord
-      .limit(8);
+    // --- RÉCUPÉRATION DONNÉES ---
+    let contextProducts = "Aucun produit récent.";
+    try {
+      const { data: products } = await supabase
+        .from('products')
+        .select('title, price, sub_category, location_island')
+        .order('created_at', { ascending: false })
+        .limit(5);
 
-    const contextProducts = products 
-      ? products.map(p => `- [${p.sub_category}] ${p.title} : ${p.price} KMF à ${p.location_island}`).join('\n')
-      : "Aucun produit récent.";
+      if (products && products.length > 0) {
+        contextProducts = products.map(p => `- ${p.title} (${p.price} KMF) à ${p.location_island} [${p.sub_category}]`).join('\n');
+      }
+    } catch (e) {
+      console.error("Erreur DB:", e);
+    }
 
-    // 2. LE CERVEAU (SYSTEM PROMPT OPTIMISÉ)
+    // --- SYSTEM PROMPT ---
     const SYSTEM_PROMPT = `
-      TU ES : "Elite CM", l'assistant expert de Comores Market (La 1ère marketplace des Comores).
-      TON BUT : Aider l'utilisateur à acheter ou vendre, comme un conseiller de luxe.
-      TON STYLE : Professionnel, Empathique, Concis et Chaleureux.
-
-      RÈGLES ABSOLUES (A RESPECTER) :
-      1. NE JAMAIS mentionner "Supabase", "Base de données", "JSON" ou des ID techniques.
-      2. NE JAMAIS faire de citations techniques type "". Tu parles normalement.
-      3. Si l'utilisateur cherche un produit, DEMANDE des précisions (Budget ? Île ? Modèle ?) avant de proposer.
-      4. Mets en GRAS les prix et les noms de produits importants.
-
-      INFORMATIONS COMMERCIALES :
-      - Offre Élite (Vendeurs) : 2 500 KMF/mois. Avantages : Visibilité x10, Badge Vérifié, Photos illimitées.
-      - Sécurité : Transactions main à la main recommandées. Ne jamais envoyer d'argent à l'avance.
-
-      APERÇU DU MARCHÉ ACTUEL (Ce qu'il y a en rayon) :
+      Tu es Elite CM, l'assistant commercial de Comores Market.
+      DIRECTIVES :
+      1. Vendeur expert, poli et chaleureux.
+      2. Pas de blabla technique (Supabase, JSON).
+      3. Demande le budget ou l'île si besoin.
+      4. Prix en **gras**.
+      5. Sois concis.
+      
+      PRODUITS DISPONIBLES :
       ${contextProducts}
-
-      SCÉNARIOS TYPES :
-      - Si on te dit "Je cherche une voiture" -> Réponds : "Bienvenue ! Quel est votre budget approximatif et sur quelle île cherchez-vous (Ngazidja, Ndzouani...) ?"
-      - Si on te demande "Comment vendre ?" -> Explique le bouton "+" et suggère l'offre Élite pour vendre plus vite.
     `;
 
-    // 3. CONFIGURATION DU MODÈLE
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Utilisation de 1.5 Flash (plus rapide et intelligent)
+    // --- CONVERSION HISTORIQUE ---
+    const apiMessages = history.map((msg: any) => ({
+      role: msg.role === 'user' ? 'user' : 'assistant',
+      content: msg.parts[0].text || ""
+    }));
 
-    const chat = model.startChat({
-      history: [
-        // On injecte le System Prompt comme premier message caché
-        { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
-        { role: "model", parts: [{ text: "Bien reçu. Je suis Elite CM, prêt à conseiller les clients de Comores Market avec élégance et précision." }] },
-        // On ajoute l'historique réel de la conversation
-        ...(history || [])
-      ],
+    const fullConversation = [
+      { role: "system", content: SYSTEM_PROMPT },
+      ...apiMessages,
+      { role: "user", content: message }
+    ];
+
+    // --- APPEL API GROQ (CORRECTION DU MODÈLE ICI) ---
+    const completion = await groq.chat.completions.create({
+      messages: fullConversation as any,
+      // ON UTILISE LA VERSION 3.3 (La plus récente et active)
+      model: "llama-3.3-70b-versatile", 
+      temperature: 0.7,
+      max_tokens: 500,
     });
 
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    const text = response.text();
+    const responseText = completion.choices[0]?.message?.content || "Je réfléchis...";
     
-    return NextResponse.json({ text: text });
+    return NextResponse.json({ text: responseText });
 
   } catch (error: any) {
-    console.error("ERREUR AI :", error.message);
-    // Message d'erreur "humain" pour l'utilisateur
-    return NextResponse.json({ text: "Mes circuits sont un peu encombrés par l'affluence. Pouvez-vous répéter votre demande ?" });
+    console.error("ERREUR GROQ :", error);
+    // Gestion spécifique de l'erreur "Modèle retiré" pour l'avenir
+    if (error?.error?.code === 'model_decommissioned') {
+        return NextResponse.json({ text: "Mise à jour technique en cours (changement de modèle)." });
+    }
+    return NextResponse.json({ text: "Une petite erreur de connexion est survenue." });
   }
 }

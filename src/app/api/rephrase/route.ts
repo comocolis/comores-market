@@ -1,38 +1,39 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 export async function POST(req: Request) {
+  if (!process.env.GROQ_API_KEY) {
+    return NextResponse.json({ error: "Clé API manquante" }, { status: 500 });
+  }
+
   try {
     const { text } = await req.json();
-    if (!text || text.length < 5) {
-      return NextResponse.json({ error: "Texte trop court" }, { status: 400 });
-    }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const completion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: "Tu es un expert en marketing de luxe. Ta mission : Réécrire la description produit fournie pour qu'elle soit vendeuse, professionnelle, chaleureuse et sans fautes. Utilise des emojis avec parcimonie. Ne mets pas de guillemets au début ou à la fin. Garde les informations techniques exactes."
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      model: "llama-3.3-70b-versatile", // Modèle texte très puissant et gratuit
+      temperature: 0.7,
+      max_tokens: 1024,
+    });
 
-    const prompt = `
-      Tu es l'expert marketing de Comores Market. 
-      Sublime la description suivante pour la rendre "Prestige" (style Silk & Stone).
-      
-      TEXTE À REFORMULER : "${text}"
+    const newText = completion.choices[0]?.message?.content || text;
+    return NextResponse.json({ text: newText });
 
-      CONSIGNES :
-      - NE PAS utiliser de symboles Markdown (pas de **, pas de #, pas de ##).
-      - Rédige un texte fluide, luxueux et vendeur.
-      - Utilise des sauts de ligne pour la clarté.
-      - Garde les informations essentielles (prix, état) mais embellis le vocabulaire.
-      
-      Réponds uniquement avec le nouveau texte en français.
-    `;
-
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const cleanText = response.text().replace(/\*\*/g, '').replace(/#/g, '').normalize("NFC");
-
-    return NextResponse.json({ text: cleanText });
   } catch (error: any) {
-    return NextResponse.json({ error: "Échec de la reformulation" }, { status: 500 });
+    console.error("ERREUR REPHRASE:", error);
+    return NextResponse.json({ error: "Erreur de reformulation" }, { status: 500 });
   }
 }

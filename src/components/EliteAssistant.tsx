@@ -7,10 +7,10 @@ import ReactMarkdown from 'react-markdown'
 
 export default function EliteAssistant() {
   const [isVisible, setIsVisible] = useState(true)
-  
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
-  const [history, setHistory] = useState<{ role: 'user' | 'model', parts: { text: string }[] }[]>([])
+  // On type explicitement l'historique pour éviter les erreurs "undefined"
+  const [history, setHistory] = useState<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([])
   const [loading, setLoading] = useState(false)
   
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -22,16 +22,26 @@ export default function EliteAssistant() {
     }
   }, [history, loading, isOpen])
 
-  // --- CORRECTION DÉFINITIVE ---
-  // Utilisation de new RegExp pour éviter la confusion avec la division "/"
-  const cleanResponse = (text: string) => {
+  // --- FONCTION DE NETTOYAGE (VERSION SIMPLE) ---
+  const cleanResponse = (text: string): string => {
     if (!text) return "";
     
     let cleaned = text;
-    // On remplace les motifs techniques un par un
-    cleaned = cleaned.replace(new RegExp("\\(Supabase\\s*\\[.*?\\]\\)", "gi"), "");
-    cleaned = cleaned.replace(new RegExp("\\(Source\\s*\\[.*?\\]\\)", "gi"), "");
-    cleaned = cleaned.replace(new RegExp("\\", "g"), "");
+    
+    // On utilise new RegExp avec des chaînes de caractères pour éviter les bugs de syntaxe
+    // Cela enlève (Supabase [cite...]) et
+    try {
+        const regexSupabase = new RegExp("\\(Supabase.*?\\)", "g");
+        const regexSource = new RegExp("\\(Source.*?\\)", "g");
+        const regexCite = new RegExp("\\", "g");
+
+        cleaned = cleaned.replace(regexSupabase, "");
+        cleaned = cleaned.replace(regexSource, "");
+        cleaned = cleaned.replace(regexCite, "");
+    } catch (e) {
+        // En cas d'erreur rare, on renvoie le texte brut
+        return text;
+    }
     
     return cleaned.trim();
   }
@@ -43,25 +53,37 @@ export default function EliteAssistant() {
     const userMessage = message
     setMessage('')
     
-    const newHistory = [...history, { role: 'user' as const, parts: [{ text: userMessage }] }]
+    // Mise à jour de l'interface locale
+    const newHistoryEntry = { role: 'user' as const, parts: [{ text: userMessage }] };
+    const newHistory = [...history, newHistoryEntry];
     setHistory(newHistory)
     setLoading(true)
 
     try {
+      // Préparation propre de l'historique pour l'API
+      const apiHistory = history.map((h) => ({
+          role: h.role,
+          parts: [{ text: h.parts[0].text || "" }]
+      }));
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history: history }),
+        body: JSON.stringify({ message: userMessage, history: apiHistory }),
       })
 
       const data = await response.json()
-      if (data.text) {
-        const cleanText = cleanResponse(data.text).normalize("NFC")
-        setHistory(prev => [...prev, { role: 'model', parts: [{ text: cleanText }] }])
+      
+      if (data && data.text) {
+        // Utilisation sécurisée de normalize
+        const rawText = data.text.toString(); 
+        const cleanText = cleanResponse(rawText).normalize("NFC");
+        
+        setHistory((prev) => [...prev, { role: 'model', parts: [{ text: cleanText }] }])
       }
     } catch (error) {
-      console.error("Erreur Elite CM:", error)
-      setHistory(prev => [...prev, { role: 'model', parts: [{ text: "Je ne parviens pas à répondre pour le moment." }] }])
+      console.error("Erreur Chat:", error)
+      setHistory((prev) => [...prev, { role: 'model', parts: [{ text: "Problème de connexion. Veuillez réessayer." }] }])
     } finally {
       setLoading(false)
     }
@@ -89,9 +111,10 @@ export default function EliteAssistant() {
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 20 }}
                   onPointerDown={(e) => e.stopPropagation()} 
-                  className="absolute bottom-20 right-0 w-85 max-w-[calc(100vw-32px)] bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col origin-bottom-right cursor-default"
+                  className="absolute bottom-20 right-0 w-85 max-w-[calc(100vw-32px)] bg-white rounded-[2.5rem] shadow-2xl border border-gray-100 overflow-hidden flex flex-col origin-bottom-right"
                   style={{ height: '520px', maxHeight: '60vh' }}
                 >
+                  {/* HEADER */}
                   <div className="bg-linear-to-r from-amber-500 to-orange-600 p-5 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                       <div className="bg-white/20 p-2 rounded-xl">
@@ -99,23 +122,27 @@ export default function EliteAssistant() {
                       </div>
                       <div>
                         <p className="text-white font-black text-sm uppercase tracking-widest">Elite CM</p>
-                        <p className="text-white/70 text-[10px] font-bold uppercase tracking-tighter">Assistant Showroom</p>
+                        <p className="text-white/70 text-[10px] font-bold uppercase tracking-tighter">Assistant Expert</p>
                       </div>
                     </div>
-                    <button onClick={() => setIsOpen(false)} className="text-white/60 hover:text-white transition bg-white/10 p-2 rounded-full">
+                    <button 
+                      onClick={() => setIsOpen(false)} 
+                      className="text-white/60 hover:text-white transition bg-white/10 p-2 rounded-full active:scale-90"
+                    >
                       <X size={18} />
                     </button>
                   </div>
 
+                  {/* MESSAGES */}
                   <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-4 scrollbar-hide bg-slate-50/50">
                     {history.length === 0 && (
                       <div className="text-center py-8">
-                        <div className="bg-amber-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 shadow-inner">
+                        <div className="bg-amber-100 w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-600 shadow-inner border border-amber-200">
                           <Bot size={28} />
                         </div>
                         <p className="text-gray-900 font-black text-sm mb-1">Bonjour !</p>
                         <p className="text-gray-500 text-xs font-medium px-4 leading-relaxed">
-                          Je suis l'IA de Comores Market. Je peux vous aider à trouver une voiture, estimer un prix ou rédiger une annonce.
+                          Je suis l'IA de Comores Market. Je peux vous aider à trouver un produit ou estimer un prix.
                         </p>
                       </div>
                     )}
@@ -146,13 +173,14 @@ export default function EliteAssistant() {
                     )}
                   </div>
 
+                  {/* INPUT */}
                   <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-50">
                     <div className="relative">
                       <input
                         type="text"
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Poser une question..."
+                        placeholder="Votre question..."
                         className="w-full bg-gray-50 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-gray-400"
                       />
                       <button
@@ -168,8 +196,9 @@ export default function EliteAssistant() {
               )}
             </AnimatePresence>
 
+            {/* BOUTON FLOTTANT */}
             <motion.div 
-                className="relative group cursor-grab active:cursor-grabbing"
+                className="relative group cursor-grab active:cursor-grabbing pointer-events-auto"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
