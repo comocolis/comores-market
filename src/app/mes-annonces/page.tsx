@@ -73,12 +73,12 @@ export default function MesAnnoncesPage() {
       {/* MODALE SUPPRESSION */}
       <AnimatePresence>
         {deleteModal.isOpen && (
-          <div className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setDeleteModal({ isOpen: false, productId: null })}>
+          <div className="fixed inset-0 z-100 bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setDeleteModal({ isOpen: false, productId: null })}>
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
                 className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-8 text-center border border-white" onClick={e => e.stopPropagation()}
               >
-                  <div className="bg-red-50 w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner text-red-500">
+                  <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-6 shadow-inner text-red-500">
                       <AlertTriangle size={36} />
                   </div>
                   <h3 className="font-black text-xl mb-2 tracking-tight">Supprimer l'offre ?</h3>
@@ -142,7 +142,7 @@ export default function MesAnnoncesPage() {
                       className={`bg-white rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50' : 'border-white'}`}
                     >
                         <div className="p-4 flex gap-4">
-                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-[1.5rem] relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
+                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
                                 {img && <Image src={img} alt="" fill className="object-cover" />}
                                 {isBoosted && (
                                   <div className="absolute inset-0 bg-amber-500/10 flex items-center justify-center">
@@ -181,7 +181,7 @@ export default function MesAnnoncesPage() {
                           ) : (
                             <Link
                               href={`/boost/${product.id}`}
-                              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
+                              className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                             >
                               <Zap size={14} fill="currentColor" className="group-hover:scale-110 transition-transform" />
                               Booster l'annonce (250 KMF)
