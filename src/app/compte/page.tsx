@@ -15,6 +15,8 @@ import {
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
+// IMPORT DU DÉTECTEUR DE SÉCURITÉ
+import { containsContactInfo } from '@/utils/contentSafety'
 
 const getOptimizedAvatar = (url: string | null, size = 200) => {
   if (!url) return null;
@@ -33,7 +35,6 @@ export default function ComptePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
-  // NOUVEAU : État pour le compteur de notifications
   const [unreadCount, setUnreadCount] = useState(0)
 
   const [showDeleteModal, setShowDeleteModal] = useState(false)
@@ -69,14 +70,12 @@ export default function ComptePage() {
     
     setUser(user) 
 
-    // Récupération Profil
     const { data } = await supabase
         .from('profiles')
         .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date, email, role') 
         .eq('id', user.id)
         .single()
 
-    // NOUVEAU : Récupération Notifications non lues
     const { count } = await supabase
         .from('notifications')
         .select('*', { count: 'exact', head: true })
@@ -170,6 +169,18 @@ export default function ComptePage() {
 
   const handleUpdateProfile = async () => {
     if (!user) return
+
+    // --- SÉCURITÉ : VÉRIFICATION CONTACT ---
+    const daysRemaining = profile?.subscription_end_date 
+        ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
+        : 0
+    const isProActive = profile?.is_pro && daysRemaining > 0
+
+    if (!isProActive && containsContactInfo(formData.description)) {
+        toast.error("⚠️ Les numéros et liens en bio sont réservés aux membres Pro.", { duration: 5000 })
+        return;
+    }
+
     setSaving(true)
 
     const { error: rpcError } = await supabase.rpc('update_profile', {
@@ -372,7 +383,6 @@ export default function ComptePage() {
 
           <Link href="/compte/notifications" className="bg-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-sm border border-white active:scale-95 transition">
               <div className="flex items-center gap-4">
-                  {/* CORRECTION : Affichage du badge de notification sur la cloche */}
                   <div className="bg-amber-50 p-3 rounded-2xl text-amber-500 relative">
                       <Bell size={24} />
                       {unreadCount > 0 && (

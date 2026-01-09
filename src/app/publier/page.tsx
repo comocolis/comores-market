@@ -20,7 +20,10 @@ import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy 
 import { CSS } from '@dnd-kit/utilities'
 
 import { compressImage } from '@/utils/compressImage'
+// IMPORT SÉCURITÉ
+import { containsContactInfo } from '@/utils/contentSafety'
 
+// --- CONSTANTES GLOBALES ---
 const FREE_ADS_LIMIT = 3
 const FREE_PHOTOS_LIMIT = 3
 const PRO_PHOTOS_LIMIT = 10
@@ -44,15 +47,161 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
 }
 
+// --- CONFIGURATION COMPLETE DES CHAMPS SPÉCIFIQUES (REMISE AU COMPLET) ---
 const SPECIFIC_FIELDS: Record<string, any[]> = {
+    // === 1. VÉHICULES ===
     'Voitures': [
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: 'Ex: 2018' },
         { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: 'Ex: 85000' },
         { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Essence', 'Diesel', 'Hybride', 'Électrique'] },
         { key: 'transmission', label: 'Boîte', icon: Layers, type: 'select', options: ['Manuelle', 'Automatique'] }
     ],
-    // Les autres champs restent identiques, je ne les répète pas pour alléger le message mais ils sont bien là
-    // dans votre fichier original, ne les effacez pas si vous copiez ce bloc.
+    'Motos': [
+        { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2020' },
+        { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: '15000' },
+        { key: 'cc', label: 'Cylindrée (cc)', icon: Zap, type: 'number', placeholder: '125' }
+    ],
+    'Camions': [
+        { key: 'tonnage', label: 'Tonnage', icon: Truck, type: 'number', placeholder: 'Ex: 3.5' },
+        { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2015' },
+        { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Diesel', 'Essence'] }
+    ],
+    'Bateaux': [
+        { key: 'type', label: 'Type', icon: Anchor, type: 'select', options: ['Vedette', 'Barque', 'Boutre', 'Moteur Hors-bord'] },
+        { key: 'length', label: 'Longueur (m)', icon: Ruler, type: 'number', placeholder: 'Ex: 7' }
+    ],
+    'Pièces Détachées': [
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion', 'Reconditionné'] },
+        { key: 'compatibility', label: 'Compatible avec', icon: Wrench, type: 'text', placeholder: 'Ex: Toyota Yaris 2010...' }
+    ],
+
+    // === 2. IMMOBILIER ===
+    'Vente Maison': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '120' },
+        { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '4' },
+        { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] }
+    ],
+    'Vente Terrain': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '500' },
+        { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] },
+        { key: 'access', label: 'Accès Voiture', icon: Truck, type: 'select', options: ['Oui', 'Non', 'Piste'] }
+    ],
+    'Location Maison': [
+        { key: 'rooms', label: 'Chambres', icon: Home, type: 'number', placeholder: '3' },
+        { key: 'furnished', label: 'Meublé', icon: Layers, type: 'select', options: ['Oui', 'Non', 'Partiellement'] },
+        { key: 'period', label: 'Paiement', icon: Calendar, type: 'select', options: ['Mensuel', 'Journalier'] }
+    ],
+    'Location Appartement': [
+        { key: 'rooms', label: 'Chambres', icon: Home, type: 'number', placeholder: '2' },
+        { key: 'furnished', label: 'Meublé', icon: Layers, type: 'select', options: ['Oui', 'Non', 'Partiellement'] }
+    ],
+    'Bureaux & Commerces': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '50' },
+        { key: 'location', label: 'Emplacement', icon: MapPin, type: 'select', options: ['Bord de route', 'Centre-ville', 'Quartier calme'] }
+    ],
+
+    // === 3. MODE ===
+    'Chaussures': [
+        { key: 'size', label: 'Pointure', icon: Ruler, type: 'number', placeholder: '42' },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Nike, Adidas...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
+    ],
+    'Vêtements Homme': [
+        { key: 'size', label: 'Taille', icon: Shirt, type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL'] },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Zara, H&M...' }
+    ],
+    'Vêtements Femme': [
+        { key: 'size', label: 'Taille', icon: Shirt, type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '34', '36', '38', '40', '42'] },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Mango, Shein...' }
+    ],
+    'Montres & Bijoux': [
+        { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué'] },
+        { key: 'brand', label: 'Marque', icon: Watch, type: 'text', placeholder: 'Rolex, Seiko, Casio...' }
+    ],
+
+    // === 4. TECH ===
+    'Téléphones': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, Apple, Huawei...' },
+        { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go', '512 Go', '1 To'] },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf (Scellé)', 'Comme neuf', 'Bon état', 'Écran fissuré'] }
+    ],
+    'Ordinateurs': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'HP, Dell, Apple...' },
+        { key: 'processor', label: 'Processeur', icon: Zap, type: 'text', placeholder: 'Core i5, Ryzen 7...' },
+        { key: 'ram', label: 'RAM', icon: Layers, type: 'select', options: ['4 Go', '8 Go', '16 Go', '32 Go'] }
+    ],
+    'Consoles & Jeux': [
+        { key: 'platform', label: 'Plateforme', icon: Zap, type: 'select', options: ['PS5', 'PS4', 'Xbox', 'Switch', 'PC'] },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
+    ],
+
+    // === 5. MAISON ===
+    'Meubles': [
+        { key: 'material', label: 'Matière', icon: Layers, type: 'text', placeholder: 'Bois rouge, Métal, Verre...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
+    ],
+    'Électroménager': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, LG...' },
+        { key: 'energy', label: 'Conso', icon: Zap, type: 'select', options: ['Faible consommation', 'Normale'] }
+    ],
+
+    // === 6. LOISIRS ===
+    'Instruments de musique': [
+        { key: 'type', label: 'Instrument', icon: Music, type: 'text', placeholder: 'Guitare, Piano...' },
+        { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
+    ],
+    'Livres': [
+        { key: 'genre', label: 'Genre', icon: Book, type: 'text', placeholder: 'Roman, Scolaire, Religion...' },
+        { key: 'lang', label: 'Langue', icon: Type, type: 'select', options: ['Français', 'Arabe', 'Anglais', 'Shikomori'] }
+    ],
+    'Voyages & Billets': [
+        { key: 'dest', label: 'Destination', icon: Plane, type: 'text', placeholder: 'Dubaï, Tanzanie, France...' },
+        { key: 'date', label: 'Départ prévu', icon: Calendar, type: 'text', placeholder: 'JJ/MM/AAAA' }
+    ],
+
+    // === 7. ALIMENTATION ===
+    'Fruits & Légumes': [
+        { key: 'origin', label: 'Origine', icon: MapPin, type: 'select', options: ['Local (Comores)', 'Importé'] },
+        { key: 'unit', label: 'Vendu par', icon: DollarSign, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
+    ],
+    'Plats cuisinés': [
+        { key: 'type', label: 'Type', icon: Utensils, type: 'select', options: ['Salé', 'Sucré', 'Traiteur'] },
+        { key: 'availability', label: 'Dispo', icon: Clock, type: 'select', options: ['Sur commande', 'Immédiat'] }
+    ],
+    'Produits frais': [
+        { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé'] }
+    ],
+
+    // === 8. SERVICES ===
+    'Cours & Formations': [
+        { key: 'level', label: 'Niveau', icon: GraduationCap, type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'] },
+        { key: 'mode', label: 'Format', icon: Layers, type: 'select', options: ['En ligne', 'Présentiel'] }
+    ],
+    'Réparations': [
+        { key: 'domain', label: 'Spécialité', icon: Wrench, type: 'text', placeholder: 'Plomberie, Mécanique, Froid...' },
+        { key: 'travel', label: 'Déplacement', icon: Truck, type: 'select', options: ['Oui', 'Non', 'À définir'] }
+    ],
+
+    // === 9. BEAUTÉ ===
+    'Parfums': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Dior, Sauvage...' },
+        { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile'] },
+        { key: 'authenticity', label: 'Authenticité', icon: ShieldCheck, type: 'select', options: ['Original', 'Générique/Copie'] }
+    ],
+    'Coiffure': [
+        { key: 'service', label: 'Service', icon: Scissors, type: 'select', options: ['Tresses', 'Lissage', 'Coupe', 'Perruques'] },
+        { key: 'place', label: 'Lieu', icon: Home, type: 'select', options: ['À domicile', 'Au salon'] }
+    ],
+
+    // === 10. EMPLOI ===
+    'Offres d\'emploi': [
+        { key: 'contract', label: 'Contrat', icon: Briefcase, type: 'select', options: ['CDI', 'CDD', 'Stage', 'Freelance'] },
+        { key: 'sector', label: 'Secteur', icon: Layers, type: 'text', placeholder: 'Commerce, BTP, Santé...' }
+    ],
+    'Demandes d\'emploi': [
+        { key: 'exp', label: 'Expérience', icon: Star, type: 'select', options: ['Débutant', '1-3 ans', '3-5 ans', '+5 ans'] },
+        { key: 'diploma', label: 'Diplôme', icon: GraduationCap, type: 'text', placeholder: 'Bac, Licence...' }
+    ]
 }
 
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
@@ -111,8 +260,10 @@ export default function PublierPage() {
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
 
-  const [specs, setSpecs] = useState<any>({})
+  // ETAT POUR LES SPECS DYNAMIQUES
+  const [specs, setSpecs] = useState<Record<string, string>>({})
 
+  // Reset des specs si on change de sous-catégorie
   useEffect(() => {
       setSpecs({})
   }, [formData.sub_category])
@@ -129,7 +280,7 @@ export default function PublierPage() {
   )
 
   const currentSubCats = SUB_CATEGORIES[parseInt(formData.category_id)] || []
-  const currentSpecFields = (SPECIFIC_FIELDS && SPECIFIC_FIELDS[formData.sub_category]) || []
+  const currentSpecFields = SPECIFIC_FIELDS[formData.sub_category] || []
 
   useEffect(() => {
     const checkUser = async () => {
@@ -271,8 +422,15 @@ export default function PublierPage() {
         return
     }
 
+    // --- SÉCURITÉ : VÉRIFICATION CONTACT POUR LES GRATUITS ---
+    if (!isPro && containsContactInfo(formData.description)) {
+        toast.error("⚠️ Seuls les Pros peuvent partager un contact dans la description.", { duration: 5000 })
+        return; 
+    }
+
     setLoading(true)
     try {
+      // CONSTRUCTION DE LA DESCRIPTION FINALE AVEC LES SPECS
       let finalDescription = formData.description;
       
       if (Object.keys(specs).length > 0) {
@@ -302,7 +460,7 @@ export default function PublierPage() {
       if (user) {
           const { error: productError } = await supabase.from('products').insert({
               ...formData,
-              description: finalDescription,
+              description: finalDescription, // On envoie la description enrichie
               user_id: user.id,
               images: JSON.stringify(images.map(img => img.url)),
               quality_score: check.quality_score,
@@ -399,7 +557,7 @@ export default function PublierPage() {
                 <div>
                     <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                        <DollarSign size={18} className="text-gray-400" />
+                        <span className="text-gray-400 font-black text-xs px-2">KMF</span>
                         <input 
                             type="number" 
                             className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-400" 

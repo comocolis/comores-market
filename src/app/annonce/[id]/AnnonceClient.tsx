@@ -10,7 +10,9 @@ import {
   User, ChevronRight, Share2, Flag, ChevronLeft, ChevronRight as ChevronRightIcon,
   X, Crown, Sparkles, MessageCircle, Clock,
   AlertTriangle, ShieldCheck, Smartphone,
-  Grid, Camera
+  Grid, Camera,
+  // --- IMPORT DE TOUTES LES ICÔNES NÉCESSAIRES ---
+  Calendar, Gauge, Fuel, Layers, Truck, Anchor, Ruler, Wrench, Maximize, Home, Shirt, Type, Gem, Watch, HardDrive, Zap, Music, Book, Plane, DollarSign, Utensils, GraduationCap, MapPin as MapPinIcon, Star, Briefcase, Lock, Scissors
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -18,13 +20,62 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-// --- OPTIMISATION SUPABASE ---
-// Transforme l'URL pour demander une version redimensionnée et légère (WebP)
+// --- DICTIONNAIRE DES ICÔNES (HARMONISÉ AVEC PUBLIER) ---
+const ICON_MAP: Record<string, any> = {
+    'Année': Calendar,
+    'Kilométrage': Gauge,
+    'Carburant': Fuel,
+    'Boîte': Layers,
+    'Cylindrée (cc)': Zap,
+    'Tonnage': Truck,
+    'Type': Anchor, 
+    'Longueur (m)': Ruler,
+    'État': Sparkles,
+    'Compatible avec': Wrench,
+    'Surface (m²)': Maximize,
+    'Pièces': Home,
+    'Papier/Titre': ShieldCheck,
+    'Accès Voiture': Truck,
+    'Chambres': Home,
+    'Meublé': Layers,
+    'Paiement': Calendar,
+    'Emplacement': MapPinIcon,
+    'Pointure': Ruler,
+    'Marque': Type, 
+    'Taille': Shirt,
+    'Matière': Gem, 
+    'Stockage': HardDrive,
+    'Processeur': Zap,
+    'RAM': Layers,
+    'Plateforme': Zap,
+    'Conso': Zap,
+    'Instrument': Music,
+    'Genre': Book,
+    'Langue': Type,
+    'Destination': Plane,
+    'Départ prévu': Calendar,
+    'Origine': MapPinIcon,
+    'Vendu par': DollarSign,
+    'Dispo': Clock,
+    'Conservation': Lock,
+    'Niveau': GraduationCap,
+    'Format': Layers,
+    'Spécialité': Wrench,
+    'Déplacement': Truck,
+    'Authenticité': ShieldCheck,
+    'Service': Scissors,
+    'Lieu': Home,
+    'Contrat': Briefcase,
+    'Secteur': Layers,
+    'Expérience': Star,
+    'Diplôme': GraduationCap
+};
+
 const getOptimizedImage = (url: string | null, width = 800) => {
-  if (!url) return '/placeholder.png';
+  if (!url || url === 'undefined' || url === 'null') {
+    return `https://placehold.co/600x400/EEE/31343C?text=Comores+Market`;
+  }
   if (url.includes('supabase.co')) {
-    // quality=60 : Suffisant pour mobile, gain de poids énorme
-    // format=webp : Standard moderne rapide
     return `${url}?width=${width}&quality=60&resize=contain&format=webp`;
   }
   return url;
@@ -59,12 +110,19 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const minSwipeDistance = 50 
   const viewLogged = useRef(false)
 
+  // --- PARSING INTELLIGENT DE LA DESCRIPTION ---
   const descriptionParts = product?.description?.split('--- ✨ CARACTÉRISTIQUES ---') || []
+  // Partie 1 : Le texte libre (pour la section Description en bas)
   const mainDescription = descriptionParts[0]?.trim() || ''
+  // Partie 2 : Les specs techniques (pour la grille Fiche Technique)
   const rawSpecs = descriptionParts.length > 1 ? descriptionParts[1].trim() : null
   
   const specsList = rawSpecs 
-    ? rawSpecs.split('\n').filter((line: string) => line.trim() !== '').map((line: string) => line.replace('• ', '').split(' : ')) 
+    ? rawSpecs.split('\n').filter((line: string) => line.trim() !== '').map((line: string) => {
+        // On sépare "Label : Valeur"
+        const parts = line.replace('• ', '').split(' : ');
+        return parts.length === 2 ? parts : null;
+    }).filter(Boolean)
     : []
 
   const getData = useCallback(async () => {
@@ -215,7 +273,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   return (
     <div className="min-h-dvh bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden flex flex-col relative">
       
-      {/* HEADER ACTIONS RONDES */}
+      {/* HEADER ACTIONS */}
       <div className="sticky top-0 w-full h-0 overflow-visible z-10 pointer-events-none">
           <div className="p-4 pt-safe flex justify-between items-center w-full">
             <button 
@@ -238,16 +296,15 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           </div>
       </div>
 
-      {/* GALERIE PHOTO (Mode Normal) */}
+      {/* GALERIE PHOTO */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
-          // 1. IMAGE PRINCIPALE (LCP) : On demande une qualité raisonnable (800px)
           src={getOptimizedImage(images[selectedImageIndex], 1000) || '/placeholder.png'} 
           alt={product.title} 
           fill 
           className="object-cover opacity-90 transition duration-700" 
-          priority={true} // Chargement prioritaire
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px" // Optimisation responsive
+          priority={true} 
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
         
@@ -263,7 +320,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 ${selectedImageIndex === i ? 'border-brand scale-110 shadow-xl' : 'border-white/40 opacity-50'}`}>
                     <Image 
-                        // 2. MINIATURES : On demande du très léger (150px)
                         src={getOptimizedImage(img, 150) || '/placeholder.png'} 
                         alt="" 
                         width={48} 
@@ -292,8 +348,14 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         {product.title} 
                         {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
-                    <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest">
-                        <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
+                    {/* SOUS-CATÉGORIE */}
+                    <div className="flex flex-wrap items-center gap-2 mt-1">
+                        <div className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-gray-200">
+                            {product.sub_category || "Divers"}
+                        </div>
+                        <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest">
+                            <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
+                        </div>
                     </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -313,7 +375,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                       <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
                           {seller?.avatar_url ? (
                             <Image 
-                                // 3. AVATAR : Qualité moyenne (200px)
                                 src={getOptimizedImage(seller.avatar_url, 200) || '/placeholder.png'} 
                                 alt="" 
                                 fill 
@@ -336,21 +397,27 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
               </Link>
             </div>
 
-            {/* FICHE TECHNIQUE */}
+            {/* FICHE TECHNIQUE (GÉNÉRÉE AUTOMATIQUEMENT) */}
             {specsList.length > 0 && (
                 <div className="bg-[#F8FAFC] p-6 rounded-[2.5rem] border border-gray-100 mb-8">
                     <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-4 flex items-center gap-2">
                         <Grid size={14} /> Fiche Technique
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
-                        {specsList.map(([label, value]: string[], i: number) => (
-                            value && (
-                                <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-white flex flex-col">
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase mb-1">{label}</span>
-                                    <span className="text-sm font-bold text-gray-900 truncate">{value}</span>
+                        {specsList.map(([label, value]: string[], i: number) => {
+                            if(!value) return null;
+                            const IconComponent = ICON_MAP[label] || Sparkles;
+                            
+                            return (
+                                <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-white flex flex-col relative overflow-hidden">
+                                    <IconComponent className="absolute -right-2 -bottom-2 text-gray-50 opacity-20 rotate-[-15deg]" size={40} />
+                                    <span className="text-[9px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                        {label}
+                                    </span>
+                                    <span className="text-sm font-bold text-gray-900 truncate relative z-10">{value}</span>
                                 </div>
                             )
-                        ))}
+                        })}
                     </div>
                 </div>
             )}
@@ -382,7 +449,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         </div>
       </motion.div>
 
-      {/* LIGHTBOX (Zoom) */}
+      {/* LIGHTBOX */}
       <AnimatePresence>
         {lightboxIndex !== null && (
           <div 
@@ -405,7 +472,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
                     >
                       <img 
-                        // 4. LIGHTBOX : Qualité MAX (1200px) pour le zoom
                         src={getOptimizedImage(images[lightboxIndex], 1200)} 
                         alt="" 
                         className="w-full h-full object-contain" 
@@ -434,7 +500,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           </div>
         )}
 
-        {/* MODALE SIGNALEMENT */}
         {showReportModal && (
           <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
