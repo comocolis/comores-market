@@ -13,7 +13,12 @@ export async function POST(req: Request) {
   try {
     const { imageBase64 } = await req.json();
 
-    // On utilise le modèle Vision de Groq (Llama 3.2)
+    if (!imageBase64) {
+        return NextResponse.json({ error: "Image manquante" }, { status: 400 });
+    }
+
+    console.log("📸 Vision: Envoi à Groq (Llama 4 Scout)...");
+
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -21,27 +26,40 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: "Analyse cette image et écris une description de vente courte, séduisante et précise pour une marketplace (Comores Market). Mentionne la couleur, l'état apparent et le type d'objet. Sois vendeur !"
+              text: "Décris cet objet pour une annonce de vente (titre court et 2 phrases vendeuses). Mentionne l'état et la couleur."
             },
             {
               type: "image_url",
               image_url: {
-                url: imageBase64, // Format attendu: "data:image/jpeg;base64,..."
+                url: imageBase64,
               },
             },
           ],
         },
       ],
-      model: "llama-3.2-11b-vision-preview", // Modèle Vision Gratuit de Groq
+      // REMPLACEMENT OFFICIEL : Llama 4 Scout (17B)
+      // C'est le nouveau modèle multimodal qui remplace Llama 3.2 Vision
+      model: "meta-llama/llama-4-scout-17b-16e-instruct", 
       temperature: 0.5,
-      max_tokens: 500,
+      max_tokens: 300,
     });
 
     const description = completion.choices[0]?.message?.content || "";
+    console.log("✅ Vision: Succès");
+    
     return NextResponse.json({ text: description });
 
   } catch (error: any) {
-    console.error("ERREUR VISION:", error);
-    return NextResponse.json({ error: "Impossible d'analyser l'image" }, { status: 500 });
+    console.error("❌ ERREUR VISION:", error);
+    
+    // Si même le nouveau modèle échoue, on renvoie une erreur explicite
+    if (error?.error?.code === 'model_decommissioned' || error?.status === 404) {
+        return NextResponse.json({ 
+            text: "Service Vision en maintenance (Modèle en cours de déploiement).", 
+            error: "Model unavailable" 
+        });
+    }
+
+    return NextResponse.json({ error: "Analyse impossible" }, { status: 500 });
   }
 }

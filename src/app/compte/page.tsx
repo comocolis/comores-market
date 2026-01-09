@@ -9,14 +9,13 @@ import {
   User, LogOut, Camera, Lock, Eye, EyeOff, Loader2, 
   Pencil, Package, Heart, ChevronRight, Save, Bell,
   Facebook, Instagram, Crown, AlertTriangle, Trash2,
-  Smartphone, ExternalLink, LayoutDashboard, Sparkles,
-  HelpCircle, FileText, ShieldCheck
+  Smartphone, ExternalLink, LayoutDashboard,
+  HelpCircle, FileText, ShieldCheck, Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-// --- UTILITAIRE DE REDIMENSIONNEMENT ÉLITE ---
 const getOptimizedAvatar = (url: string | null, size = 200) => {
   if (!url) return null;
   if (url.includes('supabase.co')) {
@@ -34,6 +33,9 @@ export default function ComptePage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   
+  // NOUVEAU : État pour le compteur de notifications
+  const [unreadCount, setUnreadCount] = useState(0)
+
   const [showDeleteModal, setShowDeleteModal] = useState(false)
   const [deleteConfirmation, setDeleteConfirmation] = useState('')
   const [deleting, setDeleting] = useState(false)
@@ -58,7 +60,6 @@ export default function ComptePage() {
     description: '' 
   })
 
-  // RÉCUPÉRATION DES DONNÉES
   const getProfile = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) {
@@ -68,11 +69,21 @@ export default function ComptePage() {
     
     setUser(user) 
 
-    const { data, error } = await supabase
+    // Récupération Profil
+    const { data } = await supabase
         .from('profiles')
         .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date, email, role') 
         .eq('id', user.id)
         .single()
+
+    // NOUVEAU : Récupération Notifications non lues
+    const { count } = await supabase
+        .from('notifications')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('is_read', false)
+    
+    if (count) setUnreadCount(count)
 
     if (data) {
       setProfile(data)
@@ -85,8 +96,6 @@ export default function ComptePage() {
           instagram_url: data.instagram_url || '',
           description: data.description || '' 
       })
-    } else if (error) {
-        console.error("Erreur lecture profil:", error)
     }
     setLoading(false)
   }, [router, supabase])
@@ -137,7 +146,6 @@ export default function ComptePage() {
         
         const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
         
-        // Mise à jour via RPC
         await supabase.rpc('update_profile', { 
             p_full_name: formData.full_name,
             p_city: formData.city,
@@ -148,22 +156,18 @@ export default function ComptePage() {
             p_description: formData.description
         })
         
-        // Mise à jour Auth pour l'avatar aussi
         await supabase.auth.updateUser({ data: { avatar_url: publicUrl } })
         
-        // Update local pour affichage immédiat
         setProfile((prev: any) => ({ ...prev, avatar_url: publicUrl }))
         
         toast.success("Photo mise à jour !")
     } catch (error: any) {
-        console.error(error)
         toast.error("Erreur d'envoi")
     } finally {
         setAvatarUploading(false)
     }
   }
 
-  // --- SAUVEGARDE COMPLÈTE ---
   const handleUpdateProfile = async () => {
     if (!user) return
     setSaving(true)
@@ -179,7 +183,6 @@ export default function ComptePage() {
     })
 
     if (rpcError) {
-        console.error("Erreur RPC:", rpcError)
         const { error: tableError } = await supabase.from('profiles').update({ ...formData }).eq('id', user.id)
         if (tableError) {
             toast.error("Erreur de sauvegarde")
@@ -188,7 +191,7 @@ export default function ComptePage() {
         }
     }
 
-    const { error: authError } = await supabase.auth.updateUser({
+    await supabase.auth.updateUser({
         data: { 
             full_name: formData.full_name,
             city: formData.city,
@@ -199,10 +202,6 @@ export default function ComptePage() {
             description: formData.description
         }
     })
-
-    if (authError) {
-        console.error("Erreur Auth:", authError)
-    }
 
     toast.success("Profil sauvegardé avec succès !")
     setIsEditingInfo(false)
@@ -244,7 +243,6 @@ export default function ComptePage() {
   
   const isProActive = profile?.is_pro && daysRemaining > 0
 
-  // --- LOGIQUE FACTURE ---
   const getSubscriptionType = (endDate: string) => {
       if (!endDate) return "Standard"
       const end = new Date(endDate)
@@ -268,14 +266,11 @@ export default function ComptePage() {
 
   const canAccessAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
 
-  // CORRECTION: min-h-dvh ici aussi pour le loader
   if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
-    // CORRECTION CRITIQUE (Ligne verte) : min-h-dvh + w-full + relative + overflow-x-hidden
     <div className="min-h-dvh w-full bg-[#F8FAFC] pb-32 font-sans text-gray-900 overflow-x-hidden relative" suppressHydrationWarning>
       
-      {/* MODALE SUPPRESSION */}
       <AnimatePresence>
         {showDeleteModal && (
           <div className="fixed inset-0 z-200 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
@@ -293,12 +288,10 @@ export default function ComptePage() {
         )}
       </AnimatePresence>
 
-      {/* HEADER AVEC AVATAR */}
       <div className="bg-white p-8 pb-12 rounded-b-[3.5rem] shadow-sm relative z-10 border-b border-gray-100">
         <div className="flex justify-between items-center mb-8">
             <h1 className="text-2xl font-black tracking-tighter">Réglages</h1>
             
-            {/* CORRECTION ICÔNES : Accès Profil (Bleu) & Déconnexion (Rouge) */}
             <div className="flex gap-2">
               <Link 
                 href={`/profil/${user?.id}`} 
@@ -346,7 +339,6 @@ export default function ComptePage() {
                         <div className="inline-flex flex-col items-start bg-amber-500 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20">
                             <span className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-widest"><Crown size={10} fill="currentColor" /> Expert Pro</span>
                         </div>
-                        {/* BOUTON FACTURE */}
                         <button 
                             onClick={downloadMyInvoice}
                             className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition active:scale-95"
@@ -356,8 +348,8 @@ export default function ComptePage() {
                     </div>
                 ) : (
                     <Link href="/pro" className="group inline-flex items-center gap-2 bg-gray-900 text-white text-[10px] font-black px-6 py-3 rounded-2xl shadow-xl shadow-gray-900/20 active:scale-95 transition-all hover:bg-black border border-gray-800">
-                       Devenir Pro 
-                       <Sparkles size={12} className="text-amber-400 group-hover:animate-pulse" />
+                        Devenir Pro 
+                        <Sparkles size={12} className="text-amber-400 group-hover:animate-pulse" />
                     </Link>
                 )}
             </div>
@@ -366,7 +358,6 @@ export default function ComptePage() {
 
       <div className="px-5 -mt-6 relative z-20 space-y-6">
         
-        {/* SHORTCUTS */}
         <div className="flex flex-col gap-4">
           
           {canAccessAdmin && (
@@ -381,7 +372,15 @@ export default function ComptePage() {
 
           <Link href="/compte/notifications" className="bg-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-sm border border-white active:scale-95 transition">
               <div className="flex items-center gap-4">
-                  <div className="bg-amber-50 p-3 rounded-2xl text-amber-500"><Bell size={24} /></div>
+                  {/* CORRECTION : Affichage du badge de notification sur la cloche */}
+                  <div className="bg-amber-50 p-3 rounded-2xl text-amber-500 relative">
+                      <Bell size={24} />
+                      {unreadCount > 0 && (
+                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[9px] font-bold text-white shadow-sm">
+                              {unreadCount > 9 ? '9+' : unreadCount}
+                          </span>
+                      )}
+                  </div>
                   <div><p className="font-black text-sm uppercase tracking-widest leading-none mb-1">Notifications</p><p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Alertes & Messages</p></div>
               </div>
               <ChevronRight className="text-gray-200" />
@@ -399,7 +398,6 @@ export default function ComptePage() {
             </Link>
         </div>
 
-        {/* IDENTITÉ */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-8">
             <div className="flex justify-between items-center border-b border-gray-50 pb-6">
                 <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300">Mon Showroom</h3>
@@ -412,7 +410,7 @@ export default function ComptePage() {
                 <div className="space-y-2">
                     <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Nom public</label>
                     {isEditingInfo ? (
-                      <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+                      <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition text-gray-900" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
                       <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight">{profile?.full_name}</p>
                     )}
@@ -421,7 +419,7 @@ export default function ComptePage() {
                 <div className="space-y-2">
                     <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Bio / Slogan</label>
                     {isEditingInfo ? (
-                        <textarea className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-bold outline-none border border-gray-100 min-h-24 resize-none" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                        <textarea className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-bold outline-none border border-gray-100 min-h-24 resize-none text-gray-900" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                     ) : (
                         <p className="p-5 bg-gray-50/50 rounded-2xl text-xs font-medium text-gray-500 leading-relaxed italic">"{profile?.description || "Aucune bio..."}"</p>
                     )}
@@ -431,14 +429,14 @@ export default function ComptePage() {
                     <div className="space-y-2">
                         <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Île</label>
                         {isEditingInfo ? (
-                            <select className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black border border-gray-100 outline-none" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
+                            <select className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 outline-none text-gray-900" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
                                 {['Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'].map(i => <option key={i}>{i}</option>)}
                             </select>
                         ) : ( <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.island}</p> )}
                     </div>
                     <div className="space-y-2">
                         <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Ville</label>
-                        {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-xs font-black border border-gray-100" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.city}</p>}
+                        {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.city}</p>}
                     </div>
                 </div>
 
@@ -446,12 +444,12 @@ export default function ComptePage() {
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                     <div className="space-y-2">
                       <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Lien Facebook</label>
-                      {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-[10px] font-bold border border-gray-100" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> : 
+                      {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> : 
                       <p className="p-4 bg-blue-50/30 rounded-2xl font-bold text-[9px] text-blue-600 truncate">{profile?.facebook_url || "Non lié"}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Lien Instagram</label>
-                      {isEditingInfo ? <input type="text" className="w-full bg-gray-50 p-4 rounded-2xl text-[10px] font-bold border border-gray-100" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> : 
+                      {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> : 
                       <p className="p-4 bg-pink-50/30 rounded-2xl font-bold text-[9px] text-pink-600 truncate">{profile?.instagram_url || "Non lié"}</p>}
                     </div>
                   </div>
@@ -462,7 +460,7 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                         <div className="relative">
                           <Smartphone className="absolute left-4 top-4 text-gray-300" size={16} />
-                          <input type="tel" className="w-full bg-gray-50 p-4 pl-12 rounded-2xl text-xs font-black border border-gray-100" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
+                          <input type="tel" className="w-full bg-gray-100 p-4 pl-12 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
                         </div>
                     ) : ( <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-[0.2em]">{profile?.phone_number || "Non renseigné"}</p> )}
                 </div>
@@ -478,7 +476,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* INFORMATIONS */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-4">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><FileText size={16} /> Informations</h3>
             
@@ -503,13 +500,12 @@ export default function ComptePage() {
             </Link>
         </div>
 
-        {/* SÉCURITÉ */}
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-6">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><Lock size={16} /> Sécurité</h3>
             {isEditingPassword ? (
                 <form onSubmit={handleUpdatePassword} className="space-y-4">
                     <div className="relative">
-                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau code secret" className="w-full bg-gray-50 p-5 rounded-2xl text-xs font-black border border-gray-100 outline-none" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
+                        <input type={showPassword ? "text" : "password"} placeholder="Nouveau code secret" className="w-full bg-gray-100 p-5 rounded-2xl text-xs font-black border border-gray-100 outline-none text-gray-900" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-5 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                     </div>
                     <div className="flex gap-3">
@@ -525,7 +521,6 @@ export default function ComptePage() {
             )}
         </div>
 
-        {/* DANGER */}
         <div className="bg-red-50 p-8 rounded-[2.5rem] shadow-sm border border-red-100 space-y-5">
             <h3 className="font-black text-[10px] text-red-600 uppercase tracking-widest flex items-center gap-2"><AlertTriangle size={16} /> Zone Critique</h3>
             <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-200 text-red-600 font-black py-5 rounded-[1.8rem] text-[9px] uppercase tracking-widest active:scale-95 transition shadow-sm flex items-center justify-center gap-2">

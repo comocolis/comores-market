@@ -162,7 +162,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             alt="Couverture" 
             fill 
             className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" 
-            // CORRECTION 1 : Priority pour LCP + sizes
             priority={true}
             sizes="100vw"
         />
@@ -199,7 +198,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                         alt="" 
                         fill 
                         className="object-cover" 
-                        // CORRECTION 2 : sizes pour l'avatar principal
                         sizes="(max-width: 768px) 33vw, 128px"
                     />
                 ) : (
@@ -272,7 +270,15 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
             </div>
-            {profile.description && <p className="text-sm text-gray-600 max-w-md mx-auto italic leading-relaxed">"{profile.description}"</p>}
+            
+            {/* CORRECTION ALIGNEMENT DESCRIPTION : text-left */}
+            {profile.description && (
+                <div className="bg-gray-50/50 p-6 rounded-3xl mt-4">
+                    <p className="text-sm text-gray-700 leading-relaxed font-medium text-left whitespace-pre-wrap">
+                        {profile.description}
+                    </p>
+                </div>
+            )}
           </div>
 
           <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-3xl">
@@ -300,7 +306,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                             alt="" 
                                             fill 
                                             className="object-cover group-hover:scale-110 transition-transform duration-700" 
-                                            // CORRECTION 3 : sizes pour les miniatures produit
                                             sizes="(max-width: 768px) 50vw, 300px"
                                         />
                                     )}
@@ -357,7 +362,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                                 alt="" 
                                                 fill 
                                                 className="object-cover"
-                                                // CORRECTION 4 : sizes pour avatar avis
                                                 sizes="40px" 
                                             />
                                         ) : (
