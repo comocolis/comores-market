@@ -8,7 +8,7 @@ export default function SplashScreen() {
   const [isVisible, setIsVisible] = useState(true)
 
   useEffect(() => {
-    // Le splashscreen reste 2.5 secondes
+    // Le splashscreen reste visible 2.5 secondes
     const timer = setTimeout(() => {
       setIsVisible(false)
     }, 2500)
@@ -23,26 +23,11 @@ export default function SplashScreen() {
           key="splash"
           initial={{ opacity: 1 }}
           exit={{ opacity: 0, transition: { duration: 0.5 } }}
-          className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] z-[9999] flex flex-col items-center justify-center bg-white shadow-2xl overflow-hidden"
+          className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-9999 flex flex-col items-center justify-center bg-white shadow-2xl overflow-hidden"
         >
           
-          {/* --- SLOGAN EN HAUT (NOUVEAU) --- */}
-          <motion.div 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.8 }}
-            className="absolute top-16 left-0 w-full text-center px-6 z-10"
-          >
-             <p className="text-[10px] font-bold tracking-[0.25em] text-gray-400 uppercase mb-1">
-                Le marché comorien
-             </p>
-             <p className="text-sm font-black tracking-widest text-[#22c55e] uppercase">
-                Pour les Comoriens
-             </p>
-          </motion.div>
-
-          {/* --- CENTRE : LOGO ET CHARGEMENT --- */}
-          <div className="relative flex flex-col items-center justify-center">
+          {/* --- CENTRE : LOGO ET TITRE --- */}
+          <div className="relative flex flex-col items-center justify-center -mt-12">
             
             {/* LOGO ANIMÉ */}
             <motion.div
@@ -52,7 +37,7 @@ export default function SplashScreen() {
                 opacity: 1,
                 filter: [
                   "drop-shadow(0px 0px 0px rgba(0,0,0,0))",
-                  "drop-shadow(0px 15px 30px rgba(34, 197, 94, 0.2))", // Ombre verte subtile
+                  "drop-shadow(0px 10px 30px rgba(34, 197, 94, 0.15))", // Ombre verte légère
                   "drop-shadow(0px 0px 0px rgba(0,0,0,0))"
                 ]
               }}
@@ -71,11 +56,11 @@ export default function SplashScreen() {
                />
             </motion.div>
 
-            {/* TEXTE APP */}
+            {/* TITRE APP */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.2 }}
               className="text-center space-y-6"
             >
               <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
@@ -83,19 +68,32 @@ export default function SplashScreen() {
               </h1>
 
               {/* BARRE DE CHARGEMENT */}
-              <div className="w-32 h-1 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
+              <div className="w-24 h-1 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
                 <motion.div
                   initial={{ x: '-100%' }}
                   animate={{ x: '0%' }}
                   transition={{ duration: 1.5, ease: "circOut", delay: 0.1 }}
-                  className="absolute inset-0 bg-linear-to-r from-[#22c55e] to-emerald-400 rounded-full"
+                  className="absolute inset-0 bg-mustard rounded-full" 
                 />
               </div>
             </motion.div>
           </div>
 
-          {/* DÉCORATION BAS DE PAGE (Optionnel, pour l'élégance) */}
-          <div className="absolute bottom-0 w-full h-1 bg-linear-to-r from-transparent via-[#22c55e]/20 to-transparent" />
+          {/* --- SLOGAN EN BAS (FIXE & JAUNE #fbbf24) --- */}
+          {/* Plus d'animation de mouvement (y), position statique */}
+          <div className="absolute bottom-16 left-0 w-full text-center px-8 z-10">
+             <p className="text-[10px] font-bold tracking-[0.3em] text-gray-300 uppercase mb-3">
+                Bienvenue sur
+             </p>
+             
+             {/* Slogan Fixe avec la couleur demandée */}
+             <p className="text-sm font-bold text-mustard tracking-wide leading-relaxed font-sans italic">
+                "Le marché comorien en ligne,<br/>pour les Comoriens."
+             </p>
+          </div>
+
+          {/* DÉCORATION BAS DE PAGE */}
+          <div className="absolute bottom-0 w-full h-1.5 bg-linear-to-r from-transparent via-mustard/30 to-transparent" />
 
         </motion.div>
       )}

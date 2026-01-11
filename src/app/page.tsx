@@ -160,7 +160,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* 1. HEADER FIXE */}
-      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-[100] shadow-md">
+      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-100 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="font-extrabold text-2xl tracking-tight">
                 <span className="text-white">Comores</span>
@@ -182,10 +182,10 @@ export default function HomePage() {
       </div>
 
       {/* 2. BARRE CATEGORIES FIXE */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-[114px] z-[90] shadow-sm">
+      <div className="bg-white border-b border-gray-100 py-3 sticky top-28.5 z-90 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-[70px] p-2 rounded-2xl transition active:scale-95 group ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-400'}`}>
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-400'}`}>
                     <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-400'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
@@ -195,7 +195,7 @@ export default function HomePage() {
 
       {/* 3. BARRE SOUS-CATEGORIES & ILES (INTELLIGENTE) */}
       {/* On utilise transition-transform et translate-y pour la faire glisser sous la barre Categories */}
-      <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-[80] shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-[200px] translate-y-0 opacity-100' : 'top-[114px] -translate-y-full opacity-0 pointer-events-none'}`}>
+      <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-80 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-50 translate-y-0 opacity-100' : 'top-28.5 -translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
@@ -249,7 +249,7 @@ export default function HomePage() {
                       
                       <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
                         {isBoosted && (
-                          <div className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-lg border border-white/20 flex items-center gap-1">
+                          <div className="bg-linear-to-r from-amber-500 to-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-lg border border-white/20 flex items-center gap-1">
                             <Sparkles size={10} className="animate-pulse" /> EN VEDETTE
                           </div>
                         )}
