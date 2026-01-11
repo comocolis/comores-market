@@ -1,21 +1,21 @@
 {
   "name": "Comores Market",
   "short_name": "ComoresMarket",
-  "description": "Achat et Vente aux Comores",
+  "description": "La première marketplace des Comores",
   "start_url": "/",
-  "display": "fullscreen",
-  "orientation": "portrait",
+  "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#F8FAFC",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "/logo.png",
+      "src": "/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
-      "src": "/logo.png",
+      "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

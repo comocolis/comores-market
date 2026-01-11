@@ -11,7 +11,7 @@ import { Suspense } from "react";
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
   
-  // AJOUT SEO : URL Canonique pour éviter les doublons aux yeux de Google
+  // URL Canonique pour le SEO Google
   alternates: {
     canonical: '/',
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   
   appleWebApp: {
     capable: true,
-    // "black-translucent" permet à l'app de passer sous la barre d'état (Heure/Batterie)
+    // "black-translucent" permet à l'app de passer sous la barre d'état
     statusBarStyle: "black-translucent",
     title: "Comores Market",
   },
@@ -45,8 +45,11 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/logo.png', sizes: '192x192', type: 'image/png' },
+      // Icônes standards pour Android/Chrome
+      { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
+    // Icône spécifique pour iOS (iPhone/iPad) - Doit être carrée non transparente
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
@@ -69,13 +72,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      {/* Fond gris foncé sur le body pour le mode PC */}
       <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
         <NativeFeatures />
         <SplashScreen />
 
-        {/* CADRE MOBILE : Centré sur PC (max-w-120), Plein écran sur Mobile */}
+        {/* CADRE MOBILE : Centré sur PC, Plein écran sur Mobile */}
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           
           <InstallBanner />
@@ -88,7 +90,6 @@ export default function RootLayout({
           <EliteAssistant />
 
           {/* DOCK DE NAVIGATION */}
-          {/* Fixé en bas, centré sur PC, ne dépasse pas la largeur du téléphone */}
           <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
               <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
                 <BottomNav />
