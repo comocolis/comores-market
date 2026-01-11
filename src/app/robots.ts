@@ -5,8 +5,18 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/compte/', '/admin/', '/messages/', '/favoris/'], // On protège la vie privée
+      disallow: [
+        '/compte/',       // Privé
+        '/admin/',        // Privé
+        '/messages/',     // Privé
+        '/favoris/',      // Privé
+        '/publier/',      // Privé (C'est souvent ici que Google bloque)
+        '/mes-annonces/', // Privé
+        '/modifier/',     // Privé
+        '/api/',          // Technique
+        '/auth/',         // Connexion
+      ],
     },
-    sitemap: 'https://comores-market.com/sitemap.xml', // Changez le domaine si nécessaire
+    sitemap: 'https://comores-market.com/sitemap.xml',
   }
 }
