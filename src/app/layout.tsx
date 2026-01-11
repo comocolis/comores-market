@@ -10,6 +10,12 @@ import { Suspense } from "react";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
+  
+  // AJOUT SEO : URL Canonique pour éviter les doublons aux yeux de Google
+  alternates: {
+    canonical: '/',
+  },
+
   title: {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
@@ -84,11 +90,11 @@ export default function RootLayout({
           {/* DOCK DE NAVIGATION */}
           {/* Fixé en bas, centré sur PC, ne dépasse pas la largeur du téléphone */}
           <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
-             <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
-               <BottomNav />
-             </Suspense>
-             {/* Espace pour la barre de geste (Safe Area) */}
-             <div className="h-safe-bottom w-full bg-[#F8FAFC]" />
+              <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
+                <BottomNav />
+              </Suspense>
+              {/* Espace pour la barre de geste (Safe Area) */}
+              <div className="h-safe-bottom w-full bg-[#F8FAFC]" />
           </div>
 
         </div>

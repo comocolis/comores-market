@@ -71,9 +71,10 @@ const ICON_MAP: Record<string, any> = {
     'Diplôme': GraduationCap
 };
 
+// CORRECTION : Utilisation du fichier LOCAL
 const getOptimizedImage = (url: string | null, width = 800) => {
   if (!url || url === 'undefined' || url === 'null') {
-    return `https://placehold.co/600x400/EEE/31343C?text=Comores+Market`;
+    return '/placeholder.png'; // Fichier local dans public/
   }
   if (url.includes('supabase.co')) {
     return `${url}?width=${width}&quality=60&resize=contain&format=webp`;
@@ -299,7 +300,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       {/* GALERIE PHOTO */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
-          src={getOptimizedImage(images[selectedImageIndex], 1000) || '/placeholder.png'} 
+          src={getOptimizedImage(images[selectedImageIndex], 1000)} 
           alt={product.title} 
           fill 
           className="object-cover opacity-90 transition duration-700" 
@@ -320,7 +321,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 ${selectedImageIndex === i ? 'border-brand scale-110 shadow-xl' : 'border-white/40 opacity-50'}`}>
                     <Image 
-                        src={getOptimizedImage(img, 150) || '/placeholder.png'} 
+                        src={getOptimizedImage(img, 150)} 
                         alt="" 
                         width={48} 
                         height={48} 
@@ -375,7 +376,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                       <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
                           {seller?.avatar_url ? (
                             <Image 
-                                src={getOptimizedImage(seller.avatar_url, 200) || '/placeholder.png'} 
+                                src={getOptimizedImage(seller.avatar_url, 200)} 
                                 alt="" 
                                 fill 
                                 className="object-cover" 
