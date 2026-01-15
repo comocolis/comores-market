@@ -1,59 +1,53 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
+import { type EmailOtpType } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   
-  // 1. On récupère le code et la destination
+  // Paramètres possibles dans le lien
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/compte' // Par défaut vers /compte
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type') as EmailOtpType | null
+  const next = searchParams.get('next') ?? '/compte'
 
-  if (code) {
-    const cookieStore = await cookies()
+  const cookieStore = await cookies()
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll()
-          },
-          setAll(cookiesToSet) {
-            try {
-              cookiesToSet.forEach(({ name, value, options }) =>
-                cookieStore.set(name, value, options)
-              )
-            } catch {
-              // Ignore error if called from a Server Component
-            }
-          },
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() { return cookieStore.getAll() },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options))
+          } catch {}
         },
-      }
-    )
+      },
+    }
+  )
 
-    // 2. ÉCHANGE DU CODE (C'est ici que la magie opère)
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-
+  // CAS 1 : Connexion par Token Hash (Réinitialisation mot de passe)
+  if (token_hash && type) {
+    const { error } = await supabase.auth.verifyOtp({
+      type,
+      token_hash,
+    })
     if (!error) {
-      // 3. SUCCÈS : On redirige vers la page prévue (ex: /compte)
-      // On s'assure que l'URL de redirection est absolue
-      const forwardedHost = request.headers.get('x-forwarded-host') // Pour le déploiement (Netlify/Vercel)
-      const isLocal = origin.includes('localhost')
-      
-      if (isLocal) {
-        return NextResponse.redirect(`${origin}${next}`)
-      } else if (forwardedHost) {
-        return NextResponse.redirect(`https://${forwardedHost}${next}`)
-      } else {
-        return NextResponse.redirect(`${origin}${next}`)
-      }
-    } else {
-      console.error('Auth Code Error:', error)
+      return NextResponse.redirect(`${origin}${next}`)
     }
   }
 
-  // Échec : on renvoie vers l'auth avec une erreur
-  return NextResponse.redirect(`${origin}/auth?error=invalid_link`)
+  // CAS 2 : Connexion par Code classique (Magic Link, Google, etc.)
+  if (code) {
+    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error) {
+      return NextResponse.redirect(`${origin}${next}`)
+    }
+  }
+
+  // Échec : Retour à la connexion avec erreur
+  return NextResponse.redirect(`${origin}/auth?error=auth_code_error`)
 }

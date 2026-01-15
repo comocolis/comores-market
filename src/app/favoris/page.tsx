@@ -1,6 +1,7 @@
 'use client'
 
 export const dynamic = 'force-dynamic';
+
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
@@ -39,7 +40,7 @@ export default function FavorisPage() {
     <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900">
       
       {/* --- HEADER UNIFORMISÉ (Vert Standard bg-brand) --- */}
-      <div className="bg-brand pt-safe px-4 pb-6 sticky top-0 z-40 shadow-md rounded-b-[2rem]">
+      <div className="bg-brand pt-safe px-4 pb-6 sticky top-0 z-40 shadow-md rounded-b-4xl">
         <div className="flex justify-between items-center pt-2 px-2">
             <div className="flex items-center gap-3">
                 <button onClick={() => router.back()} className="p-2 -ml-2 text-white active:scale-90 transition">

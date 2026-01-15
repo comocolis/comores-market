@@ -4,22 +4,14 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, ChangeEvent } from 'react'
 import Image from 'next/image'
-import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X } from 'lucide-react'
+import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-// CONFIGURATION DES PAYS (Mise à jour)
 const ALLOWED_COUNTRIES = [
-  // Comores : Accepte Telma (3xx) et Huri (4xx) -> 7 chiffres
   { label: '🇰🇲 Comores', code: '+269', placeholder: '334 20 63 / 434 20 63', regex: /^(3[234]\d{5}|4\d{6})$/ },
-  
-  // Mayotte : Mobile commence par 06 39... -> 639 + 6 chiffres = 9 chiffres
   { label: '🇾🇹 Mayotte', code: '+262', placeholder: '639 00 00 00', regex: /^(639\d{6})$/ },
-  
-  // Réunion : Mobile commence par 06 92/93... -> 69x + 6 chiffres = 9 chiffres
   { label: '🇷🇪 La Réunion', code: '+262', placeholder: '692 00 00 00', regex: /^(69[23]\d{6})$/ },
-  
-  // France : Mobile commence par 06 ou 07 -> 6/7 + 8 chiffres = 9 chiffres
   { label: '🇫🇷 France', code: '+33', placeholder: '6 12 34 56 78', regex: /^[67]\d{8}$/ }, 
 ]
 
@@ -27,7 +19,7 @@ export default function AuthPage() {
   const supabase = createClient()
   const router = useRouter()
   
-  const [view, setView] = useState<'login' | 'register' | 'forgot'>('login')
+  const [view, setView] = useState<'login' | 'register' | 'forgot' | 'magic_link'>('login')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   
@@ -71,17 +63,15 @@ export default function AuthPage() {
     setLoading(true)
 
     try {
+      // --- INSCRIPTION ---
       if (view === 'register') {
-        // Nettoyage : On enlève les espaces et le premier 0 si présent
         const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '')
         
         if (!cleanBody) throw new Error("Le numéro de téléphone est obligatoire.")
         if (!formData.city.trim()) throw new Error("La ville est obligatoire.")
         
-        // VÉRIFICATION STRICTE BASÉE SUR LE PAYS CHOISI
         if (!selectedCountry.regex.test(cleanBody)) throw new Error(`Numéro invalide pour ${selectedCountry.label.split(' ')[1]}.`)
 
-        // Construction du numéro complet (+269...)
         const fullPhone = `${selectedCountry.code}${cleanBody}`
         let publicAvatarUrl = ''
 
@@ -124,6 +114,7 @@ export default function AuthPage() {
         setAvatarPreview(null)
       }
       
+      // --- CONNEXION CLASSIQUE ---
       else if (view === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
@@ -135,14 +126,32 @@ export default function AuthPage() {
         router.refresh()
       }
 
+      // --- MOT DE PASSE OUBLIÉ (C'est ici la clé) ---
       else if (view === 'forgot') {
         const origin = window.location.origin
+        // On demande à Supabase de renvoyer vers le callback avec l'instruction "aller à /compte/reset"
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-            redirectTo: `${origin}/auth/callback?next=/compte`,
+            redirectTo: `${origin}/auth/callback?next=/compte/reset`,
         })
+        
         if (error) throw error
-        toast.success("Email envoyé !")
+        toast.success("Email envoyé ! Vérifiez votre boîte de réception.")
         setView('login')
+      }
+
+      // --- LIEN MAGIQUE ---
+      else if (view === 'magic_link') {
+        const origin = window.location.origin
+        const { error } = await supabase.auth.signInWithOtp({
+            email: formData.email,
+            options: {
+                // Ici on redirige juste vers le compte
+                emailRedirectTo: `${origin}/auth/callback?next=/compte`,
+            }
+        })
+        
+        if (error) throw error
+        toast.success("Lien magique envoyé ! Vérifiez vos emails.")
       }
 
     } catch (error: any) {
@@ -154,28 +163,39 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
-      
-      {/* BANDEAU SUPERIEUR VERT */}
       <div className="absolute top-0 left-0 w-full h-[45%] bg-brand rounded-b-[2.5rem] z-0 shadow-sm"></div>
 
-      {/* CONTENU */}
       <div className="w-full max-w-sm relative z-10 flex flex-col items-center">
-        
-        {/* LOGO */}
         <div className="mb-8 text-center">
             <h1 className="text-3xl font-extrabold tracking-tight">
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
             </h1>
-            <p className="text-white/90 text-sm mt-2 font-medium">Achat et vente entre les îles<br></br> (NAM KARIBU)</p>
+            <p className="text-white/90 text-sm mt-2 font-medium">Achat et vente entre les îles<br/>(NAM KARIBU)</p>
         </div>
 
-        {/* CARTE BLANCHE */}
         <div className="bg-white p-8 rounded-3xl shadow-xl w-full">
-            {view !== 'forgot' && (
+            {!['forgot', 'magic_link'].includes(view) && (
                 <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
                     <button onClick={() => setView('login')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Connexion</button>
                     <button onClick={() => setView('register')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Inscription</button>
+                </div>
+            )}
+
+            {view === 'magic_link' && (
+                <div className="mb-6 text-center">
+                    <div className="w-12 h-12 bg-mustard/10 rounded-full flex items-center justify-center mx-auto mb-3 text-mustard">
+                        <Wand2 size={24} />
+                    </div>
+                    <h2 className="text-lg font-bold text-gray-900">Connexion sans mot de passe</h2>
+                    <p className="text-xs text-gray-500">Nous vous enverrons un lien magique.</p>
+                </div>
+            )}
+
+            {view === 'forgot' && (
+                <div className="mb-6 text-center">
+                    <h2 className="text-lg font-bold text-gray-900">Réinitialisation</h2>
+                    <p className="text-xs text-gray-500">Entrez votre email pour changer de mot de passe.</p>
                 </div>
             )}
 
@@ -183,30 +203,12 @@ export default function AuthPage() {
                 
                 {view === 'register' && (
                     <div className="space-y-4 animate-in fade-in">
-                        
-                        {/* AVATAR UPLOAD */}
                         <div className="flex justify-center mb-6 relative">
                             <div className="relative">
-                                <div 
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}
-                                >
-                                    {avatarPreview ? (
-                                        <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" />
-                                    ) : (
-                                        <Camera className="text-gray-400 group-hover:text-mustard transition" size={32} />
-                                    )}
+                                <div onClick={() => fileInputRef.current?.click()} className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}>
+                                    {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-400 group-hover:text-mustard transition" size={32} />}
                                 </div>
-                                
-                                {avatarPreview && (
-                                    <button 
-                                        type="button"
-                                        onClick={removeAvatar}
-                                        className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                )}
+                                {avatarPreview && <button type="button" onClick={removeAvatar} className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"><X size={14} /></button>}
                             </div>
                             <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
                         </div>
@@ -247,13 +249,12 @@ export default function AuthPage() {
                     </div>
                 )}
 
-                {/* Email */}
                 <div className="relative group">
                     <Mail className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={20} />
                     <input type="email" placeholder="Adresse email" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
                 </div>
 
-                {view !== 'forgot' && (
+                {(view === 'login' || view === 'register') && (
                     <div className="relative group">
                         <Lock className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={20} />
                         <input type={showPassword ? "text" : "password"} placeholder="Mot de passe" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-mustard font-medium transition" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
@@ -262,12 +263,27 @@ export default function AuthPage() {
                 )}
 
                 <button type="submit" disabled={loading} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2">
-                    {loading ? <Loader2 className="animate-spin" /> : (view === 'login' ? 'Se connecter' : view === 'register' ? 'Créer mon compte' : 'Envoyer le lien')}
+                    {loading ? <Loader2 className="animate-spin" /> : 
+                        (view === 'login' ? 'Se connecter' : 
+                         view === 'register' ? 'Créer mon compte' : 
+                         view === 'magic_link' ? 'Envoyer le lien magique' : 
+                         'Envoyer le lien de réinitialisation')
+                    }
                 </button>
             </form>
 
-            <div className="mt-6 text-center">
-                {view === 'login' ? <button onClick={() => setView('forgot')} className="text-xs text-gray-400 underline">Mot de passe oublié ?</button> : view === 'forgot' && <button onClick={() => setView('login')} className="text-xs text-gray-400 underline">Retour connexion</button>}
+            <div className="mt-6 flex flex-col gap-3 text-center">
+                {view === 'login' && (
+                    <button onClick={() => setView('magic_link')} className="flex items-center justify-center gap-2 text-sm font-bold text-mustard hover:text-mustard-dark transition">
+                        <Wand2 size={16} /> Se connecter sans mot de passe
+                    </button>
+                )}
+
+                {view === 'login' ? (
+                    <button onClick={() => setView('forgot')} className="text-xs text-gray-400 underline">Mot de passe oublié ?</button>
+                ) : (view === 'forgot' || view === 'magic_link') && (
+                    <button onClick={() => setView('login')} className="text-xs text-gray-400 underline">Retour connexion</button>
+                )}
             </div>
         </div>
         <Link href="/" className="mt-8 text-gray-400 text-sm hover:text-gray-600 font-medium">Continuer sans compte</Link>
