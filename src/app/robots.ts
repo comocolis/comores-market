@@ -1,20 +1,20 @@
 import { MetadataRoute } from 'next'
- 
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
       allow: '/',
       disallow: [
-        '/compte/',       // Privé
-        '/admin/',        // Privé
-        '/messages/',     // Privé
-        '/favoris/',      // Privé
-        '/publier/',      // Privé (C'est souvent ici que Google bloque)
-        '/mes-annonces/', // Privé
-        '/modifier/',     // Privé
-        '/api/',          // Technique
-        '/auth/',         // Connexion
+        '/compte/',       // Bloque tout l'espace mon compte
+        '/admin/',        // Bloque l'admin
+        '/auth/',         // Bloque les pages de connexion/callback
+        '/api/',          // Bloque les API
+        '/mes-annonces/', // Bloque les annonces perso
+        '/favoris/',      // Bloque les favoris
+        '/modifier/',     // Bloque l'édition
+        '/publier/',      // Bloque la publication
+        '/boost/',        // Bloque le boost
       ],
     },
     sitemap: 'https://comores-market.com/sitemap.xml',
