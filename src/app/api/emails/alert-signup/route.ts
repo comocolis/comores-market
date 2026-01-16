@@ -1,20 +1,26 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// Initialisation avec votre clé API (à mettre dans .env.local plus tard)
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Remplacez par VOTRE email personnel où vous voulez recevoir l'alerte
-const ADMIN_EMAIL = 'contact.comoresmarket@gmail.com'; 
-
 export async function POST(request: Request) {
+  // 1. VÉRIFICATION DE LA CLÉ
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
+  }
+
+  const resend = new Resend(apiKey);
+
   try {
     const body = await request.json();
     const { fullName, email, phone, island, city } = body;
 
+    // 2. ENVOI DE L'EMAIL
     const { data, error } = await resend.emails.send({
-      from: 'Comores Market <onboarding@resend.dev>', // Utilisez votre domaine si configuré, sinon laissez resend.dev
-      to: [ADMIN_EMAIL],
+      from: 'Comores Market <onboarding@resend.dev>', // Ne touchez pas à ça pour l'instant
+      
+      // ⚠️ C'est ici la correction : Mettez VOTRE email de compte Resend
+      to: ['abdesisco1@gmail.com'], 
+      
       subject: `🚀 Nouvel inscrit : ${fullName}`,
       html: `
         <div style="font-family: sans-serif; color: #333;">
@@ -32,11 +38,14 @@ export async function POST(request: Request) {
     });
 
     if (error) {
+      console.error("❌ Erreur Resend:", error);
       return NextResponse.json({ error }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, data });
-  } catch (error) {
-    return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 });
+
+  } catch (err: any) {
+    console.error("❌ Erreur Serveur:", err.message);
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
