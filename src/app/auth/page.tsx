@@ -102,6 +102,25 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.session) {
+            // --- ENVOI DE L'ALERTE ADMIN ---
+            try {
+                await fetch('/api/emails/alert-signup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        fullName: formData.fullName,
+                        email: formData.email,
+                        phone: fullPhone,
+                        island: formData.island,
+                        city: formData.city
+                    })
+                });
+            } catch (alertErr) {
+                console.error("Erreur alerte inscription", alertErr);
+                // On ne bloque pas l'inscription si l'email d'alerte échoue
+            }
+            // ------------------------------
+
             toast.success("Bienvenue ! Compte créé avec succès.")
             router.push('/compte')
             router.refresh()
