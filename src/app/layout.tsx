@@ -7,6 +7,7 @@ import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
 import NativeFeatures from '@/components/NativeFeatures';
 import { Suspense } from "react";
+import Script from 'next/script'; // <--- 1. IMPORT NÉCESSAIRE POUR GOOGLE
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -87,6 +88,22 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
+        {/* 2. TAG GLOBAL GOOGLE ADS (TRACKING) */}
+        {/* Charge le script externe Google */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729"
+          strategy="afterInteractive"
+        />
+        {/* Initialise la configuration */}
+        <Script id="google-ads-tag" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-16447515729');
+          `}
+        </Script>
+
         <NativeFeatures />
         <SplashScreen />
 
