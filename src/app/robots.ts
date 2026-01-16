@@ -1,22 +1,26 @@
 import { MetadataRoute } from 'next'
 
 export default function robots(): MetadataRoute.Robots {
+  // ⚠️ Assurez-vous que c'est bien votre URL finale
+  const baseUrl = 'https://comores-market.com'
+
   return {
     rules: {
       userAgent: '*',
       allow: '/',
       disallow: [
-        '/compte/',       // Bloque tout l'espace mon compte
-        '/admin/',        // Bloque l'admin
-        '/auth/',         // Bloque les pages de connexion/callback
-        '/api/',          // Bloque les API
-        '/mes-annonces/', // Bloque les annonces perso
-        '/favoris/',      // Bloque les favoris
-        '/modifier/',     // Bloque l'édition
-        '/publier/',      // Bloque la publication
-        '/boost/',        // Bloque le boost
+        '/compte/',       // Espace privé
+        '/admin/',        // Espace admin
+        '/auth/',         // Pages de connexion
+        '/api/',          // API Backend
+        '/mes-annonces/', // Gestion des annonces perso
+        '/favoris/',      // Favoris perso
+        '/modifier/',     // Modification d'annonce
+        '/publier/',      // Formulaire de publication
+        '/boost/',        // Tunnel de paiement
+        '/messages/',     // Messagerie privée
       ],
     },
-    sitemap: 'https://comores-market.com/sitemap.xml',
+    sitemap: `${baseUrl}/sitemap.xml`,
   }
 }

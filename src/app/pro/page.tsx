@@ -1,13 +1,33 @@
 'use client'
 
-import { Check, Crown, ShieldCheck, Zap, Smartphone, MessageCircle, ArrowLeft, CreditCard, LayoutGrid, Instagram, Image as ImageIcon } from 'lucide-react'
+import { createClient } from '@/utils/supabase/client'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+// AJOUT DE 'Lock' DANS LES IMPORTS CI-DESSOUS
+import { Check, Crown, ShieldCheck, Zap, Smartphone, MessageCircle, ArrowLeft, CreditCard, LayoutGrid, Instagram, Image as ImageIcon, LogIn, Loader2, Lock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
-import { useState } from 'react'
+import { toast } from 'sonner'
 
 export default function ProPage() {
+  const supabase = createClient()
+  const router = useRouter()
+
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly')
   const [paymentMethod, setPaymentMethod] = useState<'mvola' | 'card'>('mvola')
+  
+  // États pour l'authentification
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      setUser(user)
+      setLoading(false)
+    }
+    checkUser()
+  }, [supabase])
 
   // INFOS PAIEMENT
   const MVOLA_NUMBER = "434 20 63"
@@ -16,22 +36,27 @@ export default function ProPage() {
   const getWhatsAppMessage = (plan: 'monthly' | 'yearly') => {
       const amount = plan === 'monthly' ? '2500' : '25000'
       const type = plan === 'monthly' ? 'MENSUEL' : 'ANNUEL'
+      // On ajoute l'email de l'utilisateur s'il est connecté pour faciliter le traitement
+      const userEmail = user?.email ? `\n(Compte : ${user.email})` : ''
+      
       return encodeURIComponent(
           `Bonjour, je viens d'envoyer ${amount} KMF par Mvola au ${MVOLA_NUMBER}.\n` +
-          `Voici mon ID de transaction pour activer mon compte PRO ${type}.`
+          `Voici mon ID de transaction pour activer mon compte PRO ${type}.${userEmail}`
       )
   }
 
-  // LISTE COMPLÈTE DES AVANTAGES (Fusionnée)
+  // LISTE COMPLÈTE DES AVANTAGES
   const benefits = [
     { text: "Badge 'Vendeur Vérifié' (Gold)", icon: <ShieldCheck size={18} className="text-brand" /> },
     { text: "Visibilité Boostée (Tête de liste)", icon: <Zap size={18} className="text-amber-500" /> },
     { text: "Galerie jusqu'à 10 photos", icon: <LayoutGrid size={18} className="text-blue-500" /> },
-    { text: "Photos illimitées dans le chat", icon: <ImageIcon size={18} className="text-purple-500" /> }, // Remis
+    { text: "Photos illimitées dans le chat", icon: <ImageIcon size={18} className="text-purple-500" /> },
     { text: "Lien WhatsApp direct sur l'annonce", icon: <MessageCircle size={18} className="text-green-500" /> },
-    { text: "Liens Réseaux Sociaux (FB/Insta)", icon: <Instagram size={18} className="text-pink-500" /> }, // Remis
+    { text: "Liens Réseaux Sociaux (FB/Insta)", icon: <Instagram size={18} className="text-pink-500" /> },
     { text: "Statistiques de vues détaillées", icon: <Check size={18} className="text-gray-400" /> },
   ]
+
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" /></div>
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-24 font-sans">
@@ -81,7 +106,7 @@ export default function ProPage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className={`p-6 rounded-[2rem] shadow-xl border-2 relative overflow-hidden bg-white ${selectedPlan === 'yearly' ? 'border-amber-400' : 'border-white'}`}
+          className={`p-6 rounded-4xl shadow-xl border-2 relative overflow-hidden bg-white ${selectedPlan === 'yearly' ? 'border-amber-400' : 'border-white'}`}
         >
           {selectedPlan === 'yearly' && (
              <div className="absolute top-0 right-0 bg-amber-400 text-gray-900 text-[10px] font-black px-3 py-1.5 rounded-bl-2xl uppercase tracking-wider">
@@ -134,28 +159,45 @@ export default function ProPage() {
               </button>
           </div>
 
-          {/* CONTENU DU PAIEMENT */}
+          {/* CONTENU DU PAIEMENT (PROTÉGÉ) */}
           {paymentMethod === 'mvola' ? (
               <div className="animate-in fade-in zoom-in-95 duration-300">
-                  <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 mb-4 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-[#FFD700] rounded-lg flex items-center justify-center text-white font-black text-lg shadow-sm">M</div>
-                          <div>
-                              <p className="text-[10px] font-bold text-gray-500 uppercase">Envoyer au</p>
-                              <p className="text-lg font-black text-gray-900 tracking-wider">{MVOLA_NUMBER}</p>
-                          </div>
+                  {!user ? (
+                      // --- VISITEUR NON CONNECTÉ ---
+                      <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-200 border-dashed">
+                          <Lock size={24} className="mx-auto text-gray-400 mb-3" />
+                          <p className="text-xs font-bold text-gray-500 mb-4">Connectez-vous pour voir les instructions de paiement et activer votre compte.</p>
+                          <Link 
+                            href="/auth"
+                            className="w-full bg-gray-900 text-white font-bold py-3.5 rounded-xl shadow-lg flex items-center justify-center gap-2 active:scale-95 transition"
+                          >
+                              <LogIn size={16} /> Se connecter
+                          </Link>
                       </div>
-                  </div>
-                  
-                  <a 
-                    href={`https://wa.me/${WHATSAPP_CONTACT}?text=${getWhatsAppMessage(selectedPlan)}`}
-                    target="_blank"
-                    className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95 uppercase text-xs tracking-widest"
-                  >
-                    <MessageCircle size={18} fill="currentColor" />
-                    Envoyer la preuve
-                  </a>
-                  <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">Activation sous 15 min après envoi.</p>
+                  ) : (
+                      // --- UTILISATEUR CONNECTÉ ---
+                      <>
+                          <div className="bg-yellow-50 border border-yellow-100 rounded-xl p-4 mb-4 flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                  <div className="w-10 h-10 bg-[#FFD700] rounded-lg flex items-center justify-center text-white font-black text-lg shadow-sm">M</div>
+                                  <div>
+                                      <p className="text-[10px] font-bold text-gray-500 uppercase">Envoyer au</p>
+                                      <p className="text-lg font-black text-gray-900 tracking-wider">{MVOLA_NUMBER}</p>
+                                  </div>
+                              </div>
+                          </div>
+                          
+                          <a 
+                            href={`https://wa.me/${WHATSAPP_CONTACT}?text=${getWhatsAppMessage(selectedPlan)}`}
+                            target="_blank"
+                            className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95 uppercase text-xs tracking-widest"
+                          >
+                            <MessageCircle size={18} fill="currentColor" />
+                            Envoyer la preuve
+                          </a>
+                          <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">Activation sous 15 min après envoi.</p>
+                      </>
+                  )}
               </div>
           ) : (
               <div className="bg-gray-50 border border-gray-200 border-dashed rounded-xl p-8 text-center animate-in fade-in zoom-in-95 duration-300">

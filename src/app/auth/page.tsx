@@ -126,10 +126,9 @@ export default function AuthPage() {
         router.refresh()
       }
 
-      // --- MOT DE PASSE OUBLIÉ (C'est ici la clé) ---
+      // --- MOT DE PASSE OUBLIÉ ---
       else if (view === 'forgot') {
         const origin = window.location.origin
-        // On demande à Supabase de renvoyer vers le callback avec l'instruction "aller à /compte/reset"
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
             redirectTo: `${origin}/auth/callback?next=/compte/reset`,
         })
@@ -145,7 +144,6 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithOtp({
             email: formData.email,
             options: {
-                // Ici on redirige juste vers le compte
                 emailRedirectTo: `${origin}/auth/callback?next=/compte`,
             }
         })
@@ -286,7 +284,22 @@ export default function AuthPage() {
                 )}
             </div>
         </div>
-        <Link href="/" className="mt-8 text-gray-400 text-sm hover:text-gray-600 font-medium">Continuer sans compte</Link>
+
+        {/* --- NOUVEAU MENU PUBLIC EN BAS --- */}
+        <div className="mt-8 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Link href="/" className="text-gray-500 text-sm hover:text-gray-900 font-bold transition">
+                Continuer sans compte
+            </Link>
+
+            <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                <Link href="/pro" className="hover:text-brand transition">Vendeur Pro</Link>
+                <span>•</span>
+                <Link href="/faq" className="hover:text-brand transition">Aide</Link>
+                <span>•</span>
+                <Link href="/cgu" className="hover:text-brand transition">Infos</Link>
+            </div>
+        </div>
+
       </div>
     </div>
   )

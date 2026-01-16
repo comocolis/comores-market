@@ -20,8 +20,11 @@ export const metadata: Metadata = {
     default: "Comores Market - Achat et Vente aux Comores",
     template: "%s | Comores Market"
   },
-  description: "La première marketplace des Comores. Voitures, Immobilier, Téléphones.",
+  description: "La première marketplace des Comores. Achetez et vendez voitures, immobilier, téléphones et bien plus à Ngazidja, Ndzouani, Mwali et Maore.",
   
+  // Mots-clés pour le référencement
+  keywords: ['Comores', 'Vente', 'Achat', 'Voiture', 'Immobilier', 'Occasion', 'Moroni', 'Mutsamudu', 'Fomboni', 'Mayotte', 'Annonces'],
+
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
@@ -31,12 +34,24 @@ export const metadata: Metadata = {
     type: 'website',
     images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
   },
+
+  // Règles pour les robots d'indexation (Google)
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
   
   manifest: '/manifest.json',
   
   appleWebApp: {
     capable: true,
-    // "black-translucent" permet à l'app de passer sous la barre d'état
     statusBarStyle: "black-translucent",
     title: "Comores Market",
   },
@@ -45,11 +60,9 @@ export const metadata: Metadata = {
     shortcut: '/favicon.ico',
     icon: [
       { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-      // Icônes standards pour Android/Chrome
       { url: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
       { url: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
     ],
-    // Icône spécifique pour iOS (iPhone/iPad) - Doit être carrée non transparente
     apple: [
       { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
     ],
@@ -83,7 +96,9 @@ export default function RootLayout({
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
           
-          <main className="flex-1 relative bg-[#F8FAFC] z-0">
+          {/* Main Content */}
+          {/* pb-24 est conservé pour que le contenu ne soit pas caché par le BottomNav */}
+          <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
             {children}
           </main>
 
