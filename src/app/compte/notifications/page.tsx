@@ -42,7 +42,7 @@ export default function NotificationsPage() {
     setLoading(false)
 
     // 2. Marquer comme lu (DÉCLENCHE LE REALTIME DE LA BOTTOMNAV)
-    const unreadIds = data?.filter(n => !n.is_read).map(n => n.id) || []
+    const unreadIds = data?.filter((n: any) => !n.is_read).map((n: any) => n.id) || []
     if (unreadIds.length > 0) {
       const { error: updateError } = await supabase
         .from('notifications')
