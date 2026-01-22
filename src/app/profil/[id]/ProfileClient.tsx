@@ -82,7 +82,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       const delays: number[] = [];
       const convs: { [key: string]: any } = {};
       
-      msgs.forEach(m => {
+      msgs.forEach((m: any) => {
         const otherId = m.sender_id === userId ? m.receiver_id : m.sender_id;
         const key = `${m.product_id}-${otherId}`;
         if (!convs[key]) convs[key] = { lastReceivedAt: null };
