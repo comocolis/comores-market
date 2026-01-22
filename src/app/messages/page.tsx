@@ -35,7 +35,7 @@ const containsPhoneNumber = (cleanText: string) => /\d{7,}/.test(cleanText);
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-[100dvh] bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>}>
+    <Suspense fallback={<div className="flex justify-center items-center h-dvh bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>}>
       <MessagesContent />
     </Suspense>
   )
@@ -248,7 +248,7 @@ function MessagesContent() {
     return (
         <div className="min-h-screen bg-[#F8FAFC] pb-24 font-sans text-gray-900 overflow-x-hidden flex flex-col">
             {/* Header Fixe avec constraints Mobile */}
-            <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-brand pt-safe px-4 pb-6 z-30 shadow-md rounded-b-[2.5rem]">
+            <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-120 bg-brand pt-safe px-4 pb-6 z-30 shadow-md rounded-b-[2.5rem]">
                 <div className="flex justify-between items-center mb-5 pt-4 px-2">
                     <div>
                         <h1 className="text-white font-black text-2xl tracking-tighter">Messages</h1>
@@ -287,7 +287,7 @@ function MessagesContent() {
                     <AnimatePresence>
                         {filteredConvs.map((conv, idx) => (
                             <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} 
-                            className="bg-white p-4 rounded-[2rem] shadow-sm border border-white flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-lg group">
+                            className="bg-white p-4 rounded-4xl shadow-sm border border-white flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-lg group">
                                 <div className="w-16 h-16 bg-gray-50 rounded-2xl shrink-0 relative overflow-hidden shadow-inner">
                                     {conv.productImage ? (
                                       <Image src={getOptimizedImage(conv.productImage, 150) || '/placeholder.jpg'} alt="" fill className="object-cover" />
@@ -305,7 +305,7 @@ function MessagesContent() {
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
-                                            <p className="text-[9px] text-brand font-black tracking-[0.1em] truncate mb-0.5 opacity-50">{conv.productTitle}</p>
+                                            <p className="text-[9px] text-brand font-black tracking-widest truncate mb-0.5 opacity-50">{conv.productTitle}</p>
                                             <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'text-gray-400 font-medium'}`}>{conv.lastMessage}</p>
                                         </div>
                                         {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-lg flex items-center justify-center text-[9px] text-white font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
@@ -322,10 +322,10 @@ function MessagesContent() {
 
   // --- VUE CHAT (CORRIGÉE : Cadre Mobile Centré) ---
   return (
-    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] h-[100dvh] bg-[#F8FAFC] font-sans text-gray-900 flex flex-col z-[200] shadow-2xl border-x border-gray-100/50">
+    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-120 h-dvh bg-[#F8FAFC] font-sans text-gray-900 flex flex-col z-200 shadow-2xl border-x border-gray-100/50">
         
         {/* HEADER CHAT (Absolute dans le cadre) */}
-        <div className="absolute top-0 left-0 w-full bg-brand px-4 pb-6 pt-safe shadow-md z-[150] rounded-b-[2.5rem]">
+        <div className="absolute top-0 left-0 w-full bg-brand px-4 pb-6 pt-safe shadow-md z-150 rounded-b-[2.5rem]">
             <div className="flex items-center gap-3 pt-4">
                 <button onClick={closeConversation} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
                     <ArrowLeft size={22} />
@@ -352,7 +352,7 @@ function MessagesContent() {
                 </div>
             </div>
             {showMenu && (
-                <div className="absolute top-[100%] right-6 mt-2 bg-white shadow-2xl rounded-[2rem] border border-gray-100 w-52 py-3 z-[200] animate-in fade-in slide-in-from-top-2">
+                <div className="absolute top-full right-6 mt-2 bg-white shadow-2xl rounded-4xl border border-gray-100 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
                     <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
                     <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
                 </div>
@@ -399,22 +399,22 @@ function MessagesContent() {
         </div>
 
         {/* INPUT ZONE (Absolute dans le cadre) */}
-        <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-[150] bg-gradient-to-t from-[#F8FAFC] to-transparent pt-4">
+        <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] to-transparent pt-4">
             <div className="flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
                 <button onClick={() => fileInputRef.current?.click()} className="p-4 text-gray-300 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100" disabled={isUploading}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
-                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] font-bold max-h-32 min-h-[52px] py-4 px-2 resize-none placeholder:text-gray-300" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] font-bold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-300" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
                 <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-4 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-20"><Send size={20} /></button>
             </div>
         </div>
 
         {/* ZOOM IMAGE */}
         {previewImage && (
-            <div className="fixed inset-0 z-[500] bg-black animate-in fade-in duration-300 flex justify-center">
-                <div className="w-full max-w-[480px] h-full relative">
-                    <button onClick={() => setPreviewImage(null)} className="absolute top-12 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-2xl z-[510] active:scale-90"><X size={24} /></button>
+            <div className="fixed inset-0 z-500 bg-black animate-in fade-in duration-300 flex justify-center">
+                <div className="w-full max-w-120 h-full relative">
+                    <button onClick={() => setPreviewImage(null)} className="absolute top-12 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-2xl z-510 active:scale-90"><X size={24} /></button>
                     <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100%", height: "100vh" }}><img src={previewImage} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
                 </div>
             </div>
@@ -422,7 +422,7 @@ function MessagesContent() {
 
         {/* MODALE SUPPRESSION */}
         {showDeleteModal && (
-            <div className="fixed inset-0 z-[500] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
+            <div className="fixed inset-0 z-500 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
                 <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center" onClick={e => e.stopPropagation()}>
                     <div className="bg-red-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8"><AlertTriangle size={32} className="text-red-500" /></div>
                     <h3 className="font-black text-xl mb-2 uppercase tracking-tight">Supprimer ?</h3>

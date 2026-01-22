@@ -107,7 +107,7 @@ export default function BottomNav() {
 
   return (
     // CORRECTION ICI : Ajout de max-w-[480px] et centrage pour PC
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative text-gray-900">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
