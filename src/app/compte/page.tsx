@@ -306,13 +306,13 @@ export default function ComptePage() {
             <div className="flex gap-2">
               <Link 
                 href={`/profil/${user?.id}`} 
-                className="bg-blue-50 p-3 rounded-2xl text-blue-600 border border-blue-100 transition active:scale-90 shadow-sm"
+                className="bg-blue-50 p-3 rounded-2xl text-blue-600 border border-blue-100 transition hover:bg-blue-100 active:scale-90 shadow-sm"
               >
                 <ExternalLink size={20} />
               </Link>
               <button 
                 onClick={handleSignOut} 
-                className="bg-red-50 p-3 rounded-2xl text-red-600 border border-red-100 transition active:scale-90 shadow-sm"
+                className="bg-red-50 p-3 rounded-2xl text-red-600 border border-red-100 transition hover:bg-red-100 active:scale-90 shadow-sm"
               >
                 <LogOut size={20} />
               </button>
@@ -344,7 +344,7 @@ export default function ComptePage() {
             
             <div className="flex-1 min-w-0">
                 <h2 className="font-black text-xl truncate tracking-tight leading-none mb-2">{profile?.full_name || "Nom du Showroom"}</h2>
-                <p className="text-[10px] text-gray-400 font-black truncate tracking-widest mb-3">{user?.email}</p>
+                <p className="text-[10px] text-gray-500 font-black truncate tracking-widest mb-3">{user?.email}</p>
                 {isProActive ? (
                     <div className="flex flex-col items-start gap-2">
                         <div className="inline-flex flex-col items-start bg-amber-500 text-white px-4 py-1.5 rounded-xl shadow-lg shadow-amber-500/20">
@@ -398,11 +398,11 @@ export default function ComptePage() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-            <Link href="/mes-annonces" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition">
+            <Link href="/mes-annonces" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition hover:shadow-md hover:border-gray-50">
                 <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl w-fit"><Package size={22} /></div>
                 <span className="font-black text-[9px] uppercase tracking-widest text-gray-400">Annonces</span>
             </Link>
-            <Link href="/favoris" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition">
+            <Link href="/favoris" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition hover:shadow-md hover:border-gray-50">
                 <div className="bg-pink-50 text-pink-500 p-3 rounded-2xl w-fit"><Heart size={22} /></div>
                 <span className="font-black text-[9px] uppercase tracking-widest text-gray-400">Coups de cœur</span>
             </Link>
@@ -422,7 +422,7 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                       <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition text-gray-900" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
-                      <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight">{profile?.full_name}</p>
+                      <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight text-gray-700">{profile?.full_name}</p>
                     )}
                 </div>
 
@@ -431,7 +431,7 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                         <textarea className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-bold outline-none border border-gray-100 min-h-24 resize-none text-gray-900" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                     ) : (
-                        <p className="p-5 bg-gray-50/50 rounded-2xl text-xs font-medium text-gray-500 leading-relaxed italic">"{profile?.description || "Aucune bio..."}"</p>
+                        <p className="p-5 bg-gray-50/50 rounded-2xl text-xs font-medium text-gray-600 leading-relaxed italic">"{profile?.description || "Aucune bio..."}"</p>
                     )}
                 </div>
 
@@ -489,7 +489,7 @@ export default function ComptePage() {
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-white space-y-4">
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-300 flex items-center gap-2"><FileText size={16} /> Informations</h3>
             
-            <Link href="/faq" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition">
+            <Link href="/faq" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition hover:bg-gray-100">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white text-blue-500 flex items-center justify-center shadow-sm">
                         <HelpCircle size={16} />
@@ -499,7 +499,7 @@ export default function ComptePage() {
                 <ChevronRight size={16} className="text-gray-300" />
             </Link>
 
-            <Link href="/cgu" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition">
+            <Link href="/cgu" className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl active:scale-95 transition hover:bg-gray-100">
                 <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full bg-white text-gray-500 flex items-center justify-center shadow-sm">
                         <ShieldCheck size={16} />
@@ -533,7 +533,7 @@ export default function ComptePage() {
 
         <div className="bg-red-50 p-8 rounded-[2.5rem] shadow-sm border border-red-100 space-y-5">
             <h3 className="font-black text-[10px] text-red-600 uppercase tracking-widest flex items-center gap-2"><AlertTriangle size={16} /> Zone Critique</h3>
-            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-200 text-red-600 font-black py-5 rounded-[1.8rem] text-[9px] uppercase tracking-widest active:scale-95 transition shadow-sm flex items-center justify-center gap-2">
+            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-200 text-red-600 font-black py-5 rounded-[1.8rem] text-[9px] uppercase tracking-widest active:scale-95 transition shadow-sm hover:bg-red-50 flex items-center justify-center gap-2">
               <Trash2 size={14} /> Supprimer mon espace
             </button>
         </div>

@@ -175,7 +175,7 @@ export default function HomePage() {
                 <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
             </div>
-            <button onClick={() => setShowFilters(true)} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard' : 'bg-white/20 text-white border-white/10'}`}>
+            <button onClick={() => setShowFilters(true)} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative hover:shadow-md active:scale-95 ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard shadow-md shadow-mustard/20' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'}`}>
                 <SlidersHorizontal size={20} />
             </button>
         </div>
@@ -185,8 +185,8 @@ export default function HomePage() {
       <div className="bg-white border-b border-gray-100 py-3 sticky top-28.5 z-90 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-400'}`}>
-                    <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-400'} />
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
+                    <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
             ))}
@@ -199,7 +199,7 @@ export default function HomePage() {
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
-              <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-600 border-gray-200'}`}>
+              <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
                 {ile}
               </button>
             ))}
@@ -207,9 +207,9 @@ export default function HomePage() {
           
           {currentSubCats.length > 0 && (
             <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 pt-3">
-               <button onClick={() => setSelectedSubCategory('Tout')} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand' : 'bg-white text-gray-400 border-gray-200'}`}>Tout</button>
+               <button onClick={() => setSelectedSubCategory('Tout')} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
                {currentSubCats.map(sub => (
-                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap ${selectedSubCategory === sub ? 'bg-brand text-white border-brand' : 'bg-white text-gray-400 border-gray-200'}`}>{sub}</button>
+                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
                ))}
             </div>
           )}
@@ -221,9 +221,9 @@ export default function HomePage() {
         {loading ? (
           <div className="flex flex-col items-center justify-center pt-20"><Loader2 className="animate-spin text-brand" size={32} /></div>
         ) : products.length === 0 ? (
-          <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
-            <Package size={32} className="opacity-30 mb-4" />
-            <p>Aucune annonce trouvée.</p>
+          <div className="text-center text-gray-500 pt-20 flex flex-col items-center">
+            <Package size={32} className="opacity-40 mb-4" />
+            <p className="font-semibold">Aucune annonce trouvée.</p>
           </div>
         ) : (
           <>
@@ -260,7 +260,7 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md shadow-sm z-10 text-gray-500">
+                      <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600">
                         <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
                       </button>
                       
@@ -277,8 +277,8 @@ export default function HomePage() {
                       <p className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600' : isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                         {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                       </p>
-                      <div className="flex items-center gap-1 text-gray-400 text-[9px] font-bold uppercase mt-1">
-                        <MapPin size={10} className="text-brand/50" /> {product.location_city}
+                      <div className="flex items-center gap-1 text-gray-500 text-[9px] font-bold uppercase mt-1">
+                        <MapPin size={10} className="text-brand/60" /> {product.location_city}
                       </div>
                     </div>
                   </Link>
@@ -288,7 +288,7 @@ export default function HomePage() {
 
             {hasMore && (
               <div className="mt-8 flex justify-center pb-10">
-                <button onClick={() => fetchProducts(false)} disabled={isFetchingMore} className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-400 shadow-sm active:scale-95 transition-all flex items-center gap-3">
+                <button onClick={() => fetchProducts(false)} disabled={isFetchingMore} className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-3 hover:bg-gray-50">
                   {isFetchingMore ? <Loader2 size={16} className="animate-spin text-brand" /> : <>Voir plus d'annonces <ChevronDown size={14} /></>}
                 </button>
               </div>

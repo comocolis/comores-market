@@ -10,7 +10,7 @@ import {
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
   Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
-  MapPin, Star, AlertCircle
+  MapPin, Star, AlertCircle, PenTool // Icône ajoutée pour le champ personnalisé
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -33,17 +33,18 @@ const CATEGORIES_LIST = [
   { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
 ]
 
+// --- LISTE COMPLÈTE ÉLARGIE ---
 const SUB_CATEGORIES: { [key: number]: string[] } = {
-  1: ['Voitures', 'Motos', 'Pièces Détachées', 'Location', 'Camions', 'Bateaux'],
-  2: ['Vente Maison', 'Vente Terrain', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Colocation'],
-  3: ['Vêtements Homme', 'Vêtements Femme', 'Enfant & Bébé', 'Chaussures', 'Montres & Bijoux', 'Sacs & Accessoires'],
-  4: ['Téléphones', 'Ordinateurs', 'Audio & Son', 'Appareils Photo', 'Accessoires Info', 'Consoles & Jeux'],
-  5: ['Meubles', 'Décoration', 'Électroménager', 'Bricolage', 'Jardin', 'Linge de maison'],
-  6: ['Sports', 'Instruments de musique', 'Livres', 'Vélos', 'Voyages & Billets'],
-  7: ['Fruits & Légumes', 'Plats cuisinés', 'Épicerie', 'Boissons', 'Produits frais'],
-  8: ['Cours & Formations', 'Réparations', 'Déménagement', 'Événements', 'Ménage & Aide'],
-  9: ['Parfums', 'Maquillage', 'Soins Visage & Corps', 'Coiffure', 'Matériel Pro'],
-  10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
+  1: ['Voitures', 'Motos & Scooters', 'Pièces Détachées', 'Location Véhicules', 'Camions & Poids Lourds', 'Bateaux & Nautisme', 'Engins BTP', 'Vélos & Trottinettes'],
+  2: ['Vente Maison', 'Vente Terrain', 'Vente Appartement', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Location Vacances', 'Terrains Agricoles', 'Colocation'],
+  3: ['Vêtements Homme', 'Vêtements Femme', 'Enfant & Bébé', 'Chaussures', 'Montres & Bijoux', 'Sacs & Accessoires', 'Mariage & Tradition', 'Lingerie', 'Sportswear'],
+  4: ['Téléphones', 'Tablettes', 'Ordinateurs', 'TV & Home Cinéma', 'Audio & Son', 'Appareils Photo', 'Accessoires Info', 'Consoles & Jeux', 'Objets Connectés'],
+  5: ['Meubles', 'Décoration', 'Électroménager', 'Bricolage', 'Jardin & Plantes', 'Linge de maison', 'Arts de la table', 'Animaux'],
+  6: ['Sports', 'Instruments de musique', 'Livres & Papeterie', 'Jeux & Jouets', 'Voyages & Billets', 'Chasse & Pêche', 'Collections'],
+  7: ['Fruits & Légumes', 'Plats cuisinés', 'Épicerie', 'Boissons', 'Produits frais', 'Épices & Vanille', 'Miel & Confitures', 'Pâtisserie'],
+  8: ['Cours & Formations', 'Réparations', 'Déménagement', 'Événements', 'Ménage & Aide', 'Transport & Logistique', 'Couture & Retouches', 'Santé & Bien-être'],
+  9: ['Parfums', 'Maquillage', 'Soins Visage & Corps', 'Coiffure', 'Matériel Pro', 'Onglerie', 'Hygiène'],
+  10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim', 'Freelance'],
 }
 
 const SPECIFIC_FIELDS: Record<string, any[]> = {
@@ -54,19 +55,23 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Essence', 'Diesel', 'Hybride', 'Électrique'] },
         { key: 'transmission', label: 'Boîte', icon: Layers, type: 'select', options: ['Manuelle', 'Automatique'] }
     ],
-    'Motos': [
+    'Motos & Scooters': [
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2020' },
         { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: '15000' },
         { key: 'cc', label: 'Cylindrée (cc)', icon: Zap, type: 'number', placeholder: '125' }
     ],
-    'Camions': [
+    'Camions & Poids Lourds': [
         { key: 'tonnage', label: 'Tonnage', icon: Truck, type: 'number', placeholder: 'Ex: 3.5' },
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: '2015' },
         { key: 'fuel', label: 'Carburant', icon: Fuel, type: 'select', options: ['Diesel', 'Essence'] }
     ],
-    'Bateaux': [
-        { key: 'type', label: 'Type', icon: Anchor, type: 'select', options: ['Vedette', 'Barque', 'Boutre', 'Moteur Hors-bord'] },
+    'Bateaux & Nautisme': [
+        { key: 'type', label: 'Type', icon: Anchor, type: 'select', options: ['Vedette', 'Barque', 'Boutre', 'Moteur Hors-bord', 'Jet-ski'] },
         { key: 'length', label: 'Longueur (m)', icon: Ruler, type: 'number', placeholder: 'Ex: 7' }
+    ],
+    'Engins BTP': [
+        { key: 'type', label: 'Type', icon: Truck, type: 'text', placeholder: 'Tractopelle, Grue...' },
+        { key: 'hours', label: 'Heures', icon: Clock, type: 'number', placeholder: 'Ex: 5000' }
     ],
     'Pièces Détachées': [
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion', 'Reconditionné'] },
@@ -79,10 +84,19 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '4' },
         { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] }
     ],
+    'Vente Appartement': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '80' },
+        { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '3' },
+        { key: 'floor', label: 'Étage', icon: Layers, type: 'number', placeholder: '2' }
+    ],
     'Vente Terrain': [
         { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '500' },
         { key: 'titre', label: 'Papier/Titre', icon: ShieldCheck, type: 'select', options: ['Titré/Borné', 'Papier Comorien', 'En cours', 'Non titré'] },
         { key: 'access', label: 'Accès Voiture', icon: Truck, type: 'select', options: ['Oui', 'Non', 'Piste'] }
+    ],
+    'Terrains Agricoles': [
+        { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '10000' },
+        { key: 'water', label: 'Accès Eau', icon: Zap, type: 'select', options: ['Oui', 'Non', 'Rivière proche'] }
     ],
     'Location Maison': [
         { key: 'rooms', label: 'Chambres', icon: Home, type: 'number', placeholder: '3' },
@@ -92,6 +106,10 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
     'Location Appartement': [
         { key: 'rooms', label: 'Chambres', icon: Home, type: 'number', placeholder: '2' },
         { key: 'furnished', label: 'Meublé', icon: Layers, type: 'select', options: ['Oui', 'Non', 'Partiellement'] }
+    ],
+    'Location Vacances': [
+        { key: 'capacity', label: 'Capacité (pers)', icon: Home, type: 'number', placeholder: '4' },
+        { key: 'wifi', label: 'Wifi', icon: Zap, type: 'select', options: ['Oui', 'Non'] }
     ],
     'Bureaux & Commerces': [
         { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '50' },
@@ -112,8 +130,12 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'size', label: 'Taille', icon: Shirt, type: 'select', options: ['XS', 'S', 'M', 'L', 'XL', 'XXL', '34', '36', '38', '40', '42'] },
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Mango, Shein...' }
     ],
+    'Mariage & Tradition': [
+        { key: 'type', label: 'Type', icon: Star, type: 'select', options: ['Robe Mariée', 'Tenue Traditionnelle', 'Costume', 'Accessoires'] },
+        { key: 'rental', label: 'Location/Vente', icon: DollarSign, type: 'select', options: ['Vente', 'Location'] }
+    ],
     'Montres & Bijoux': [
-        { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué'] },
+        { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué', 'Fantaisie'] },
         { key: 'brand', label: 'Marque', icon: Watch, type: 'text', placeholder: 'Rolex, Seiko, Casio...' }
     ],
 
@@ -123,10 +145,20 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go', '512 Go', '1 To'] },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf (Scellé)', 'Comme neuf', 'Bon état', 'Écran fissuré'] }
     ],
+    'Tablettes': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'iPad, Samsung...' },
+        { key: 'screen', label: 'Taille écran', icon: Maximize, type: 'text', placeholder: '10 pouces...' },
+        { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go'] }
+    ],
     'Ordinateurs': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'HP, Dell, Apple...' },
         { key: 'processor', label: 'Processeur', icon: Zap, type: 'text', placeholder: 'Core i5, Ryzen 7...' },
         { key: 'ram', label: 'RAM', icon: Layers, type: 'select', options: ['4 Go', '8 Go', '16 Go', '32 Go'] }
+    ],
+    'TV & Home Cinéma': [
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, LG, Sony...' },
+        { key: 'size', label: 'Taille (Pouces)', icon: Maximize, type: 'number', placeholder: '55' },
+        { key: 'smart', label: 'Smart TV', icon: Zap, type: 'select', options: ['Oui', 'Non'] }
     ],
     'Consoles & Jeux': [
         { key: 'platform', label: 'Plateforme', icon: Zap, type: 'select', options: ['PS5', 'PS4', 'Xbox', 'Switch', 'PC'] },
@@ -139,8 +171,12 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
     ],
     'Électroménager': [
-        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, LG...' },
+        { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, LG, Hisense...' },
         { key: 'energy', label: 'Conso', icon: Zap, type: 'select', options: ['Faible consommation', 'Normale'] }
+    ],
+    'Animaux': [
+        { key: 'type', label: 'Type', icon: Star, type: 'text', placeholder: 'Chien, Chat, Mouton, Cabri...' },
+        { key: 'age', label: 'Âge', icon: Clock, type: 'text', placeholder: '2 mois, 1 an...' }
     ],
 
     // === 6. LOISIRS ===
@@ -148,7 +184,7 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'type', label: 'Instrument', icon: Music, type: 'text', placeholder: 'Guitare, Piano...' },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
     ],
-    'Livres': [
+    'Livres & Papeterie': [
         { key: 'genre', label: 'Genre', icon: Book, type: 'text', placeholder: 'Roman, Scolaire, Religion...' },
         { key: 'lang', label: 'Langue', icon: Type, type: 'select', options: ['Français', 'Arabe', 'Anglais', 'Shikomori'] }
     ],
@@ -162,12 +198,16 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'origin', label: 'Origine', icon: MapPin, type: 'select', options: ['Local (Comores)', 'Importé'] },
         { key: 'unit', label: 'Vendu par', icon: DollarSign, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
     ],
+    'Épices & Vanille': [
+        { key: 'type', label: 'Produit', icon: Sparkles, type: 'text', placeholder: 'Vanille, Girofle, Poivre...' },
+        { key: 'quality', label: 'Qualité', icon: Star, type: 'select', options: ['Premium', 'Standard', 'Vrac'] }
+    ],
     'Plats cuisinés': [
-        { key: 'type', label: 'Type', icon: Utensils, type: 'select', options: ['Salé', 'Sucré', 'Traiteur'] },
+        { key: 'type', label: 'Type', icon: Utensils, type: 'select', options: ['Salé', 'Sucré', 'Traiteur', 'Gâteaux'] },
         { key: 'availability', label: 'Dispo', icon: Clock, type: 'select', options: ['Sur commande', 'Immédiat'] }
     ],
     'Produits frais': [
-        { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé'] }
+        { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé', 'Séché'] }
     ],
 
     // === 8. SERVICES ===
@@ -179,16 +219,23 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'domain', label: 'Spécialité', icon: Wrench, type: 'text', placeholder: 'Plomberie, Mécanique, Froid...' },
         { key: 'travel', label: 'Déplacement', icon: Truck, type: 'select', options: ['Oui', 'Non', 'À définir'] }
     ],
+    'Transport & Logistique': [
+        { key: 'type', label: 'Type', icon: Truck, type: 'select', options: ['Déménagement', 'Livraison Colis', 'Taxi', 'Fret'] },
+        { key: 'zone', label: 'Zone', icon: MapPin, type: 'text', placeholder: 'Moroni, Toute l\'île...' }
+    ],
 
     // === 9. BEAUTÉ ===
     'Parfums': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Dior, Sauvage...' },
-        { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile'] },
+        { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile', 'Encens/Oud'] },
         { key: 'authenticity', label: 'Authenticité', icon: ShieldCheck, type: 'select', options: ['Original', 'Générique/Copie'] }
     ],
     'Coiffure': [
-        { key: 'service', label: 'Service', icon: Scissors, type: 'select', options: ['Tresses', 'Lissage', 'Coupe', 'Perruques'] },
+        { key: 'service', label: 'Service', icon: Scissors, type: 'select', options: ['Tresses', 'Lissage', 'Coupe', 'Perruques', 'Barbe'] },
         { key: 'place', label: 'Lieu', icon: Home, type: 'select', options: ['À domicile', 'Au salon'] }
+    ],
+    'Onglerie': [
+        { key: 'type', label: 'Prestation', icon: Sparkles, type: 'select', options: ['Pose Gel', 'Semi-permanent', 'Manucure simple'] }
     ],
 
     // === 10. EMPLOI ===
@@ -257,12 +304,16 @@ export default function PublierClient() {
     title: '', price: '', description: '', category_id: '1', sub_category: '',
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
+  
+  // STATE POUR LA SOUS-CATÉGORIE PERSONNALISÉE
+  const [customSubCat, setCustomSubCat] = useState('')
 
   const [specs, setSpecs] = useState<Record<string, string>>({})
 
   useEffect(() => {
       setSpecs({})
-  }, [formData.sub_category])
+      setCustomSubCat('')
+  }, [formData.category_id, formData.sub_category])
 
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
@@ -412,6 +463,16 @@ export default function PublierClient() {
         return
     }
 
+    // --- GESTION SOUS-CATÉGORIE PERSO ---
+    let finalSubCategory = formData.sub_category;
+    if (finalSubCategory === 'Autre') {
+        if (!customSubCat.trim()) {
+            toast.error("Veuillez préciser la sous-catégorie.")
+            return
+        }
+        finalSubCategory = customSubCat.trim()
+    }
+
     if (!isPro && containsContactInfo(formData.description)) {
         toast.error("⚠️ Seuls les Pros peuvent partager un contact dans la description.", { duration: 5000 })
         return; 
@@ -422,17 +483,15 @@ export default function PublierClient() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error("Non connecté")
 
-      // --- SECURITÉ RENFORCÉE : VÉRIFICATION ULTIME DU QUOTA ---
       if (!isPro) {
           const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('user_id', user.id)
           if ((count || 0) >= FREE_ADS_LIMIT) {
               toast.error(`Limite atteinte (${FREE_ADS_LIMIT} annonces). Passez PRO !`)
               setLoading(false)
-              return // Arrêt immédiat si la limite est dépassée
+              return 
           }
       }
 
-      // CONSTRUCTION DE LA DESCRIPTION FINALE AVEC LES SPECS
       let finalDescription = formData.description;
       
       if (Object.keys(specs).length > 0) {
@@ -464,10 +523,19 @@ export default function PublierClient() {
           user_id: user.id,
           images: JSON.stringify(images.map(img => img.url)),
           quality_score: check.quality_score,
-          sub_category: formData.sub_category 
+          sub_category: finalSubCategory // On utilise la valeur corrigée (Autre -> Texte)
       })
 
       if (!productError) {
+          // --- GOOGLE ADS TRACKING ---
+          if (typeof window !== 'undefined' && (window as any).gtag) {
+              (window as any).gtag('event', 'conversion', {
+                  'send_to': 'AW-16447515729/VOTRE_LABEL_ICI', // <--- REMPLACER PAR VOTRE LABEL
+                  'value': 1.0,
+                  'currency': 'KMF'
+              });
+          }
+
           await supabase.from('notifications').insert({
             user_id: user.id,
             title: "Annonce en ligne",
@@ -484,7 +552,7 @@ export default function PublierClient() {
     } catch (err: any) { toast.error("Erreur lors de la publication.") } finally { setLoading(false) }
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand" /></div>
 
   if (isBanned) {
     return (
@@ -499,7 +567,8 @@ export default function PublierClient() {
   const adsLimitReached = !isPro && adsCount >= FREE_ADS_LIMIT
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-24">
+    // CORRECTION : bg-transparent pour uniformité
+    <div className="min-h-screen bg-transparent font-sans pb-24">
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
         <h1 className="font-extrabold text-xl text-gray-900">Publier</h1>
@@ -515,7 +584,7 @@ export default function PublierClient() {
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="p-4 space-y-6 max-w-md mx-auto">
-            {/* 1. PHOTOS (Scroll & Drag corrigés) */}
+            {/* 1. PHOTOS */}
             <div className="space-y-2">
                 <div className="flex justify-between items-end px-1">
                     <label className="text-sm font-bold text-gray-700">Photos (Maintenez pour déplacer)</label>
@@ -587,12 +656,31 @@ export default function PublierClient() {
                         >
                             <option value="">Choisir...</option>
                             {currentSubCats.map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}
+                            <option value="Autre">Autre (Préciser...)</option>
                         </select>
                     </div>
                 </div>
 
+                {/* CHAMP MAGIQUE "AUTRE" */}
+                {formData.sub_category === 'Autre' && (
+                    <div className="animate-in slide-in-from-top-2 fade-in">
+                        <label className="text-xs font-bold text-brand uppercase ml-1 mb-1 block">Précisez la sous-catégorie</label>
+                        <div className="flex items-center bg-white rounded-xl px-3 border-2 border-brand/20 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10 transition">
+                            <PenTool size={18} className="text-brand mr-2" />
+                            <input 
+                                type="text" 
+                                className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-400" 
+                                placeholder="Ex: Drone, Tondeuse, Groupe électrogène..." 
+                                value={customSubCat} 
+                                onChange={e => setCustomSubCat(e.target.value)}
+                                autoFocus
+                            />
+                        </div>
+                    </div>
+                )}
+
                 {/* 3. CHAMPS INTELLIGENTS DYNAMIQUES */}
-                {currentSpecFields.length > 0 && (
+                {currentSpecFields.length > 0 && formData.sub_category !== 'Autre' && (
                     <div className="animate-in slide-in-from-top-2 fade-in pt-2 border-t border-dashed border-gray-100 mt-2">
                         <p className="text-xs font-black text-brand uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
                         <div className="grid grid-cols-2 gap-3">
