@@ -91,13 +91,13 @@ function AdminContent() {
         setStats({
             users: profiles.length,
             products: items.length,
-            pro: profiles.filter(p => p.is_pro).length,
-            banned: profiles.filter(p => p.is_banned).length,
+            pro: profiles.filter((p: any) => p.is_pro).length,
+            banned: profiles.filter((p: any) => p.is_banned).length,
             reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
             reviews: reviewsData?.length || 0,
-            boosted: items.filter(p => p.boosted_until && new Date(p.boosted_until) > now).length,
-            lowQuality: items.filter(p => p.quality_score > 0 && p.quality_score < 5).length,
-            admins: profiles.filter(p => p.role === 'admin').length
+            boosted: items.filter((p: any) => p.boosted_until && new Date(p.boosted_until) > now).length,
+            lowQuality: items.filter((p: any) => p.quality_score > 0 && p.quality_score < 5).length,
+            admins: profiles.filter((p: any) => p.role === 'admin').length
         })
     }
   }
