@@ -206,7 +206,7 @@ function MessagesContent() {
       try {
           const { data: imgMsgs } = await supabase.from('messages').select('content').eq('product_id', activeConv.productId).or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${activeConv.counterpartId}),and(sender_id.eq.${activeConv.counterpartId},receiver_id.eq.${currentUser.id})`).filter('content', 'ilike', '%messages_images%');
           if (imgMsgs && imgMsgs.length > 0) {
-              const paths = imgMsgs.map(m => m.content.split('messages_images/')[1]).filter(Boolean);
+              const paths = imgMsgs.map((m: any) => m.content.split('messages_images/')[1]).filter(Boolean);
               if (paths.length > 0) await supabase.storage.from('messages_images').remove(paths);
           }
           const del1 = supabase.from('messages').delete().match({ product_id: activeConv.productId, sender_id: currentUser.id, receiver_id: activeConv.counterpartId });

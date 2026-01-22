@@ -6,12 +6,13 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Search, MapPin, Loader2, ArrowLeft, Crown, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { getFirstProductImage } from '@/utils/parseImages'
 
 export default function RecherchePage() {
   const supabase = createClient()
   const router = useRouter()
   const [query, setQuery] = useState('')
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
 
   // Recherche automatique avec un petit délai (debounce)
@@ -63,7 +64,7 @@ export default function RecherchePage() {
             <div className="flex justify-center pt-10"><Loader2 className="animate-spin text-brand" /></div>
         ) : results.length > 0 ? (
             results.map(product => {
-                let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+                const img = getFirstProductImage(product.images)
                 const isPro = product.is_pro 
 
                 return (

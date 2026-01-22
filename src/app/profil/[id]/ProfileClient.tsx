@@ -15,8 +15,35 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
+interface UserProfile {
+  id: string
+  email: string
+  username?: string
+  avatar_url?: string
+  bio?: string
+  is_pro?: boolean
+  [key: string]: unknown
+}
+
+interface ProductListing {
+  id: string
+  title: string
+  price: number
+  images: string
+  created_at: string
+  [key: string]: unknown
+}
+
+interface Review {
+  id: string
+  rating: number
+  comment: string
+  created_at: string
+  [key: string]: unknown
+}
+
 interface ProfileClientProps {
-  initialData?: any
+  initialData?: UserProfile | null
   id?: string
 }
 
@@ -26,11 +53,11 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   
-  const [profile, setProfile] = useState<any>(initialData || null)
-  const [products, setProducts] = useState<any[]>([])
-  const [reviews, setReviews] = useState<any[]>([])
+  const [profile, setProfile] = useState<UserProfile | null>(initialData || null)
+  const [products, setProducts] = useState<ProductListing[]>([])
+  const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(!initialData)
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null)
   const [responseTimeLabel, setResponseTimeLabel] = useState<string>("Réactif")
   const [uploadingCover, setUploadingCover] = useState(false)
 

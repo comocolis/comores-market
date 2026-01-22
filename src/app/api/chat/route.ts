@@ -1,6 +1,8 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 // 1. SETUP SUPABASE
 const supabase = createClient(
@@ -15,11 +17,38 @@ const groq = new Groq({
 
 export async function POST(req: Request) {
   if (!process.env.GROQ_API_KEY) {
-    return NextResponse.json({ text: "Erreur serveur : Clé API Groq manquante." });
+    return NextResponse.json({ text: "Erreur serveur : Clé API Groq manquante." }, { status: 500 });
   }
 
   try {
+    // Validate user is authenticated
+    const cookieStore = await cookies();
+    const serverSupabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      }
+    );
+    
+    const { data: { user } } = await serverSupabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
     const { message, history } = await req.json();
+    
+    // Validate input
+    if (!message || typeof message !== 'string' || !message.trim()) {
+      return NextResponse.json({ error: "Message invalide" }, { status: 400 });
+    }
+    if (!Array.isArray(history)) {
+      return NextResponse.json({ error: "Historique invalide" }, { status: 400 });
+    }
 
     // --- RÉCUPÉRATION DONNÉES ---
     let contextProducts = "Aucun produit récent.";

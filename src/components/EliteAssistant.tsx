@@ -39,8 +39,7 @@ export default function EliteAssistant() {
         cleaned = cleaned.replace(regexSource, "");
         cleaned = cleaned.replace(regexCite, "");
     } catch (e) {
-        // En cas d'erreur rare, on renvoie le texte brut
-        return text;
+      return text;
     }
     
     return cleaned.trim();
@@ -82,7 +81,6 @@ export default function EliteAssistant() {
         setHistory((prev) => [...prev, { role: 'model', parts: [{ text: cleanText }] }])
       }
     } catch (error) {
-      console.error("Erreur Chat:", error)
       setHistory((prev) => [...prev, { role: 'model', parts: [{ text: "Problème de connexion. Veuillez réessayer." }] }])
     } finally {
       setLoading(false)

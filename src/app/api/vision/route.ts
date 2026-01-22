@@ -17,8 +17,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Image manquante" }, { status: 400 });
     }
 
-    console.log("📸 Vision: Envoi à Groq (Llama 4 Scout)...");
-
     const completion = await groq.chat.completions.create({
       messages: [
         {
@@ -45,14 +43,11 @@ export async function POST(req: Request) {
     });
 
     const description = completion.choices[0]?.message?.content || "";
-    console.log("✅ Vision: Succès");
     
     return NextResponse.json({ text: description });
 
   } catch (error: any) {
-    console.error("❌ ERREUR VISION:", error);
-    
-    // Si même le nouveau modèle échoue, on renvoie une erreur explicite
+    // If model fails, return error message
     if (error?.error?.code === 'model_decommissioned' || error?.status === 404) {
         return NextResponse.json({ 
             text: "Service Vision en maintenance (Modèle en cours de déploiement).", 

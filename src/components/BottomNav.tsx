@@ -63,7 +63,7 @@ export default function BottomNav() {
         table: 'messages', 
         filter: `receiver_id=eq.${userId}` 
       }, 
-        (payload) => {
+        (payload: any) => {
             // On rafraîchit le compteur rouge dans tous les cas
             fetchUnreadCount(userId)
             
@@ -85,7 +85,7 @@ export default function BottomNav() {
         table: 'notifications', 
         filter: `user_id=eq.${userId}` 
       }, 
-        (payload) => {
+        (payload: any) => {
             fetchNotificationCount(userId)
             if (payload.eventType === 'INSERT') {
                 toast.info(payload.new.title, {

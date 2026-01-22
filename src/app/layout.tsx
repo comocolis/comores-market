@@ -7,7 +7,8 @@ import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
 import NativeFeatures from '@/components/NativeFeatures';
 import { Suspense } from "react";
-import Script from 'next/script'; // <--- 1. IMPORT NÉCESSAIRE POUR GOOGLE
+import Script from 'next/script';
+import { AnalyticsProvider } from '@/components/AnalyticsProvider';
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -88,8 +89,23 @@ export default function RootLayout({
     <html lang="fr" suppressHydrationWarning>
       <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
-        {/* 2. TAG GLOBAL GOOGLE ADS (TRACKING) */}
-        {/* Charge le script externe Google */}
+        {/* GOOGLE ANALYTICS 4 TRACKING */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${process.env.NEXT_PUBLIC_GA_ID}', {
+              page_path: window.location.pathname,
+            });
+          `}
+        </Script>
+        
+        {/* GOOGLE ADS CONVERSION TRACKING */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729"
           strategy="afterInteractive"
@@ -107,8 +123,10 @@ export default function RootLayout({
         <NativeFeatures />
         <SplashScreen />
 
-        {/* CADRE MOBILE : Centré sur PC, Plein écran sur Mobile */}
-        <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
+        {/* ANALYTICS PROVIDER - Enables page view tracking */}
+        <AnalyticsProvider>
+          {/* CADRE MOBILE : Centré sur PC, Plein écran sur Mobile */}
+          <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           
           <InstallBanner />
           <Toaster richColors position="top-center" duration={3000} />
@@ -116,7 +134,9 @@ export default function RootLayout({
           {/* Main Content */}
           {/* pb-24 est conservé pour que le contenu ne soit pas caché par le BottomNav */}
           <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
-            {children}
+            <Suspense fallback={<div className="w-full h-screen flex items-center justify-center"><div className="text-gray-400">Chargement...</div></div>}>
+              {children}
+            </Suspense>
           </main>
 
           <EliteAssistant />
@@ -131,6 +151,7 @@ export default function RootLayout({
           </div>
 
         </div>
+        </AnalyticsProvider>
       </body>
     </html>
   );

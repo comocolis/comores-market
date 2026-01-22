@@ -10,6 +10,27 @@ import {
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import { getFirstProductImage } from '@/utils/parseImages'
+import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
+
+// --- TYPE DEFINITIONS ---
+interface Product {
+  id: string
+  title: string
+  price: number
+  images: string
+  location_island: string
+  location_city: string
+  is_pro: boolean
+  boosted_until: string | null
+  created_at: string
+  category_id: number
+  sub_category: string
+}
+
+interface Favorite {
+  product_id: string
+}
 
 // --- CONSTANTES ---
 const ITEMS_PER_PAGE = 12
@@ -47,7 +68,7 @@ export default function HomePage() {
   const supabase = createClient()
   const router = useRouter()
   
-  const [products, setProducts] = useState<any[]>([])
+  const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [page, setPage] = useState(0)
@@ -111,7 +132,13 @@ export default function HomePage() {
     if (priceMax) query = query.lte('price', parseInt(priceMax))
 
     const { data, error } = await query
-    if (!error && data) {
+    if (error) {
+      toast.error('Erreur lors du chargement des produits')
+      setLoading(false)
+      setIsFetchingMore(false)
+      return
+    }
+    if (data) {
       setProducts(isInitial ? data : [...products, ...data])
       setPage(currentPage)
       setHasMore(data.length === ITEMS_PER_PAGE)
@@ -125,17 +152,38 @@ export default function HomePage() {
     return () => clearTimeout(timer)
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax])
 
+  // Track category changes
+  useEffect(() => {
+    if (selectedCategory !== 0) {
+      const category = CATEGORIES.find(c => c.id === selectedCategory)
+      trackCategoryView(category?.label || '', selectedCategory)
+    }
+  }, [selectedCategory])
+
+  // Track filter application
+  useEffect(() => {
+    if (searchTerm || priceMin || priceMax || selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout') {
+      trackFilterApplied({
+        search_term: searchTerm,
+        price_min: priceMin ? parseInt(priceMin) : 0,
+        price_max: priceMax ? parseInt(priceMax) : 0,
+        island: selectedIsland,
+        sub_category: selectedSubCategory,
+      })
+    }
+  }, [searchTerm, priceMin, priceMax, selectedIsland, selectedSubCategory])
+
   useEffect(() => {
     const loadUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
         const { data: favs } = await supabase.from('favorites').select('product_id').eq('user_id', user.id)
-        if (favs) setFavorites(new Set(favs.map((f: any) => f.product_id)))
+        if (favs) setFavorites(new Set((favs as Favorite[]).map((f) => f.product_id)))
       }
     }
     loadUser()
-  }, [supabase])
+  }, [])
 
   const toggleFavorite = async (e: React.MouseEvent, productId: string) => {
     e.preventDefault(); e.stopPropagation()
@@ -229,7 +277,7 @@ export default function HomePage() {
           <>
             <div className="grid grid-cols-2 gap-3">
               {products.map(product => {
-                let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+                const img = getFirstProductImage(product.images)
                 const isFav = favorites.has(product.id)
                 const isPro = product.is_pro
                 const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();

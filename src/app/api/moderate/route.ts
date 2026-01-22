@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -12,7 +14,31 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Validate user is authenticated
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      }
+    );
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
     const { title, description, price } = await req.json();
+    
+    // Validate input
+    if (!title || typeof title !== 'string' || !title.trim()) {
+      return NextResponse.json({ error: "Titre invalide" }, { status: 400 });
+    }
 
     const prompt = `
       Tu es un modérateur IA pour "Comores Market". 

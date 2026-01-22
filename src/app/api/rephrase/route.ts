@@ -1,5 +1,7 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -11,7 +13,31 @@ export async function POST(req: Request) {
   }
 
   try {
+    // Validate user is authenticated
+    const cookieStore = await cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+        },
+      }
+    );
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
+    }
+
     const { text } = await req.json();
+    
+    // Validate input
+    if (!text || typeof text !== 'string' || !text.trim()) {
+      return NextResponse.json({ error: "Texte invalide" }, { status: 400 });
+    }
 
     const completion = await groq.chat.completions.create({
       messages: [

@@ -26,7 +26,6 @@ export const compressImage = async (file: File): Promise<File> => {
     });
 
   } catch (error) {
-    console.error("Erreur lors de la compression, utilisation du fichier original:", error);
     return file; // En cas d'échec, on renvoie l'original pour ne pas bloquer l'user
   }
 };

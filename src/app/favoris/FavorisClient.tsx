@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getFirstProductImage } from '@/utils/parseImages'
 
 export default function FavorisClient() {
   const supabase = createClient()
@@ -73,7 +74,7 @@ export default function FavorisClient() {
             <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence>
                     {favorites.map((product) => {
-                        let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }
+                        const img = getFirstProductImage(product.images)
                         const isPro = product.profiles?.is_pro 
 
                         return (
