@@ -8,6 +8,20 @@ import { Search, MapPin, Loader2, ArrowLeft, Crown, ShieldCheck } from 'lucide-r
 import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
 
+// --- INTERFACE AJOUTÉE POUR CORRIGER L'ERREUR DE BUILD ---
+interface SearchResult {
+  id: string
+  title: string
+  price: number
+  images: string
+  location_city: string
+  location_island: string
+  category_id: number
+  sub_category: string
+  is_pro: boolean
+  boosted_until: string | null
+}
+
 export default function RecherchePage() {
   const supabase = createClient()
   const router = useRouter()
@@ -28,7 +42,8 @@ export default function RecherchePage() {
         .order('is_pro', { ascending: false }) 
         .limit(20)
       
-      setResults(data || [])
+      // On cast les données reçues vers notre interface
+      setResults((data as SearchResult[]) || [])
       setLoading(false)
     }
 
@@ -37,7 +52,8 @@ export default function RecherchePage() {
   }, [query, supabase])
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    // CORRECTION : bg-transparent pour l'uniformité du design
+    <div className="min-h-screen bg-transparent pb-24 font-sans">
       
       {/* Header Recherche */}
       <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex flex-col gap-4">
