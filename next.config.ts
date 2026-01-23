@@ -6,7 +6,8 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  buildExcludes: [/manifest\.webmanifest$/],
+  // ❌ LA LIGNE CI-DESSOUS EST LA CAUSE DU BUG DE BUILD SUR NETLIFY
+  // buildExcludes: [/manifest\.webmanifest$/], 
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
@@ -38,8 +39,6 @@ const nextConfig: NextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   reactStrictMode: true,
-  
-  // Suppression du bloc webpack qui causait l'erreur "unknown property treeShake"
 };
 
 // Application de la configuration PWA
