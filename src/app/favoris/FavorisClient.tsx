@@ -11,6 +11,9 @@ import {
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { getFirstProductImage } from '@/utils/parseImages'
+import { SkeletonProductGrid } from '@/components/Skeleton'
+import { EmptyStateFavorites } from '@/components/EmptyState'
+import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 
 export default function FavorisClient() {
   const supabase = createClient()
@@ -57,19 +60,9 @@ export default function FavorisClient() {
 
       <div className="p-4 max-w-4xl mx-auto">
         {loading ? (
-            <div className="flex justify-center pt-20">
-                <Loader2 className="animate-spin text-brand" size={32} />
-            </div>
+            <SkeletonProductGrid count={8} />
         ) : favorites.length === 0 ? (
-            <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
-                <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mb-4 shadow-sm">
-                    <Heart size={40} className="opacity-10" />
-                </div>
-                <p className="font-bold text-sm">Aucun favori pour le moment.</p>
-                <Link href="/" className="mt-4 text-brand font-bold text-sm hover:underline">
-                    Découvrir des annonces
-                </Link>
-            </div>
+            <EmptyStateFavorites />
         ) : (
             <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence>
@@ -97,7 +90,9 @@ export default function FavorisClient() {
                                                 src={img} 
                                                 alt={product.title} 
                                                 fill 
-                                                className="object-cover transition-transform duration-500 group-hover:scale-110" 
+                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
+                                                placeholder="blur"
+                                                blurDataURL={BLUR_PLACEHOLDERS.product}
                                             />
                                         ) : (
                                             <div className="flex items-center justify-center h-full text-gray-200">

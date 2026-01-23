@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
+import { EmptyStateListings } from '@/components/EmptyState'
 
 export default function MesAnnoncesClient() {
   const supabase = createClient()
@@ -119,15 +120,7 @@ export default function MesAnnoncesClient() {
         {loading ? (
             <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" size={32} /></div>
         ) : products.length === 0 ? (
-            <div className="text-center text-gray-400 pt-20 flex flex-col items-center">
-                <div className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center mb-6 shadow-sm border border-white">
-                  <ShoppingBag size={40} className="opacity-10" />
-                </div>
-                <p className="font-black text-[10px] uppercase tracking-widest text-gray-400 mb-8">Vous n'avez aucune offre active</p>
-                <Link href="/publier" className="bg-brand text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 shadow-xl shadow-brand/20 active:scale-95 transition-all text-sm uppercase tracking-widest">
-                    <Plus size={20} /> Créer une annonce
-                </Link>
-            </div>
+            <EmptyStateListings />
         ) : (
             products.map((product, idx) => {
                 let img = null; try { img = JSON.parse(product.images)[0] } catch { img = product.images }

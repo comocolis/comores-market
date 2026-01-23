@@ -12,6 +12,9 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
 import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
+import { SkeletonProductGrid } from '@/components/Skeleton'
+import { EmptyStateSearchResults } from '@/components/EmptyState'
+import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 
 // --- TYPE DEFINITIONS ---
 interface Product {
@@ -267,12 +270,9 @@ export default function HomePage() {
       {/* GRID PRODUITS (DESIGN CONSERVÉ) */}
       <div className="px-4 py-2 pb-24 mt-4">
         {loading ? (
-          <div className="flex flex-col items-center justify-center pt-20"><Loader2 className="animate-spin text-brand" size={32} /></div>
+          <SkeletonProductGrid count={12} />
         ) : products.length === 0 ? (
-          <div className="text-center text-gray-500 pt-20 flex flex-col items-center">
-            <Package size={32} className="opacity-40 mb-4" />
-            <p className="font-semibold">Aucune annonce trouvée.</p>
-          </div>
+          <EmptyStateSearchResults />
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
@@ -293,7 +293,7 @@ export default function HomePage() {
                         }`}>
                     
                     <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                      {img && <Image src={img} alt={product.title} fill sizes="50vw" className="object-cover transition duration-500 group-hover:scale-110" />}
+                      {img && <Image src={img} alt={product.title} fill sizes="50vw" className="object-cover transition duration-500 group-hover:scale-110" placeholder="blur" blurDataURL={BLUR_PLACEHOLDERS.product} />}
                       
                       <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
                         {isBoosted && (

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Toaster } from 'sonner';
+import { ToastProvider } from '@/components/ToastProvider';
 import BottomNav from '@/components/BottomNav';
 import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
@@ -129,7 +129,7 @@ export default function RootLayout({
           <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           
           <InstallBanner />
-          <Toaster richColors position="top-center" duration={3000} />
+          <ToastProvider />
           
           {/* Main Content */}
           {/* pb-24 est conservé pour que le contenu ne soit pas caché par le BottomNav */}

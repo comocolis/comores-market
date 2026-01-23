@@ -14,6 +14,8 @@ import {
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
+import { SkeletonProfileHeader, SkeletonProductGrid, SkeletonReviewsList } from '@/components/Skeleton'
+import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 
 // --- INTERFACES STRICTES ---
 interface UserProfile {
@@ -198,7 +200,19 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       return diffDays > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
   }
 
-  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) {
+    return (
+      <div className="min-h-dvh w-full bg-[#F8FAFC] pb-24">
+        <div className="relative h-72 w-full overflow-hidden bg-gray-200 animate-pulse" />
+        <div className="max-w-4xl mx-auto px-5">
+          <SkeletonProfileHeader />
+          <div className="mt-10 space-y-4">
+            <SkeletonProductGrid count={6} />
+          </div>
+        </div>
+      </div>
+    )
+  }
   
   // Sécurité supplémentaire : Si pas de profil après chargement
   if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Profil introuvable.</div>
@@ -225,6 +239,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" 
             priority={true}
             sizes="100vw"
+            placeholder="blur"
+            blurDataURL={BLUR_PLACEHOLDERS.cover}
         />
         <div className="absolute inset-0 bg-linear-to-t from-[#F8FAFC] via-transparent to-black/50" />
 
@@ -261,6 +277,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                         fill 
                         className="object-cover" 
                         sizes="(max-width: 768px) 33vw, 128px"
+                        placeholder="blur"
+                        blurDataURL={BLUR_PLACEHOLDERS.avatar}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>
@@ -374,6 +392,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                             fill 
                                             className="object-cover group-hover:scale-110 transition-transform duration-700" 
                                             sizes="(max-width: 768px) 50vw, 300px"
+                                            placeholder="blur"
+                                            blurDataURL={BLUR_PLACEHOLDERS.product}
                                         />
                                     )}
                                     {isBoosted && (
@@ -431,7 +451,9 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                                 alt="" 
                                                 fill 
                                                 className="object-cover"
-                                                sizes="40px" 
+                                                sizes="40px"
+                                                placeholder="blur"
+                                                blurDataURL={BLUR_PLACEHOLDERS.thumbnail}
                                             />
                                         ) : (
                                             <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>
