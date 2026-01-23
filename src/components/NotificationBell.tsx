@@ -21,18 +21,20 @@ export default function NotificationBell() {
           schema: 'public', 
           table: 'notifications' 
         }, 
-        (payload) => {
+        // FIX 1 : Type explicite pour payload
+        (payload: any) => {
           console.log("🔥 SIGNAL REÇU EN DIRECT !", payload)
           setUnreadCount(prev => prev + 1)
           toast.success("Signal détecté !")
         }
       )
-      .subscribe((status) => {
+      // FIX 2 : Type explicite pour status
+      .subscribe((status: any) => {
         console.log("📡 Statut Realtime :", status)
       })
 
     return () => { supabase.removeChannel(channel) }
-  }, [])
+  }, [supabase])
 
   if (!mounted) return null
 
