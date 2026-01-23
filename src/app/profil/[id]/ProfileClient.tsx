@@ -15,23 +15,37 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
+// --- INTERFACES STRICTES ---
 interface UserProfile {
   id: string
-  email: string
+  email?: string
+  full_name?: string
   username?: string
-  avatar_url?: string
+  avatar_url?: string | null
+  cover_url?: string | null
   bio?: string
+  description?: string
   is_pro?: boolean
-  [key: string]: unknown
+  city?: string
+  island?: string
+  phone_number?: string
+  facebook_url?: string
+  instagram_url?: string
+  subscription_end_date?: string | null
+  created_at: string
+  role?: string
 }
 
 interface ProductListing {
   id: string
   title: string
   price: number
-  images: string
+  images: string 
   created_at: string
-  [key: string]: unknown
+  location_city?: string
+  boosted_until?: string | null
+  status?: string
+  user_id: string
 }
 
 interface Review {
@@ -39,7 +53,9 @@ interface Review {
   rating: number
   comment: string
   created_at: string
-  [key: string]: unknown
+  reviewer_id: string
+  target_id: string
+  reviewer?: UserProfile 
 }
 
 interface ProfileClientProps {
@@ -53,7 +69,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   
-  const [profile, setProfile] = useState<UserProfile | null>(initialData || null)
+  const [profile, setProfile] = useState<UserProfile | null>(initialData ? (initialData as UserProfile) : null)
   const [products, setProducts] = useState<ProductListing[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(!initialData)
@@ -105,19 +121,22 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
   const getData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser()
-    setCurrentUser(user)
+    if (user) {
+        setCurrentUser({ id: user.id, email: user.email } as UserProfile)
+    }
     
     if (!initialData) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', profileId).single()
-        if (prof) setProfile(prof)
+        if (prof) setProfile(prof as UserProfile)
     }
 
     if (profileId) {
         calculateResponseTime(profileId);
         const { data: pds } = await supabase.from('products').select('*').eq('user_id', profileId).eq('status', 'active').order('created_at', { ascending: false })
-        setProducts(pds || [])
+        setProducts((pds as ProductListing[]) || [])
+        
         const { data: rvs } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', profileId).order('created_at', { ascending: false })
-        setReviews(rvs || [])
+        setReviews((rvs as unknown as Review[]) || [])
     }
     setLoading(false)
   }, [profileId, supabase, initialData])
@@ -132,10 +151,12 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
+    
     if (!currentUser) {
       toast.error("Utilisateur non connecté")
       return
     }
+
     const file = e.target.files[0]
     setUploadingCover(true)
     try {
@@ -143,8 +164,12 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       const { error: upErr } = await supabase.storage.from('avatars').upload(fileName, file, { upsert: true })
       if (upErr) throw upErr
       const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(fileName)
+      
       await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', currentUser.id)
-      setProfile({ ...profile, cover_url: publicUrl })
+      
+      // FIX CRITIQUE : On utilise la version callback du setter pour être sûr d'avoir l'état courant
+      setProfile((prev) => (prev ? { ...prev, cover_url: publicUrl } : null))
+      
       toast.success("Couverture mise à jour")
     } catch (err) { toast.error("Erreur d'envoi") } 
     finally { setUploadingCover(false) }
@@ -165,7 +190,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       setSubmittingReview(false)
   }
 
-  const getSubscriptionType = (endDate: string) => {
+  const getSubscriptionType = (endDate: string | null | undefined) => {
       if (!endDate) return "Standard"
       const end = new Date(endDate)
       const now = new Date()
@@ -174,8 +199,12 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   }
 
   if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" /></div>
+  
+  // Sécurité supplémentaire : Si pas de profil après chargement
   if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Profil introuvable.</div>
 
+  // --- VARIABLES SECURISÉES AVEC OPTIONAL CHAINING ---
+  // On utilise ?. partout pour éviter le crash si profile est null (même si théoriquement impossible ici)
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
@@ -189,7 +218,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       {/* SECTION COUVERTURE */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
-            src={profile.cover_url || "/cover-default.jpg"}
+            // FIX : Utilisation de ?. et valeur par défaut
+            src={profile?.cover_url || "/cover-default.jpg"}
             alt="Couverture" 
             fill 
             className="object-cover opacity-70 transition-transform duration-700 group-hover:scale-105" 
@@ -223,8 +253,9 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           
           <div className="relative -mt-16 mb-4">
             <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50' : 'bg-gray-100'}`}>
-                {profile.avatar_url ? (
+                {profile?.avatar_url ? (
                     <Image 
+                        // FIX : Utilisation de ?.
                         src={profile.avatar_url} 
                         alt="" 
                         fill 
@@ -244,7 +275,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
           <div className="space-y-1">
             <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
-              {profile.full_name || "Utilisateur"} 
+              {profile?.full_name || "Utilisateur"} 
               {isProActive && <Crown size={22} className="text-amber-500 fill-amber-500" />}
             </h2>
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit mx-auto mt-2">
@@ -256,7 +287,11 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100">
             <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Annonces</span></div>
             <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Confiance</span></div>
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{new Date(profile.created_at).getFullYear()}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span></div>
+            <div className="flex flex-col items-center">
+                {/* FIX : new Date() avec fallback */}
+                <span className="text-lg font-black text-gray-900">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
+                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span>
+            </div>
           </div>
 
           {/* ACTIONS */}
@@ -264,14 +299,14 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             {isOwner && isProActive && (
               <button 
                 onClick={() => {
-                    const subType = getSubscriptionType(profile.subscription_end_date);
+                    const subType = getSubscriptionType(profile?.subscription_end_date);
                     const today = new Date().toISOString();
                     generatePROReceipt({ 
-                      full_name: profile.full_name, 
+                      full_name: profile?.full_name || "Vendeur", 
                       email: currentUser?.email || 'vendeur@comores-market.com', 
                       date: today,
                       description: subType,
-                      customEndDate: profile.subscription_end_date
+                      customEndDate: profile?.subscription_end_date || undefined
                     })
                 }}
                 className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-3xl shadow-sm border border-emerald-100 active:scale-95 transition-all hover:bg-emerald-50"
@@ -280,14 +315,14 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
               </button>
             )}
 
-            {isProActive && (profile.facebook_url || profile.instagram_url) && (
+            {isProActive && (profile?.facebook_url || profile?.instagram_url) && (
               <div className="flex justify-center gap-3">
-                {profile.facebook_url && (
+                {profile?.facebook_url && (
                   <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
                     <Facebook size={20} fill="currentColor" />
                   </a>
                 )}
-                {profile.instagram_url && (
+                {profile?.instagram_url && (
                   <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all active:scale-90 border border-pink-100">
                     <Instagram size={20} />
                   </a>
@@ -298,12 +333,11 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
           <div className="mt-6 space-y-4 w-full">
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
-                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile.city || 'Comores'}</span>
+                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile?.city || 'Comores'}</span>
                 <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
             </div>
             
-            {/* CORRECTION ALIGNEMENT DESCRIPTION : text-left */}
-            {profile.description && (
+            {profile?.description && (
                 <div className="bg-gray-50/50 p-6 rounded-3xl mt-4">
                     <p className="text-sm text-gray-700 leading-relaxed font-medium text-left whitespace-pre-wrap">
                         {profile.description}
@@ -324,7 +358,9 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                 <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
                     {products.map(p => {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
-                        const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date();
+                        // FIX : Cast ou valeur par défaut
+                        const boostedUntil = p.boosted_until || '';
+                        const isBoosted = boostedUntil && new Date(boostedUntil).getTime() > new Date().getTime();
 
                         return (
                           <div key={p.id} className="flex flex-col gap-3">
@@ -350,16 +386,16 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                   <div className="pt-3 px-1">
                                     <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
                                     <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
-                                      <ShoppingBag size={10} /> {p.location_city}
+                                      <ShoppingBag size={10} /> {p.location_city || 'Moroni'}
                                     </div>
                                   </div>
                               </div>
                             </Link>
 
                             {isOwner && (
-                              isBoosted ? (
+                              isBoosted && boostedUntil ? (
                                 <div className="w-full bg-amber-50 text-amber-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
-                                  <Clock size={12} /> {Math.ceil((new Date(p.boosted_until).getTime() - new Date().getTime()) / (1000 * 3600))}h rest.
+                                  <Clock size={12} /> {Math.ceil((new Date(boostedUntil).getTime() - new Date().getTime()) / (1000 * 3600))}h rest.
                                 </div>
                               ) : (
                                 <Link 
@@ -382,14 +418,16 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                           <Plus size={18} /> Partager un avis
                         </button>
                     )}
-                    {reviews.map(r => (
+                    {reviews.map(r => {
+                         const reviewer = r.reviewer;
+                         return (
                         <div key={r.id} className="bg-white p-7 rounded-4xl shadow-sm border border-white space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
                                     <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 shadow-inner">
-                                        {r.reviewer?.avatar_url ? (
+                                        {reviewer?.avatar_url ? (
                                             <Image 
-                                                src={r.reviewer.avatar_url} 
+                                                src={reviewer.avatar_url} 
                                                 alt="" 
                                                 fill 
                                                 className="object-cover"
@@ -399,13 +437,13 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                             <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>
                                         )}
                                     </div>
-                                    <div><p className="font-black text-sm text-gray-900">{r.reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
+                                    <div><p className="font-black text-sm text-gray-900">{reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
                                 </div>
                                 <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
                             </div>
                             {r.comment && <div className="bg-[#F5F7F9] p-5 rounded-3xl"><p className="text-gray-600 text-sm leading-relaxed">"{r.comment}"</p></div>}
                         </div>
-                    ))}
+                    )})}
                 </motion.div>
             )}
           </AnimatePresence>
