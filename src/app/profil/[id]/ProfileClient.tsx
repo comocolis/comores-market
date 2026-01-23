@@ -132,6 +132,10 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
+    if (!currentUser) {
+      toast.error("Utilisateur non connecté")
+      return
+    }
     const file = e.target.files[0]
     setUploadingCover(true)
     try {
