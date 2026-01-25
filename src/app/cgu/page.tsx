@@ -58,7 +58,7 @@ export default function CGUPage() {
             </a>
         </section>
 
-        <div className="pt-8 text-xs text-center text-gray-400">
+        <div className="pt-8 text-xs text-center text-gray-500">
             © 2025 Comores Market. Tous droits réservés.
         </div>
       </div>

@@ -82,7 +82,7 @@ export default function InstallBanner() {
             {/* Texte dense */}
             <div className="flex flex-col justify-center min-w-0 pr-2">
                 <p className="font-bold text-[13px] leading-none text-white truncate">Installer l'App</p>
-                <p className="text-[10px] text-gray-400 font-medium mt-1 leading-none truncate">Accès rapide & hors ligne</p>
+                <p className="text-[10px] text-gray-500 font-medium mt-1 leading-none truncate">Accès rapide & hors ligne</p>
             </div>
           </div>
           
@@ -95,8 +95,9 @@ export default function InstallBanner() {
                 Installer
               </button>
               <button 
-                onClick={handleDismiss} 
-                className="h-8 w-8 flex items-center justify-center bg-white/10 rounded-full text-gray-400 hover:text-white hover:bg-white/20 transition-colors"
+                onClick={handleDismiss}
+                aria-label="Fermer la bannière d'installation"
+                className="h-8 w-8 flex items-center justify-center bg-white/10 rounded-full text-gray-500 hover:text-white hover:bg-white/20 transition-colors"
               >
                 <X size={16} />
               </button>

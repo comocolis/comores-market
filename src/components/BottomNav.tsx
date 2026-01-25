@@ -113,13 +113,13 @@ export default function BottomNav() {
         <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
         <div className="flex justify-center relative -top-5">
-          <Link href="/publier" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
+          <Link href="/publier" aria-label="Publier une annonce" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
             <Plus strokeWidth={3} size={28} />
           </Link>
         </div>
 
         {/* MESSAGES AVEC BADGE ROUGE SYNCHRO */}
-        <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
+        <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
                 {unreadCount > 0 && (
@@ -132,7 +132,7 @@ export default function BottomNav() {
         </Link>
 
         {/* COMPTE AVEC BADGE AMBRE SYNCHRO */}
-        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
+        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />
                 {unreadNotifCount > 0 && (
@@ -150,7 +150,7 @@ export default function BottomNav() {
 
 function NavBtn({ href, icon: Icon, label, active }: any) {
   return (
-    <Link href={href} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition ${active ? 'text-brand' : 'text-gray-400 hover:text-gray-600'}`}>
+    <Link href={href} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition ${active ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
         <Icon size={24} strokeWidth={active ? 2.5 : 2} className={active ? "fill-brand text-brand" : ""} />
         <span className="text-[9px] font-bold">{label}</span>
     </Link>

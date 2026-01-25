@@ -383,7 +383,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         <div className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-gray-200">
                             {product.sub_category || "Divers"}
                         </div>
-                        <div className="flex items-center gap-1.5 text-gray-400 text-[10px] font-black tracking-widest">
+                        <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-black tracking-widest">
                             <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
                         </div>
                     </div>
@@ -430,7 +430,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
             {/* FICHE TECHNIQUE */}
             {specsList.length > 0 && (
                 <div className="bg-[#F8FAFC] p-6 rounded-[2.5rem] border border-gray-100 mb-8">
-                    <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-4 flex items-center gap-2">
+                    <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-4 flex items-center gap-2">
                         <Grid size={14} /> Fiche Technique
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
@@ -441,7 +441,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                             return (
                                 <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-white flex flex-col relative overflow-hidden">
                                     <IconComponent className="absolute -right-2 -bottom-2 text-gray-50 opacity-20 rotate-[-15deg]" size={40} />
-                                    <span className="text-[9px] font-bold text-gray-400 uppercase mb-1 flex items-center gap-1.5">
+                                    <span className="text-[9px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1.5">
                                         {label}
                                     </span>
                                     <span className="text-sm font-bold text-gray-900 truncate relative z-10">{value}</span>
@@ -476,7 +476,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                     )}
                     
                     <div className="bg-gray-50 p-7 rounded-[2.5rem] border border-white">
-                        <h4 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
+                        <h4 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
                             <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm" placeholder="Votre message..." value={message} onChange={(e) => setMessage(e.target.value)} />
                             <button type="submit" disabled={sending || !message.trim()} className="absolute right-4 bottom-4 bg-brand text-white p-3.5 rounded-xl shadow-lg active:scale-90 transition disabled:opacity-30">
@@ -548,7 +548,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                   <textarea className="w-full bg-gray-50 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-30 resize-none mb-6 shadow-inner" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
                   <div className="flex flex-col gap-3">
                       <button onClick={submitReport} disabled={reporting || !reportReason.trim()} className="w-full py-5 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-xl shadow-red-500/20 uppercase text-[10px] tracking-widest">{reporting ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Envoyer l'alerte"}</button>
-                      <button onClick={() => setShowReportModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-400 bg-gray-50 active:scale-95 transition uppercase text-[10px] tracking-widest">Annuler</button>
+                      <button onClick={() => setShowReportModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-500 bg-gray-50 active:scale-95 transition uppercase text-[10px] tracking-widest">Annuler</button>
                   </div>
               </motion.div>
           </div>

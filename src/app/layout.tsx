@@ -47,8 +47,8 @@ export const viewport: Viewport = {
   themeColor: "#F8FAFC",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
+  maximumScale: 5,
+  userScalable: true,
   viewportFit: "cover",
 };
 
@@ -81,7 +81,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           <ToastProvider />
           
           <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
-            <Suspense fallback={<div className="w-full h-screen flex items-center justify-center"><div className="text-gray-400">Chargement...</div></div>}>
+            <Suspense fallback={<div className="w-full h-screen flex items-center justify-center"><div className="text-gray-500">Chargement...</div></div>}>
               {children}
             </Suspense>
           </main>

@@ -83,10 +83,10 @@ export default function MesAnnoncesClient() {
                       <AlertTriangle size={36} />
                   </div>
                   <h3 className="font-black text-xl mb-2 tracking-tight">Supprimer l'offre ?</h3>
-                  <p className="text-gray-400 text-sm mb-8 leading-relaxed">Cette action effacera définitivement l'annonce de la plateforme.</p>
+                  <p className="text-gray-500 text-sm mb-8 leading-relaxed">Cette action effacera définitivement l'annonce de la plateforme.</p>
                   <div className="flex flex-col gap-3">
                       <button onClick={handleDelete} className="w-full py-4 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-lg shadow-red-500/20 uppercase text-xs tracking-widest">Confirmer</button>
-                      <button onClick={() => setDeleteModal({ isOpen: false, productId: null })} className="w-full py-4 rounded-2xl font-black text-gray-400 bg-[#F5F7F9] active:scale-95 transition uppercase text-xs tracking-widest">Annuler</button>
+                      <button onClick={() => setDeleteModal({ isOpen: false, productId: null })} className="w-full py-4 rounded-2xl font-black text-gray-500 bg-[#F5F7F9] active:scale-95 transition uppercase text-xs tracking-widest">Annuler</button>
                   </div>
               </motion.div>
           </div>
@@ -161,7 +161,7 @@ export default function MesAnnoncesClient() {
                                   <h3 className="font-black text-gray-900 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
                                 </Link>
                                 <p className="text-brand font-black text-lg mt-0.5">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p>
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-400 mt-auto uppercase font-black tracking-widest">
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-auto uppercase font-black tracking-widest">
                                     <MapPin size={12} className="text-brand/40" /> {product.location_city}
                                 </div>
                             </div>
@@ -213,7 +213,7 @@ export default function MesAnnoncesClient() {
                                 </div>
                                 <div className="flex items-baseline gap-1.5">
                                   <span className="text-sm font-black text-gray-900">{views}</span>
-                                  <span className="text-[10px] text-gray-400 uppercase font-black tracking-widest">vues</span>
+                                  <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">vues</span>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1 text-[9px] text-brand font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition">

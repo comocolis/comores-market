@@ -263,7 +263,7 @@ function MessagesContent() {
                     </div>
                 </div>
                 <div className="relative group px-2">
-                    <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-400">
+                    <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-500">
                         <Search size={18} strokeWidth={3} />
                     </div>
                     <input 
@@ -306,7 +306,7 @@ function MessagesContent() {
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
                                             <p className="text-[9px] text-brand font-black tracking-widest truncate mb-0.5 opacity-50">{conv.productTitle}</p>
-                                            <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'text-gray-400 font-medium'}`}>{conv.lastMessage}</p>
+                                            <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'text-gray-500 font-medium'}`}>{conv.lastMessage}</p>
                                         </div>
                                         {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-lg flex items-center justify-center text-[9px] text-white font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
                                     </div>
@@ -426,10 +426,10 @@ function MessagesContent() {
                 <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center" onClick={e => e.stopPropagation()}>
                     <div className="bg-red-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8"><AlertTriangle size={32} className="text-red-500" /></div>
                     <h3 className="font-black text-xl mb-2 uppercase tracking-tight">Supprimer ?</h3>
-                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-8 leading-relaxed">Cette conversation sera effacée pour vous.</p>
+                    <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-8 leading-relaxed">Cette conversation sera effacée pour vous.</p>
                     <div className="flex flex-col gap-3">
                         <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-black text-white bg-red-600 shadow-xl shadow-red-500/20 text-[10px] uppercase tracking-widest active:scale-95 transition">Confirmer</button>
-                        <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-black text-gray-400 bg-gray-50 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
+                        <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-black text-gray-500 bg-gray-50 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
                     </div>
                 </div>
             </div>

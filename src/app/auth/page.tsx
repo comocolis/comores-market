@@ -232,7 +232,7 @@ export default function AuthPage() {
                         <div className="flex justify-center mb-6 relative">
                             <div className="relative">
                                 <div onClick={() => fileInputRef.current?.click()} className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}>
-                                    {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-400 group-hover:text-mustard transition" size={32} />}
+                                    {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-500 group-hover:text-mustard transition" size={32} />}
                                 </div>
                                 {avatarPreview && <button type="button" onClick={removeAvatar} className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"><X size={14} /></button>}
                             </div>
@@ -240,7 +240,7 @@ export default function AuthPage() {
                         </div>
 
                         <div className="relative group">
-                            <User className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={20} />
+                            <User className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
                             <input type="text" placeholder="Nom complet" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} required />
                         </div>
 
@@ -251,7 +251,7 @@ export default function AuthPage() {
                                 </select>
                             </div>
                             <div className="relative group flex-1">
-                                <Phone className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={18} />
+                                <Phone className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
                                 <input type="tel" placeholder={selectedCountry.placeholder} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.phoneBody} onChange={e => setFormData({...formData, phoneBody: e.target.value})} required />
                             </div>
                         </div>
@@ -265,10 +265,10 @@ export default function AuthPage() {
                                     <option>Maore</option>
                                     <option>La Réunion</option>
                                 </select>
-                                <div className="absolute right-3 top-3.5 pointer-events-none text-gray-400">▼</div>
+                                <div className="absolute right-3 top-3.5 pointer-events-none text-gray-500">▼</div>
                             </div>
                             <div className="w-1/2 relative group">
-                                <MapPin className="absolute left-3 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={18} />
+                                <MapPin className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
                                 <input type="text" placeholder="Ville" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 outline-none focus:border-mustard text-sm font-medium transition" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
                             </div>
                         </div>
@@ -276,15 +276,15 @@ export default function AuthPage() {
                 )}
 
                 <div className="relative group">
-                    <Mail className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={20} />
+                    <Mail className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
                     <input type="email" placeholder="Adresse email" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
                 </div>
 
                 {(view === 'login' || view === 'register') && (
                     <div className="relative group">
-                        <Lock className="absolute left-4 top-3.5 text-gray-400 group-focus-within:text-mustard transition" size={20} />
+                        <Lock className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
                         <input type={showPassword ? "text" : "password"} placeholder="Mot de passe" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-mustard font-medium transition" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition focus:outline-none">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-600 transition focus:outline-none">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
                     </div>
                 )}
 
@@ -306,9 +306,9 @@ export default function AuthPage() {
                 )}
 
                 {view === 'login' ? (
-                    <button onClick={() => setView('forgot')} className="text-xs text-gray-400 underline">Mot de passe oublié ?</button>
+                    <button onClick={() => setView('forgot')} className="text-xs text-gray-500 underline">Mot de passe oublié ?</button>
                 ) : (view === 'forgot' || view === 'magic_link') && (
-                    <button onClick={() => setView('login')} className="text-xs text-gray-400 underline">Retour connexion</button>
+                    <button onClick={() => setView('login')} className="text-xs text-gray-500 underline">Retour connexion</button>
                 )}
             </div>
         </div>
@@ -319,7 +319,7 @@ export default function AuthPage() {
                 Continuer sans compte
             </Link>
 
-            <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
                 <Link href="/pro" className="hover:text-brand transition">Vendeur Pro</Link>
                 <span>•</span>
                 <Link href="/faq" className="hover:text-brand transition">Aide</Link>

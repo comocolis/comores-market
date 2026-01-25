@@ -235,8 +235,8 @@ export default function HomePage() {
         </div>
         <div className="flex gap-2">
             <div className="relative flex-1">
-                <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
-                <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
+                <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-500" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <Search className="absolute left-4 top-3.5 text-gray-500" size={18} />
             </div>
             <button 
               onClick={() => setShowFilters(true)} 

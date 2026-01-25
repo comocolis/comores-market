@@ -77,7 +77,7 @@ export default function RecherchePage() {
                 onChange={e => setQuery(e.target.value)}
                 autoFocus
             />
-            <Search className="absolute left-4 top-4 text-gray-400" />
+            <Search className="absolute left-4 top-4 text-gray-500" />
         </div>
       </div>
 
@@ -118,7 +118,7 @@ export default function RecherchePage() {
                             <p className={`font-extrabold ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
                                 {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                             </p>
-                            <div className="flex items-center gap-1 text-gray-400 text-xs mt-1">
+                            <div className="flex items-center gap-1 text-gray-500 text-xs mt-1">
                                 <MapPin size={12} /> {product.location_city}
                             </div>
                         </div>
@@ -126,7 +126,7 @@ export default function RecherchePage() {
                 )
             })
         ) : query.length > 1 && (
-            <div className="text-center text-gray-400 pt-10">Aucun résultat trouvé.</div>
+            <div className="text-center text-gray-500 pt-10">Aucun résultat trouvé.</div>
         )}
       </div>
     </div>

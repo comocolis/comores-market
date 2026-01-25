@@ -66,7 +66,7 @@ export default function ProPage() {
     { text: "Photos illimitées dans le chat", icon: <ImageIcon size={18} className="text-purple-500" /> },
     { text: "Lien WhatsApp direct sur l'annonce", icon: <MessageCircle size={18} className="text-green-500" /> },
     { text: "Liens Réseaux Sociaux (FB/Insta)", icon: <Instagram size={18} className="text-pink-500" /> },
-    { text: "Statistiques de vues détaillées", icon: <Check size={18} className="text-gray-400" /> },
+    { text: "Statistiques de vues détaillées", icon: <Check size={18} className="text-gray-500" /> },
   ]
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" /></div>
@@ -129,12 +129,12 @@ export default function ProPage() {
 
           {/* PRIX */}
           <div className="text-center mb-8 mt-2">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{selectedPlan === 'monthly' ? 'Sans engagement' : 'Paiement unique'}</p>
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">{selectedPlan === 'monthly' ? 'Sans engagement' : 'Paiement unique'}</p>
             <div className="flex items-baseline justify-center gap-1">
                <span className="text-5xl font-black text-gray-900 tracking-tighter">
                  {selectedPlan === 'monthly' ? '2 500' : '25 000'}
                </span>
-               <span className="text-lg font-bold text-gray-400">KMF</span>
+               <span className="text-lg font-bold text-gray-500">KMF</span>
             </div>
             {selectedPlan === 'yearly' && <p className="text-xs text-amber-500 font-bold mt-2">Soit 2 083 KMF / mois</p>}
           </div>
@@ -158,14 +158,14 @@ export default function ProPage() {
           <div className="flex gap-2 mb-6">
               <button 
                 onClick={() => setPaymentMethod('mvola')}
-                className={`flex-1 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${paymentMethod === 'mvola' ? 'border-brand bg-green-50 text-green-800' : 'border-gray-100 bg-white text-gray-400 grayscale'}`}
+                className={`flex-1 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${paymentMethod === 'mvola' ? 'border-brand bg-green-50 text-green-800' : 'border-gray-100 bg-white text-gray-500 grayscale'}`}
               >
                   <Smartphone size={20} />
                   <span className="text-[10px] font-black uppercase">Mvola</span>
               </button>
               <button 
                 onClick={() => setPaymentMethod('card')}
-                className={`flex-1 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${paymentMethod === 'card' ? 'border-gray-900 bg-gray-50 text-gray-900' : 'border-gray-100 bg-white text-gray-400'}`}
+                className={`flex-1 py-3 rounded-xl border-2 flex flex-col items-center justify-center gap-1 transition-all ${paymentMethod === 'card' ? 'border-gray-900 bg-gray-50 text-gray-900' : 'border-gray-100 bg-white text-gray-500'}`}
               >
                   <CreditCard size={20} />
                   <span className="text-[10px] font-black uppercase">Carte</span>
@@ -178,7 +178,7 @@ export default function ProPage() {
                   {!user ? (
                       // --- VISITEUR NON CONNECTÉ ---
                       <div className="bg-gray-50 rounded-xl p-6 text-center border border-gray-200 border-dashed">
-                          <Lock size={24} className="mx-auto text-gray-400 mb-3" />
+                          <Lock size={24} className="mx-auto text-gray-500 mb-3" />
                           <p className="text-xs font-bold text-gray-500 mb-4">Connectez-vous pour voir les instructions de paiement et activer votre compte.</p>
                           <Link 
                             href="/auth"
@@ -209,7 +209,7 @@ export default function ProPage() {
                             <MessageCircle size={18} fill="currentColor" />
                             Envoyer la preuve
                           </a>
-                          <p className="text-[10px] text-center text-gray-400 mt-3 font-medium">Activation sous 15 min après envoi.</p>
+                          <p className="text-[10px] text-center text-gray-500 mt-3 font-medium">Activation sous 15 min après envoi.</p>
                       </>
                   )}
               </div>

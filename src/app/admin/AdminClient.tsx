@@ -261,7 +261,7 @@ function AdminContent() {
                     <ShieldCheck className={currentUserRole === 'super_admin' ? "text-amber-500" : "text-blue-400"} /> 
                     {currentUserRole === 'super_admin' ? "SUPER ADMIN" : "ADMINISTRATION"}
                 </h1>
-                <p className="text-gray-400 text-xs mt-1 font-mono">
+                <p className="text-gray-500 text-xs mt-1 font-mono">
                     {currentUserRole === 'super_admin' ? "Contrôle Total" : "Modérateur"}
                 </p>
             </div>
@@ -308,7 +308,7 @@ function AdminContent() {
                         <div key={u.id} className={`p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isTargetAdmin ? 'border-blue-300 bg-blue-50/30' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'bg-white border-gray-100'))}`}>
                             <div className="flex items-center justify-between mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-400">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
                                     <div>
                                         <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
                                             {u.full_name} 
@@ -316,7 +316,7 @@ function AdminContent() {
                                             {isTargetSuper && <ShieldCheck size={12} className="text-red-600" />}
                                             {isTargetAdmin && !isTargetSuper && <Shield size={12} className="text-blue-500" />}
                                         </p>
-                                        <p className="text-[10px] text-gray-400 font-bold">{u.email}</p>
+                                        <p className="text-[10px] text-gray-500 font-bold">{u.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -342,7 +342,7 @@ function AdminContent() {
                                     {currentUserRole === 'super_admin' && !isTargetSelf && (
                                         <button 
                                             onClick={() => toggleAdminRole(u.id, u.role)}
-                                            className={`p-2.5 rounded-xl border transition shadow-sm ${isTargetAdmin ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-400 border-gray-200'}`}
+                                            className={`p-2.5 rounded-xl border transition shadow-sm ${isTargetAdmin ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                             title={isTargetAdmin ? "Rétrograder" : "Nommer Admin"}
                                         >
                                             <ShieldAlert size={18} />
@@ -380,14 +380,14 @@ function AdminContent() {
                                 <div className="w-16 h-16 bg-gray-100 rounded-xl shrink-0 relative overflow-hidden">{img && <Image src={img} alt="" fill className="object-cover" />}</div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2"><p className="font-bold text-sm text-gray-900 truncate">{p.title}</p> <span className="text-[10px] font-bold bg-gray-100 px-2 rounded">Score: {p.quality_score}/10</span></div>
-                                    <p className="text-[10px] text-gray-400 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
+                                    <p className="text-[10px] text-gray-500 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
                                     <p className="text-amber-600 font-black text-xs mt-1">{p.price} KMF</p>
                                 </div>
                                 <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
-                                <button onClick={() => toggleBoost(p.id, isBoosted)} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-400' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" className="bg-gray-50 text-gray-400 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <button onClick={() => toggleBoost(p.id, isBoosted)} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
+                                <Link href={`/annonce/${p.id}`} target="_blank" className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )
@@ -402,7 +402,7 @@ function AdminContent() {
                     <div key={r.id} className={`p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 bg-red-50/50' : 'bg-white border-gray-100 opacity-60'}`}>
                         <div className="flex justify-between items-start mb-2">
                             <span className={`text-[10px] font-black px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span>
-                            <span className="text-[10px] text-gray-400 font-bold">{new Date(r.created_at).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-gray-500 font-bold">{new Date(r.created_at).toLocaleDateString()}</span>
                         </div>
                         <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
                         <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 mt-2">
@@ -418,24 +418,24 @@ function AdminContent() {
         {/* AVIS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                {reviewsList.length === 0 ? <p className="text-center text-gray-400 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
+                {reviewsList.length === 0 ? <p className="text-center text-gray-500 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
                     <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-400">{review.reviewer?.avatar_url ? <Image src={review.reviewer.avatar_url} alt="" width={40} height={40} /> : (review.reviewer?.full_name?.[0] || 'U')}</div>
+                                <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500">{review.reviewer?.avatar_url ? <Image src={review.reviewer.avatar_url} alt="" width={40} height={40} /> : (review.reviewer?.full_name?.[0] || 'U')}</div>
                                 <div>
                                     <p className="font-bold text-sm text-gray-900">{review.reviewer?.full_name || 'Inconnu'}</p>
                                     <div className="flex gap-1 mt-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={10} className={s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}/>)}</div>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="text-[9px] text-gray-400 font-bold uppercase">Cible</p>
+                                <p className="text-[9px] text-gray-500 font-bold uppercase">Cible</p>
                                 <p className="text-xs font-bold text-gray-700">{review.target?.full_name || 'Inconnu'}</p>
                             </div>
                         </div>
                         <div className="bg-gray-50 p-3 rounded-xl mb-3"><p className="text-sm text-gray-600 italic">"{review.comment}"</p></div>
                         <div className="flex justify-between items-center">
-                            <span className="text-[10px] text-gray-400 font-bold">{new Date(review.created_at).toLocaleDateString()}</span>
+                            <span className="text-[10px] text-gray-500 font-bold">{new Date(review.created_at).toLocaleDateString()}</span>
                             <button onClick={() => askConfirm("Supprimer cet avis ?", "Irréversible.", () => deleteReview(review.id))} className="text-[10px] bg-red-50 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex gap-1 hover:bg-red-100"><Trash2 size={12}/> Supprimer</button>
                         </div>
                     </div>

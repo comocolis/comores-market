@@ -161,7 +161,7 @@ export default function BoostLandingPage() {
                         <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">2</span>
                         <h3 className="font-black text-gray-900 text-sm">Confirmation</h3>
                     </div>
-                    <p className="text-[11px] text-gray-400 font-bold leading-relaxed mb-6 px-1">
+                    <p className="text-[11px] text-gray-500 font-bold leading-relaxed mb-6 px-1">
                         Une fois le transfert effectué, cliquez sur le bouton ci-dessous pour nous envoyer votre preuve de paiement.
                     </p>
                     <button 
@@ -184,7 +184,7 @@ export default function BoostLandingPage() {
                     <CreditCard size={32} />
                 </div>
                 <h3 className="font-black text-gray-900 mb-2">Bientôt disponible</h3>
-                <p className="text-gray-400 text-xs font-bold leading-relaxed">
+                <p className="text-gray-500 text-xs font-bold leading-relaxed">
                   Le paiement par carte bancaire (Stripe/PayPal) arrive prochainement. Pour l'instant, merci d'utiliser Mvola.
                 </p>
             </div>

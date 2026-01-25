@@ -312,11 +312,11 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           </div>
 
           <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100">
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Annonces</span></div>
-            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Confiance</span></div>
+            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Annonces</span></div>
+            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Confiance</span></div>
             <div className="flex flex-col items-center">
                 <span className="text-lg font-black text-gray-900">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
-                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span>
+                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Depuis</span>
             </div>
           </div>
 
@@ -373,8 +373,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           </div>
 
           <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-3xl">
-              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Showroom</button>
-              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-400'}`}>Avis clients</button>
+              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-500'}`}>Showroom</button>
+              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-500'}`}>Avis clients</button>
           </div>
         </div>
 
@@ -414,7 +414,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                   </div>
                                   <div className="pt-3 px-1">
                                     <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
-                                    <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                                    <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-500 font-bold uppercase tracking-widest">
                                       <ShoppingBag size={10} /> {p.location_city || 'Moroni'}
                                     </div>
                                   </div>
@@ -444,7 +444,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             ) : (
                 <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     {currentUser && currentUser.id !== profileId && (
-                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-400 font-bold py-6 rounded-4xl flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
+                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-500 font-bold py-6 rounded-4xl flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
                           <Plus size={18} /> Partager un avis
                         </button>
                     )}
@@ -486,7 +486,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
         {showReviewModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-200 bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
-                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 rounded-full text-gray-400"><X size={20}/></button></div>
+                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 rounded-full text-gray-500"><X size={20}/></button></div>
                   <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} aria-label={`Noter ${s} étoiles`} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
                   <textarea className="w-full bg-[#F5F7F9] border-none rounded-3xl p-5 text-sm min-h-32 outline-none focus:ring-4 focus:ring-brand/5 transition" placeholder="Votre avis..." value={newComment} onChange={e => setNewComment(e.target.value)} />
                   <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-3xl shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>

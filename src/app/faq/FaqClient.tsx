@@ -110,7 +110,7 @@ export default function FaqClient() {
               <span className={`text-sm font-bold pr-4 ${openIndex === i ? 'text-brand' : 'text-gray-800'}`}>
                 {item.question}
               </span>
-              {openIndex === i ? <ChevronUp size={18} className="text-brand shrink-0" /> : <ChevronDown size={18} className="text-gray-400 shrink-0" />}
+              {openIndex === i ? <ChevronUp size={18} className="text-brand shrink-0" /> : <ChevronDown size={18} className="text-gray-500 shrink-0" />}
             </button>
             
             <AnimatePresence>
@@ -143,7 +143,7 @@ export default function FaqClient() {
             </a>
         </section>
 
-        <div className="pt-8 text-xs text-center text-gray-400">
+        <div className="pt-8 text-xs text-center text-gray-500">
             © 2025 Comores Market. Tous droits réservés.
         </div>
       </div>

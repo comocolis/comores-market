@@ -75,7 +75,7 @@ export default function ProductViewersPage() {
         {loading ? (
             <div className="flex justify-center pt-10"><Loader2 className="animate-spin text-brand" /></div>
         ) : viewers.length === 0 ? (
-            <div className="text-center text-gray-400 pt-20">
+            <div className="text-center text-gray-500 pt-20">
                 <Users size={48} className="mx-auto opacity-10 mb-4" />
                 <p className="text-sm">Aucun utilisateur connecté n'a encore <br/>consulté cette annonce.</p>
             </div>
@@ -97,7 +97,7 @@ export default function ProductViewersPage() {
                                 {entry.profile.avatar_url ? (
                                     <Image src={entry.profile.avatar_url} alt="" fill className="object-cover" />
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400"><User size={20} /></div>
+                                    <div className="w-full h-full flex items-center justify-center text-gray-500"><User size={20} /></div>
                                 )}
                             </div>
                             {entry.profile.is_pro && (
@@ -112,7 +112,7 @@ export default function ProductViewersPage() {
                             <h3 className="font-bold text-sm truncate text-gray-900 group-hover:text-brand transition">
                                 {entry.profile.full_name}
                             </h3>
-                            <div className="flex items-center gap-2 text-[10px] text-gray-400 font-medium">
+                            <div className="flex items-center gap-2 text-[10px] text-gray-500 font-medium">
                                 <span className="truncate">{entry.profile.city || 'Comores'}</span>
                                 <span>•</span>
                                 <span className="flex items-center gap-0.5"><Calendar size={10}/> {new Date(entry.created_at).toLocaleDateString()}</span>

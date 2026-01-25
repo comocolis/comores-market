@@ -124,7 +124,8 @@ export default function EliteAssistant() {
                       </div>
                     </div>
                     <button 
-                      onClick={() => setIsOpen(false)} 
+                      onClick={() => setIsOpen(false)}
+                      aria-label="Fermer l'assistant"
                       className="text-white/60 hover:text-white transition bg-white/10 p-2 rounded-full active:scale-90"
                     >
                       <X size={18} />
@@ -165,7 +166,7 @@ export default function EliteAssistant() {
                       <div className="flex justify-start">
                         <div className="bg-white p-3 rounded-[1.2rem] rounded-tl-none border border-gray-100 shadow-sm flex items-center gap-2">
                           <Loader2 size={14} className="animate-spin text-amber-500" />
-                          <span className="text-[10px] font-bold text-gray-400 animate-pulse">Réflexion...</span>
+                          <span className="text-[10px] font-bold text-gray-500 animate-pulse">Réflexion...</span>
                         </div>
                       </div>
                     )}
@@ -179,11 +180,12 @@ export default function EliteAssistant() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Votre question..."
-                        className="w-full bg-gray-50 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-gray-400"
+                        className="w-full bg-gray-50 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-gray-500"
                       />
                       <button
                         type="submit"
                         disabled={!message.trim() || loading}
+                        aria-label="Envoyer le message"
                         className="absolute right-1.5 top-1.5 bg-amber-500 text-white p-2 rounded-xl shadow-lg shadow-amber-500/20 active:scale-90 transition-all disabled:opacity-30 disabled:shadow-none"
                       >
                         <Send size={16} />
@@ -206,7 +208,7 @@ export default function EliteAssistant() {
                     e.stopPropagation()
                     setIsVisible(false)
                   }}
-                  className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-400 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
+                  className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-500 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
                 >
                   <X size={12} strokeWidth={3} />
                 </button>

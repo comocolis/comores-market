@@ -72,12 +72,12 @@ export default function ResetPasswordPage() {
                 <Lock size={32} />
             </div>
             <h1 className="text-2xl font-black text-gray-900 tracking-tight">Réinitialisation</h1>
-            <p className="text-sm font-medium text-gray-400 mt-2">Créez votre nouveau mot de passe sécurisé.</p>
+            <p className="text-sm font-medium text-gray-500 mt-2">Créez votre nouveau mot de passe sécurisé.</p>
         </div>
 
         <form onSubmit={handleUpdatePassword} className="space-y-6">
             <div className="relative">
-                <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase tracking-widest">Nouveau mot de passe</label>
+                <label className="block text-[10px] font-black text-gray-500 mb-1 uppercase tracking-widest">Nouveau mot de passe</label>
                 <input 
                     type={showPassword ? "text" : "password"} 
                     required 
@@ -90,7 +90,7 @@ export default function ResetPasswordPage() {
                 <button 
                     type="button" 
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-9 text-gray-400 hover:text-gray-600 transition"
+                    className="absolute right-4 top-9 text-gray-500 hover:text-gray-600 transition"
                 >
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>

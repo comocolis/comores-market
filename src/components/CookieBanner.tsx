@@ -84,7 +84,7 @@ export default function CookieBanner() {
                 </button>
             </div>
             <div className="mt-3 text-center">
-                <Link href="/cgu" className="text-[10px] text-gray-400 underline hover:text-brand">En savoir plus</Link>
+                <Link href="/cgu" className="text-[10px] text-gray-500 underline hover:text-brand">En savoir plus</Link>
             </div>
         </div>
       </div>

@@ -616,7 +616,7 @@ export default function ModifierPage() {
                     <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x select-none">
                             <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
-                                {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-400" />}
+                                {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-500" />}
                             </div>
                             {images.map((img) => (
                                 <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
@@ -630,12 +630,12 @@ export default function ModifierPage() {
             {/* 2. INFOS PRINCIPALES */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Titre</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Titre</label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                        <Type size={18} className="text-gray-400" />
+                        <Type size={18} className="text-gray-500" />
                         <input 
                             type="text" 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-400" 
+                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             value={formData.title} 
                             onChange={e => setFormData({...formData, title: e.target.value})} 
                         />
@@ -643,12 +643,12 @@ export default function ModifierPage() {
                 </div>
                 
                 <div>
-                    <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Prix (KMF)</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Prix (KMF)</label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                        <span className="text-gray-400 font-black text-xs px-2">KMF</span>
+                        <span className="text-gray-500 font-black text-xs px-2">KMF</span>
                         <input 
                             type="number" 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-400" 
+                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             value={formData.price} 
                             onChange={e => setFormData({...formData, price: e.target.value})} 
                         />
@@ -657,7 +657,7 @@ export default function ModifierPage() {
                 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Catégorie</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Catégorie</label>
                         <select 
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.category_id} 
@@ -667,7 +667,7 @@ export default function ModifierPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Sous-catégorie</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Sous-catégorie</label>
                         <select 
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.sub_category} 
@@ -688,7 +688,7 @@ export default function ModifierPage() {
                             <PenTool size={18} className="text-brand mr-2" />
                             <input 
                                 type="text" 
-                                className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-400" 
+                                className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-500" 
                                 placeholder="Ex: Drone, Tondeuse..." 
                                 value={customSubCat} 
                                 onChange={e => setCustomSubCat(e.target.value)}
@@ -704,9 +704,9 @@ export default function ModifierPage() {
                         <div className="grid grid-cols-2 gap-3">
                             {currentSpecFields.map((field: any) => (
                                 <div key={field.key} className={field.key === 'fuel' || field.key === 'storage' ? "col-span-2" : ""}>
-                                    <label className="text-[10px] font-bold text-gray-400 uppercase ml-1 mb-1 block">{field.label}</label>
+                                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">{field.label}</label>
                                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                                        <field.icon size={16} className="text-gray-400 mr-2 shrink-0" />
+                                        <field.icon size={16} className="text-gray-500 mr-2 shrink-0" />
                                         {field.type === 'select' ? (
                                             <select 
                                                 className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900"
@@ -719,7 +719,7 @@ export default function ModifierPage() {
                                         ) : (
                                             <input 
                                                 type={field.type} 
-                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900 placeholder:text-gray-400" 
+                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900 placeholder:text-gray-500" 
                                                 placeholder={field.placeholder}
                                                 value={specs[field.key] || ''}
                                                 onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
@@ -737,7 +737,7 @@ export default function ModifierPage() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Île</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Île</label>
                         <select 
                             className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200" 
                             value={formData.location_island} 
@@ -750,10 +750,10 @@ export default function ModifierPage() {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-400 uppercase ml-1 mb-1 block">Ville</label>
+                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Ville</label>
                         <input 
                             type="text" 
-                            className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200 placeholder:text-gray-400" 
+                            className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200 placeholder:text-gray-500" 
                             placeholder="Moroni" 
                             value={formData.location_city} 
                             onChange={e => setFormData({...formData, location_city: e.target.value})} 
@@ -765,7 +765,7 @@ export default function ModifierPage() {
             {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
-                    <label className="text-xs font-bold text-gray-400 uppercase">Description</label>
+                    <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
                     <div className="flex gap-2">
                     <button type="button" onClick={handleRephrase} disabled={isRephrasing} className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
                         {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
@@ -774,7 +774,7 @@ export default function ModifierPage() {
                     </div>
                 </div>
                 <textarea 
-                    className="w-full bg-gray-100 p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none text-gray-900 placeholder:text-gray-400" 
+                    className="w-full bg-gray-100 p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none text-gray-900 placeholder:text-gray-500" 
                     placeholder="Décrivez votre produit..." 
                     value={formData.description} 
                     onChange={e => setFormData({...formData, description: e.target.value})} 

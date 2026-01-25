@@ -288,11 +288,11 @@ export default function ComptePage() {
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-16 h-16 rounded-3xl flex items-center justify-center mx-auto mb-6 text-red-600"><AlertTriangle size={32} /></div>
                   <h3 className="font-black text-xl mb-2">Clôturer le compte ?</h3>
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mb-6 leading-relaxed">Tapez <span className="text-red-600 font-black">SUPPRIMER</span> pour confirmer</p>
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-6 leading-relaxed">Tapez <span className="text-red-600 font-black">SUPPRIMER</span> pour confirmer</p>
                   <input type="text" className="w-full bg-gray-50 border border-gray-100 rounded-2xl p-4 text-sm font-black text-center outline-none focus:ring-4 focus:ring-red-50 uppercase mb-6" placeholder="Validation" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
                   <div className="flex flex-col gap-3">
                       <button onClick={confirmDeleteAccount} disabled={deleting || deleteConfirmation !== 'SUPPRIMER'} className="w-full py-4 rounded-2xl font-black text-white bg-red-600 shadow-xl shadow-red-500/20 active:scale-95 text-[10px] uppercase tracking-widest disabled:opacity-20">Confirmer la suppression</button>
-                      <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-black text-gray-400 bg-gray-50 active:scale-95 text-[10px] uppercase tracking-widest">Annuler</button>
+                      <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-black text-gray-500 bg-gray-50 active:scale-95 text-[10px] uppercase tracking-widest">Annuler</button>
                   </div>
               </motion.div>
           </div>
@@ -336,7 +336,7 @@ export default function ComptePage() {
                     )}
                     {isEditingInfo && <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px] flex items-center justify-center"><Camera size={24} className="text-white" /></div>}
                 </div>
-                <div className={`absolute -bottom-1 -right-1 p-2 rounded-xl border-4 border-white shadow-lg ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-50 text-gray-400'}`}>
+                <div className={`absolute -bottom-1 -right-1 p-2 rounded-xl border-4 border-white shadow-lg ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-50 text-gray-500'}`}>
                     <Pencil size={12} strokeWidth={4} />
                 </div>
                 <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} />
@@ -375,7 +375,7 @@ export default function ComptePage() {
                <Link href="/admin" className="w-full bg-gray-900 text-white p-6 rounded-[2.2rem] flex items-center justify-between shadow-2xl border border-white/10 active:scale-95 transition">
                   <div className="flex items-center gap-4">
                       <div className="bg-brand/20 p-3 rounded-2xl text-brand"><LayoutDashboard size={24} /></div>
-                      <div><p className="font-black text-sm uppercase tracking-widest leading-none mb-1">Panneau Admin</p><p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Gestion Plateforme</p></div>
+                      <div><p className="font-black text-sm uppercase tracking-widest leading-none mb-1">Panneau Admin</p><p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Gestion Plateforme</p></div>
                   </div>
                   <ChevronRight className="text-gray-600" />
                </Link>
@@ -391,7 +391,7 @@ export default function ComptePage() {
                           </span>
                       )}
                   </div>
-                  <div><p className="font-black text-sm uppercase tracking-widest leading-none mb-1">Notifications</p><p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Alertes & Messages</p></div>
+                  <div><p className="font-black text-sm uppercase tracking-widest leading-none mb-1">Notifications</p><p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Alertes & Messages</p></div>
               </div>
               <ChevronRight className="text-gray-200" />
           </Link>
@@ -400,11 +400,11 @@ export default function ComptePage() {
         <div className="grid grid-cols-2 gap-4">
             <Link href="/mes-annonces" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition hover:shadow-md hover:border-gray-50">
                 <div className="bg-blue-50 text-blue-500 p-3 rounded-2xl w-fit"><Package size={22} /></div>
-                <span className="font-black text-[9px] uppercase tracking-widest text-gray-400">Annonces</span>
+                <span className="font-black text-[9px] uppercase tracking-widest text-gray-500">Annonces</span>
             </Link>
             <Link href="/favoris" className="bg-white p-7 rounded-[2.2rem] shadow-sm border border-white flex flex-col gap-3 active:scale-95 transition hover:shadow-md hover:border-gray-50">
                 <div className="bg-pink-50 text-pink-500 p-3 rounded-2xl w-fit"><Heart size={22} /></div>
-                <span className="font-black text-[9px] uppercase tracking-widest text-gray-400">Coups de cœur</span>
+                <span className="font-black text-[9px] uppercase tracking-widest text-gray-500">Coups de cœur</span>
             </Link>
         </div>
 
@@ -478,7 +478,7 @@ export default function ComptePage() {
 
             {isEditingInfo && (
                 <div className="flex gap-3 pt-4">
-                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-400 font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest transition">Annuler</button>
+                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-500 font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest transition">Annuler</button>
                     <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest shadow-xl shadow-brand/20 flex items-center justify-center gap-2">
                         {saving ? <Loader2 className="animate-spin" size={14} /> : <><Save size={14} /> Sauvegarder</>}
                     </button>
@@ -519,7 +519,7 @@ export default function ComptePage() {
                         <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-5 text-gray-300">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
                     </div>
                     <div className="flex gap-3">
-                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-400 font-black py-4 rounded-2xl text-[9px] uppercase">Annuler</button>
+                        <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-500 font-black py-4 rounded-2xl text-[9px] uppercase">Annuler</button>
                         <button type="submit" disabled={passwordLoading} className="flex-1 bg-gray-900 text-white font-black py-4 rounded-2xl text-[9px] uppercase">Mettre à jour</button>
                     </div>
                 </form>

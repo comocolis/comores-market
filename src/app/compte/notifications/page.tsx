@@ -84,7 +84,7 @@ export default function NotificationsPage() {
       case 'message': 
         return <div className="bg-blue-100 p-2.5 rounded-xl text-blue-600"><MessageCircle size={20} /></div>
       default: 
-        return <div className="bg-gray-100 p-2.5 rounded-xl text-gray-400"><Info size={20} /></div>
+        return <div className="bg-gray-100 p-2.5 rounded-xl text-gray-500"><Info size={20} /></div>
     }
   }
 
@@ -93,7 +93,7 @@ export default function NotificationsPage() {
       <div className="h-screen flex items-center justify-center bg-white font-sans">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-brand" size={32} />
-          <p className="text-[10px] font-black uppercase tracking-widest text-gray-400">Chargement...</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-gray-500">Chargement...</p>
         </div>
       </div>
     )
@@ -118,7 +118,7 @@ export default function NotificationsPage() {
             <div className="w-20 h-20 bg-gray-50 rounded-[2.5rem] flex items-center justify-center text-gray-200 shadow-inner">
               <Bell size={40} />
             </div>
-            <p className="text-sm font-black text-gray-400 uppercase tracking-widest">Aucune alerte</p>
+            <p className="text-sm font-black text-gray-500 uppercase tracking-widest">Aucune alerte</p>
           </div>
         ) : (
           notifications.map((notif) => (
