@@ -18,7 +18,7 @@ export default function CGUPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
       <div className="flex items-center gap-4 mb-8 pt-safe">
-        <Link href="/compte" className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition">
+        <Link href="/compte" aria-label="Retour au compte" className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition">
             <ArrowLeft size={20} className="text-gray-700" />
         </Link>
         <h1 className="text-xl font-bold text-gray-900">Mentions Légales</h1>

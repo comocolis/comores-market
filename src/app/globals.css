@@ -37,6 +37,8 @@ input, textarea {
 
 img {
   -webkit-user-drag: none;
+  -moz-user-select: none;
+  user-select: none;
   pointer-events: none;
 }
 
@@ -59,6 +61,7 @@ main {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+  overflow: -moz-scrollbars-none;
 }
 
 /* Utilitaires Safe Area (Tailwind v4) */

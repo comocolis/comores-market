@@ -251,7 +251,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             <div className="flex gap-2">
               {isOwner && (
                 <>
-                  <input type="file" ref={coverInputRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
+                  <input type="file" ref={coverInputRef} onChange={handleCoverUpload} accept="image/*" className="hidden" aria-label="Sélectionnez une image de couverture" />
                   <button 
                     onClick={() => coverInputRef.current?.click()} 
                     disabled={uploadingCover} 

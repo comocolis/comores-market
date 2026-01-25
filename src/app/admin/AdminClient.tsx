@@ -240,7 +240,7 @@ function AdminContent() {
       {confirmModal.isOpen && (
         // CORRECTION: z-50 au lieu de z-[110]
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4" style={{ borderTopColor: confirmModal.isDanger ? '#ef4444' : '#3b82f6' }} onClick={e => e.stopPropagation()}>
+            <div className={`bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4 ${confirmModal.isDanger ? 'border-t-red-500' : 'border-t-blue-500'}`} onClick={e => e.stopPropagation()}>
                 <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
                     <AlertTriangle className={confirmModal.isDanger ? "text-red-500" : "text-blue-500"} /> {confirmModal.title}
                 </h3>
@@ -265,7 +265,7 @@ function AdminContent() {
                     {currentUserRole === 'super_admin' ? "Contrôle Total" : "Modérateur"}
                 </p>
             </div>
-            <Link href="/compte" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
+            <Link href="/compte" aria-label="Déconnexion" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
             <button onClick={() => changeTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
@@ -350,7 +350,7 @@ function AdminContent() {
                                     )}
 
                                     {currentUserRole === 'super_admin' && !isTargetSelf && !isTargetSuper && (
-                                        <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données seront effacées. Irréversible.", () => deleteUserAccount(u.id))} className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition hover:bg-red-100"><Trash2 size={18} /></button>
+                                        <button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Toutes les données seront effacées. Irréversible.", () => deleteUserAccount(u.id))} aria-label="Supprimer l'utilisateur" className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition hover:bg-red-100"><Trash2 size={18} /></button>
                                     )}
                                 </div>
                             </div>
@@ -383,7 +383,7 @@ function AdminContent() {
                                     <p className="text-[10px] text-gray-500 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
                                     <p className="text-amber-600 font-black text-xs mt-1">{p.price} KMF</p>
                                 </div>
-                                <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
+                                <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} aria-label="Supprimer l'annonce" className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
                                 <button onClick={() => toggleBoost(p.id, isBoosted)} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
@@ -406,7 +406,7 @@ function AdminContent() {
                         </div>
                         <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
                         <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 mt-2">
-                            <button onClick={() => askConfirm("Supprimer le signalement ?", "Cela ne supprimera PAS l'annonce.", () => deleteReportOnly(r.id))} className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200"><Trash2 size={16}/></button>
+                            <button onClick={() => askConfirm("Supprimer le signalement ?", "Cela ne supprimera PAS l'annonce.", () => deleteReportOnly(r.id))} aria-label="Supprimer le signalement" className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200"><Trash2 size={16}/></button>
                             {r.product && <button onClick={() => askConfirm("Supprimer L'ANNONCE ?", "L'annonce sera détruite. Irréversible.", () => deleteProduct(r.product_id))} className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"><XCircle size={14}/> Supprimer l'annonce</button>}
                             {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"><CheckCircle size={14}/> Traité</button>}
                         </div>

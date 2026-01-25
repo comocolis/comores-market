@@ -2,14 +2,17 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ToastProvider } from '@/components/ToastProvider';
 import BottomNav from '@/components/BottomNav';
-import InstallBanner from '@/components/InstallBanner';
-import EliteAssistant from '@/components/EliteAssistant';
-import SplashScreen from '@/components/SplashScreen';
-import NativeFeatures from '@/components/NativeFeatures';
-import { Suspense } from "react"; 
+import OfflineScreen from '@/components/OfflineScreen';
+import { Suspense, lazy } from "react"; 
 import Script from 'next/script';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
-import CookieBanner from '@/components/CookieBanner';
+
+// Lazy load heavy components
+const InstallBanner = lazy(() => import('@/components/InstallBanner'));
+const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
+const SplashScreen = lazy(() => import('@/components/SplashScreen'));
+const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
+const CookieBanner = lazy(() => import('@/components/CookieBanner'));
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -73,11 +76,17 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           `}
         </Script>
 
-        <NativeFeatures />
-        <SplashScreen />
+        <Suspense fallback={null}>
+          <NativeFeatures />
+        </Suspense>
+        <Suspense fallback={null}>
+          <SplashScreen />
+        </Suspense>
 
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
-          <InstallBanner />
+          <Suspense fallback={null}>
+            <InstallBanner />
+          </Suspense>
           <ToastProvider />
           
           <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
@@ -86,7 +95,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </Suspense>
           </main>
 
-          <EliteAssistant />
+          <Suspense fallback={null}>
+            <EliteAssistant />
+          </Suspense>
 
           <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
               <Suspense fallback={<div className="h-16 w-full bg-[#F8FAFC]" />}>
@@ -99,6 +110,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <CookieBanner />
         </Suspense>
+
+        <OfflineScreen />
 
       </body>
     </html>

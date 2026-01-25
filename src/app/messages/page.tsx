@@ -327,7 +327,7 @@ function MessagesContent() {
         {/* HEADER CHAT (Absolute dans le cadre) */}
         <div className="absolute top-0 left-0 w-full bg-brand px-4 pb-6 pt-safe shadow-md z-150 rounded-b-[2.5rem]">
             <div className="flex items-center gap-3 pt-4">
-                <button onClick={closeConversation} className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
+                <button onClick={closeConversation} aria-label="Fermer la conversation" className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
                     <ArrowLeft size={22} />
                 </button>
                 <Link href={`/profil/${activeConv?.counterpartId}`} className="flex flex-1 items-center gap-3 min-w-0">
@@ -347,8 +347,8 @@ function MessagesContent() {
                     </div>
                 </Link>
                 <div className="flex gap-2">
-                    {activeConv?.productPhone && (<button onClick={handleCall} className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><Phone size={20} /></button>)}
-                    <button onClick={() => setShowMenu(!showMenu)} className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><MoreVertical size={20} /></button>
+                    {activeConv?.productPhone && (<button onClick={handleCall} aria-label="Appeler" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><Phone size={20} /></button>)}
+                    <button onClick={() => setShowMenu(!showMenu)} aria-label="Menu" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><MoreVertical size={20} /></button>
                 </div>
             </div>
             {showMenu && (
@@ -401,12 +401,12 @@ function MessagesContent() {
         {/* INPUT ZONE (Absolute dans le cadre) */}
         <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] to-transparent pt-4">
             <div className="flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
-                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" aria-label="Joindre une image" />
                 <button onClick={() => fileInputRef.current?.click()} className="p-4 text-gray-300 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100" disabled={isUploading}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
                 <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] font-bold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-300" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                <button onClick={handleSend} disabled={!replyContent.trim()} className="bg-brand text-white p-4 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-20"><Send size={20} /></button>
+                <button onClick={handleSend} disabled={!replyContent.trim()} aria-label="Envoyer le message" className="bg-brand text-white p-4 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-20"><Send size={24} /></button>
             </div>
         </div>
 
@@ -414,7 +414,7 @@ function MessagesContent() {
         {previewImage && (
             <div className="fixed inset-0 z-500 bg-black animate-in fade-in duration-300 flex justify-center">
                 <div className="w-full max-w-120 h-full relative">
-                    <button onClick={() => setPreviewImage(null)} className="absolute top-12 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-2xl z-510 active:scale-90"><X size={24} /></button>
+                    <button onClick={() => setPreviewImage(null)} aria-label="Fermer l'aperçu" className="absolute top-12 right-6 text-white p-3 bg-white/10 backdrop-blur-md rounded-2xl z-510 active:scale-90"><X size={24} /></button>
                     <TransformWrapper centerOnInit={true}><TransformComponent wrapperStyle={{ width: "100%", height: "100vh" }}><img src={previewImage} alt="" className="max-h-screen max-w-full object-contain" /></TransformComponent></TransformWrapper>
                 </div>
             </div>

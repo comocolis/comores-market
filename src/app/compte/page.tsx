@@ -311,7 +311,8 @@ export default function ComptePage() {
                 <ExternalLink size={20} />
               </Link>
               <button 
-                onClick={handleSignOut} 
+                onClick={handleSignOut}
+                aria-label="Se déconnecter"
                 className="bg-red-50 p-3 rounded-2xl text-red-600 border border-red-100 transition hover:bg-red-100 active:scale-90 shadow-sm"
               >
                 <LogOut size={20} />
@@ -339,7 +340,7 @@ export default function ComptePage() {
                 <div className={`absolute -bottom-1 -right-1 p-2 rounded-xl border-4 border-white shadow-lg ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-50 text-gray-500'}`}>
                     <Pencil size={12} strokeWidth={4} />
                 </div>
-                <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} />
+                <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} aria-label="Sélectionnez une photo de profil" />
             </div>
             
             <div className="flex-1 min-w-0">
@@ -420,7 +421,7 @@ export default function ComptePage() {
                 <div className="space-y-2">
                     <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Nom public</label>
                     {isEditingInfo ? (
-                      <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition text-gray-900" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+                      <input type="text" aria-label="Nom public" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black outline-none border border-gray-100 focus:ring-4 focus:ring-brand/5 transition text-gray-900" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
                     ) : (
                       <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-tight text-gray-700">{profile?.full_name}</p>
                     )}
@@ -439,14 +440,14 @@ export default function ComptePage() {
                     <div className="space-y-2">
                         <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Île</label>
                         {isEditingInfo ? (
-                            <select className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 outline-none text-gray-900" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
+                            <select aria-label="Île" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 outline-none text-gray-900" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
                                 {['Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'].map(i => <option key={i}>{i}</option>)}
                             </select>
                         ) : ( <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.island}</p> )}
                     </div>
                     <div className="space-y-2">
                         <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest">Ville</label>
-                        {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.city}</p>}
+                        {isEditingInfo ? <input type="text" aria-label="Ville" className="w-full bg-gray-100 p-4 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-4 bg-gray-50/50 rounded-2xl font-black text-[10px]">{profile?.city}</p>}
                     </div>
                 </div>
 
@@ -454,12 +455,12 @@ export default function ComptePage() {
                   <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                     <div className="space-y-2">
                       <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Lien Facebook</label>
-                      {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> : 
+                      {isEditingInfo ? <input type="text" aria-label="Lien Facebook" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> : 
                       <p className="p-4 bg-blue-50/30 rounded-2xl font-bold text-[9px] text-blue-600 truncate">{profile?.facebook_url || "Non lié"}</p>}
                     </div>
                     <div className="space-y-2">
                       <label className="text-[8px] font-black text-gray-300 uppercase tracking-widest ml-1">Lien Instagram</label>
-                      {isEditingInfo ? <input type="text" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> : 
+                      {isEditingInfo ? <input type="text" aria-label="Lien Instagram" className="w-full bg-gray-100 p-4 rounded-2xl text-[10px] font-bold border border-gray-100 text-gray-900" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> : 
                       <p className="p-4 bg-pink-50/30 rounded-2xl font-bold text-[9px] text-pink-600 truncate">{profile?.instagram_url || "Non lié"}</p>}
                     </div>
                   </div>
@@ -470,7 +471,7 @@ export default function ComptePage() {
                     {isEditingInfo ? (
                         <div className="relative">
                           <Smartphone className="absolute left-4 top-4 text-gray-300" size={16} />
-                          <input type="tel" className="w-full bg-gray-100 p-4 pl-12 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
+                          <input type="tel" aria-label="Numéro WhatsApp" className="w-full bg-gray-100 p-4 pl-12 rounded-2xl text-xs font-black border border-gray-100 text-gray-900" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
                         </div>
                     ) : ( <p className="p-5 bg-gray-50/50 rounded-2xl font-black text-xs tracking-[0.2em]">{profile?.phone_number || "Non renseigné"}</p> )}
                 </div>

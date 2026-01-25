@@ -103,7 +103,7 @@ export default function NotificationsPage() {
     <div className="min-h-screen bg-[#FDFDFD] font-sans pb-24">
       {/* HEADER BAR */}
       <div className="p-4 flex items-center gap-4 sticky top-0 bg-white/80 backdrop-blur-xl z-30 border-b border-gray-50">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition active:scale-90">
+        <button onClick={() => router.back()} aria-label="Retour" className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition active:scale-90">
           <ChevronLeft size={24} />
         </button>
         <h1 className="text-xl font-black text-gray-900 tracking-tight">Notifications</h1>
@@ -152,6 +152,7 @@ export default function NotificationsPage() {
                     e.preventDefault();
                     deleteNotif(notif.id);
                 }}
+                aria-label="Supprimer la notification"
                 className="absolute top-5 right-5 p-2 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-full transition-all active:scale-90"
               >
                 <Trash2 size={16} />

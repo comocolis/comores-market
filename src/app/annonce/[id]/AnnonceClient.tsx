@@ -307,19 +307,20 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       <div className="sticky top-0 w-full h-0 overflow-visible z-10 pointer-events-none">
           <div className="p-4 pt-safe flex justify-between items-center w-full">
             <button 
-                onClick={() => router.back()} 
+                onClick={() => router.back()}
+                aria-label="Retour"
                 className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto"
             >
                 <ArrowLeft size={22} strokeWidth={2.5} />
             </button>
             <div className="flex gap-2 pointer-events-auto">
-                <button onClick={handleShare} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
+                <button onClick={handleShare} aria-label="Partager" className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
                     <Share2 size={20} strokeWidth={2.5} />
                 </button>
-                <button onClick={toggleFavorite} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
+                <button onClick={toggleFavorite} aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
                     <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand" : ""} />
                 </button>
-                <button onClick={() => setShowReportModal(true)} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-lg border border-white active:scale-90 transition">
+                <button onClick={() => setShowReportModal(true)} aria-label="Signaler l'annonce" className="p-3 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-lg border border-white active:scale-90 transition">
                     <Flag size={20} strokeWidth={2.5} />
                 </button>
             </div>
@@ -347,7 +348,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
         <div className="absolute bottom-12 left-0 w-full flex justify-center gap-2 px-6 overflow-x-auto scrollbar-hide">
             {images.map((img: string, i: number) => (
-                <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }} 
+                <button key={i} onClick={(e) => { e.stopPropagation(); setSelectedImageIndex(i) }}
+                  aria-label={`Voir l'image ${i + 1}`}
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 ${selectedImageIndex === i ? 'border-brand scale-110 shadow-xl' : 'border-white/40 opacity-50'}`}>
                     <Image 
                         src={getOptimizedImage(img, 150)} 
@@ -430,9 +432,9 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
             {/* FICHE TECHNIQUE */}
             {specsList.length > 0 && (
                 <div className="bg-[#F8FAFC] p-6 rounded-[2.5rem] border border-gray-100 mb-8">
-                    <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-4 flex items-center gap-2">
+                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-4 flex items-center gap-2">
                         <Grid size={14} /> Fiche Technique
-                    </h3>
+                    </h2>
                     <div className="grid grid-cols-2 gap-3">
                         {specsList.map(([label, value]: string[], i: number) => {
                             if(!value) return null;
@@ -453,7 +455,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
             )}
 
             <div className="mb-12">
-                <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Description</h3>
+                <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Description</h2>
                 <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line font-medium italic border-l-4 border-gray-50 pl-6 py-2">
                   "{mainDescription}"
                 </p>
@@ -500,7 +502,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
           >
               <div className="w-full h-full relative flex items-center justify-center">
                   <button 
-                    onClick={() => setLightboxIndex(null)} 
+                    onClick={() => setLightboxIndex(null)}
+                    aria-label="Fermer le mode plein écran"
                     className="absolute top-8 right-6 z-1020 p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
                   >
                     <X size={24} />
@@ -522,14 +525,16 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                   {images.length > 1 && (
                       <>
                           <button 
-                            onClick={prevImage} 
+                            onClick={prevImage}
+                            aria-label="Image précédente"
                             className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronLeft size={32} strokeWidth={3} />
                           </button>
                           
                           <button 
-                            onClick={nextImage} 
+                            onClick={nextImage}
+                            aria-label="Image suivante"
                             className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronRightIcon size={32} strokeWidth={3} />

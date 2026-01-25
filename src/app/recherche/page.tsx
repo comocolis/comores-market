@@ -65,7 +65,7 @@ export default function RecherchePage() {
       {/* Header Recherche */}
       <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex flex-col gap-4">
         <div className="flex items-center gap-2">
-            <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ArrowLeft size={24} /></button>
+            <button onClick={() => router.back()} aria-label="Retour" className="p-2 -ml-2 text-gray-500 hover:bg-gray-100 rounded-full"><ArrowLeft size={24} /></button>
             <h1 className="text-xl font-extrabold text-gray-900">Recherche</h1>
         </div>
         <div className="relative">

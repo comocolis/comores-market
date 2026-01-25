@@ -208,6 +208,7 @@ export default function EliteAssistant() {
                     e.stopPropagation()
                     setIsVisible(false)
                   }}
+                  aria-label="Fermer l'assistant"
                   className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-500 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
                 >
                   <X size={12} strokeWidth={3} />

@@ -76,7 +76,7 @@ export default function ProPage() {
       
       {/* HEADER HERO */}
       <div className="bg-gray-900 text-white pt-8 pb-20 px-6 rounded-b-[2.5rem] relative overflow-hidden">
-        <Link href="/compte" className="absolute top-8 left-6 bg-white/10 p-2 rounded-full hover:bg-white/20 transition z-20">
+        <Link href="/compte" aria-label="Retour au compte" className="absolute top-8 left-6 bg-white/10 p-2 rounded-full hover:bg-white/20 transition z-20">
             <ArrowLeft size={20} />
         </Link>
         
