@@ -268,14 +268,15 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
         {...listeners} 
         className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm"
       >
-        <Image src={url} alt="" fill className="object-cover pointer-events-none" />
+        <Image src={url} alt="Product photo" fill className="object-cover pointer-events-none" />
         
         <div className="absolute bottom-0 w-full bg-black/30 h-5 flex items-center justify-center pointer-events-none">
             <GripHorizontal className="text-white/80" size={12} />
         </div>
 
         <button 
-            type="button" 
+            type="button"
+            aria-label="Remove photo"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onRemove() }} 
             className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full z-10 hover:bg-red-500 transition active:scale-90"
@@ -582,7 +583,7 @@ export default function PublierClient() {
   return (
     <div className="min-h-screen bg-transparent font-sans pb-24">
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
+        <button onClick={() => router.back()} aria-label="Go back" className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
         <h1 className="font-extrabold text-xl text-gray-900">Publier</h1>
         <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}{adsCount} / {isPro ? '∞' : FREE_ADS_LIMIT}</div>
       </div>
@@ -606,26 +607,27 @@ export default function PublierClient() {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x select-none">
-                            <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
+                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Add photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
                                 {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-500" />}
-                            </div>
+                            </button>
                             {images.map((img) => (
                                 <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
                             ))}
                         </div>
                     </SortableContext>
                 </DndContext>
-                <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
+                <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple aria-label="Upload product photos" />
             </div>
 
             {/* 2. INFOS PRINCIPALES */}
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Titre</label>
+                    <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Titre</label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
                         <Type size={18} className="text-gray-500" />
                         <input 
-                            type="text" 
+                            type="text"
+                            aria-label="Listing title"
                             className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             placeholder="iPhone 12 Pro..." 
                             value={formData.title} 
@@ -635,11 +637,12 @@ export default function PublierClient() {
                 </div>
                 
                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Prix (KMF)</label>
+                    <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Prix (KMF)</label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
                         <span className="text-gray-500 font-black text-xs px-2">KMF</span>
                         <input 
-                            type="number" 
+                            type="number"
+                            aria-label="Price in KMF"
                             className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             placeholder="150000" 
                             value={formData.price} 
@@ -650,8 +653,9 @@ export default function PublierClient() {
                 
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Catégorie</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Catégorie</label>
                         <select 
+                            aria-label="Select category"
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.category_id} 
                             onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
@@ -660,8 +664,9 @@ export default function PublierClient() {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Sous-catégorie</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Sous-catégorie</label>
                         <select 
+                            aria-label="Select sub-category"
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.sub_category} 
                             onChange={e => setFormData({ ...formData, sub_category: e.target.value })}
@@ -680,7 +685,8 @@ export default function PublierClient() {
                         <div className="flex items-center bg-white rounded-xl px-3 border-2 border-brand/20 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10 transition">
                             <PenTool size={18} className="text-brand mr-2" />
                             <input 
-                                type="text" 
+                                type="text"
+                                aria-label="Custom sub-category"
                                 className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-500" 
                                 placeholder="Ex: Drone, Tondeuse, Groupe électrogène..." 
                                 value={customSubCat} 
@@ -698,11 +704,12 @@ export default function PublierClient() {
                         <div className="grid grid-cols-2 gap-3">
                             {currentSpecFields.map((field: any) => (
                                 <div key={field.key} className={field.key === 'fuel' || field.key === 'storage' ? "col-span-2" : ""}>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">{field.label}</label>
+                                    <label className="text-[10px] font-bold text-gray-700 uppercase ml-1 mb-1 block">{field.label}</label>
                                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 transition">
                                         <field.icon size={16} className="text-gray-500 mr-2 shrink-0" />
                                         {field.type === 'select' ? (
                                             <select 
+                                                aria-label={field.label}
                                                 className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900"
                                                 value={specs[field.key] || ''}
                                                 onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
@@ -712,7 +719,8 @@ export default function PublierClient() {
                                             </select>
                                         ) : (
                                             <input 
-                                                type={field.type} 
+                                                type={field.type}
+                                                aria-label={field.label}
                                                 className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900 placeholder:text-gray-500" 
                                                 placeholder={field.placeholder}
                                                 value={specs[field.key] || ''}
@@ -731,8 +739,9 @@ export default function PublierClient() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Île</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Île</label>
                         <select 
+                            aria-label="Select island"
                             className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200" 
                             value={formData.location_island} 
                             onChange={e => setFormData({...formData, location_island: e.target.value})}
@@ -744,9 +753,10 @@ export default function PublierClient() {
                         </select>
                     </div>
                     <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Ville</label>
+                        <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 block">Ville</label>
                         <input 
-                            type="text" 
+                            type="text"
+                            aria-label="City or village"
                             className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200 placeholder:text-gray-500" 
                             placeholder="Moroni" 
                             value={formData.location_city} 
@@ -755,10 +765,11 @@ export default function PublierClient() {
                     </div>
                 </div>
                 <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 flex justify-between font-sans">WhatsApp <Link href="/compte" className="text-[10px] text-brand hover:underline flex items-center gap-1 font-bold"><AlertCircle size={10} /> Modifier</Link></label>
+                    <label className="text-xs font-bold text-gray-700 uppercase ml-1 mb-1 flex justify-between font-sans">WhatsApp <Link href="/compte" className="text-[10px] text-brand hover:underline flex items-center gap-1 font-bold"><AlertCircle size={10} /> Modifier</Link></label>
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 opacity-80 cursor-not-allowed">
                         <Phone size={18} className="text-gray-500 mr-2" />
                         <input 
+                            aria-label="WhatsApp number"
                             className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-500" 
                             value={formData.whatsapp_number} 
                             readOnly 
@@ -772,15 +783,16 @@ export default function PublierClient() {
             {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Description Prestige</label>
+                    <label className="text-xs font-bold text-gray-700 uppercase">Description Prestige</label>
                     <div className="flex gap-2">
-                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
+                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Enhance description with AI" className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
                         {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
                         Sublimer
                     </button>
                     </div>
                 </div>
                 <textarea 
+                    aria-label="Product description"
                     className="w-full bg-gray-100 p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none text-gray-900 placeholder:text-gray-500" 
                     placeholder="Décrivez votre produit avec élégance..." 
                     value={formData.description} 

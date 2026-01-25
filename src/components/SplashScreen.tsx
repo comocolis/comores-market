@@ -82,7 +82,7 @@ export default function SplashScreen() {
           {/* --- SLOGAN EN BAS (FIXE & JAUNE #fbbf24) --- */}
           {/* Plus d'animation de mouvement (y), position statique */}
           <div className="absolute bottom-16 left-0 w-full text-center px-8 z-10">
-             <p className="text-[10px] font-bold tracking-[0.3em] text-gray-300 uppercase mb-3">
+             <p className="text-[10px] font-bold tracking-[0.3em] text-gray-200 uppercase mb-3">
                 Bienvenue sur
              </p>
              

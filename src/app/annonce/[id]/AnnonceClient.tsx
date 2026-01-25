@@ -17,8 +17,7 @@ import {
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
-import { formatDistanceToNow } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDistanceToNow } from '@/utils/dateUtils'
 // AJOUT : Import du tracking analytics
 import { 
   trackProductView, 
@@ -79,12 +78,11 @@ const ICON_MAP: Record<string, any> = {
 };
 
 const getOptimizedImage = (url: string | null, width = 800) => {
-  if (!url || url === 'undefined' || url === 'null') {
+  if (!url || url === 'undefined' || url === 'null' || url.trim() === '') {
     return '/placeholder.png'; 
   }
-  if (url.includes('supabase.co')) {
-    return `${url}?width=${width}&quality=60&resize=contain&format=webp`;
-  }
+  // Supabase Storage doesn't support query parameter transformations
+  // Images are returned as-is from storage
   return url;
 };
 
@@ -111,6 +109,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const [images, setImages] = useState<string[]>([])
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [suggestedProducts, setSuggestedProducts] = useState<any[]>([])
   
   const [touchStart, setTouchStart] = useState(0)
   const [touchEnd, setTouchEnd] = useState(0)
@@ -187,6 +186,57 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     }
     logView()
   }, [product, currentUser, supabase])
+
+  // --- INTELLIGENT PRODUCT SUGGESTIONS ---
+  useEffect(() => {
+    const fetchSuggestions = async () => {
+      if (!product) return
+
+      // Algorithm: Find similar products based on multiple factors
+      const { data: allProducts } = await supabase
+        .from('products')
+        .select('id, title, price, images, location_island, location_city, sub_category, boosted_until, created_at')
+        .neq('id', product.id) // Exclude current product
+        .limit(50) // Get more for better filtering
+
+      if (!allProducts) return
+
+      // Score each product based on similarity
+      const scoredProducts = allProducts.map((p: any) => {
+        let score = 0
+        
+        // Same subcategory (highest weight)
+        if (p.sub_category === product.sub_category) score += 50
+        
+        // Similar price range (+/- 30%)
+        const priceRangeLow = product.price * 0.7
+        const priceRangeHigh = product.price * 1.3
+        if (p.price >= priceRangeLow && p.price <= priceRangeHigh) score += 30
+        
+        // Same location island
+        if (p.location_island === product.location_island) score += 15
+        
+        // Boost for PRO/Boosted listings
+        const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date()
+        if (isBoosted) score += 10
+        
+        // Recency bonus (newer products)
+        const daysSinceCreation = (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24)
+        if (daysSinceCreation < 7) score += 5
+
+        return { ...p, similarityScore: score }
+      })
+
+      // Sort by score and take top 6
+      const topSuggestions = scoredProducts
+        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .slice(0, 6)
+
+      setSuggestedProducts(topSuggestions)
+    }
+
+    fetchSuggestions()
+  }, [product, supabase])
 
   const submitReport = async () => {
     if (!reportReason.trim()) return toast.error("Veuillez indiquer un motif.")
@@ -395,7 +445,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                         {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                     </p>
                     <div className="flex items-center justify-end gap-1 text-[9px] text-gray-300 font-black uppercase mt-1 tracking-tighter">
-                        <Clock size={10} /> {formatDistanceToNow(new Date(product.created_at), { addSuffix: true, locale: fr })}
+                        <Clock size={10} /> {formatDistanceToNow(new Date(product.created_at), { addSuffix: true })}
                     </div>
                 </div>
             </div>
@@ -461,6 +511,57 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 </p>
             </div>
 
+            {/* SUGGESTIONS INTELLIGENTES */}
+            {suggestedProducts.length > 0 && (
+                <div className="mt-12 mb-8">
+                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">
+                        <Sparkles size={14} className="text-brand" /> Annonces similaires
+                    </h2>
+                    <div className="grid grid-cols-2 gap-3">
+                        {suggestedProducts.map((suggested: any) => {
+                            let img = null
+                            try { img = JSON.parse(suggested.images)[0] } catch {}
+                            const isBoosted = suggested.boosted_until && new Date(suggested.boosted_until) > new Date()
+                            
+                            return (
+                                <Link 
+                                    key={suggested.id} 
+                                    href={`/annonce/${suggested.id}`}
+                                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md active:scale-[0.98] transition-all"
+                                >
+                                    <div className="relative w-full aspect-square bg-gray-100">
+                                        {img && (
+                                            <Image 
+                                                src={img} 
+                                                alt={suggested.title} 
+                                                fill 
+                                                className="object-cover"
+                                                sizes="50vw"
+                                            />
+                                        )}
+                                        {isBoosted && (
+                                            <div className="absolute top-2 left-2 bg-amber-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
+                                                <Sparkles size={8} /> VEDETTE
+                                            </div>
+                                        )}
+                                        <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[8px] px-1.5 py-0.5 rounded font-bold uppercase">
+                                            {suggested.location_island}
+                                        </div>
+                                    </div>
+                                    <div className="p-3">
+                                        <h3 className="font-bold text-xs text-gray-900 truncate mb-1">{suggested.title}</h3>
+                                        <p className="text-sm font-black text-brand">{new Intl.NumberFormat('fr-KM').format(suggested.price)} KMF</p>
+                                        <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 flex items-center gap-1">
+                                            <MapPin size={8} /> {suggested.location_city}
+                                        </p>
+                                    </div>
+                                </Link>
+                            )
+                        })}
+                    </div>
+                </div>
+            )}
+
             {!isOwner && (
                 <div className="space-y-4 pb-20">
                     {/* BOUTON WHATSAPP OFFICIEL SÉCURISÉ */}
@@ -516,8 +617,11 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                     >
                       <img 
                         src={getOptimizedImage(images[lightboxIndex], 1200)} 
-                        alt="" 
-                        className="w-full h-full object-contain" 
+                        alt={product?.title || "Product image"} 
+                        className="max-w-full max-h-full object-contain" 
+                        onError={(e) => {
+                          e.currentTarget.src = '/placeholder.png';
+                        }}
                       />
                     </TransformComponent>
                   </TransformWrapper>

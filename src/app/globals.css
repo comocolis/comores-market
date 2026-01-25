@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* NOTE : Les avertissements "@theme" et "@utility" sont normaux avec Tailwind v4.
+   Si VS Code les souligne, assurez-vous que le mode de langage (en bas à droite) 
+   est bien sur "Tailwind CSS" et non "CSS".
+*/
+
 @theme {
   --color-brand: #16a34a; 
   --color-brand-dark: #15803d;
@@ -8,7 +13,7 @@
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 }
 
-/* 1. CONFIGURATION DU FOND (GRIS) */
+/* 1. CONFIGURATION DU FOND ET DU TEXTE */
 :root {
   background-color: #F8FAFC; 
 }
@@ -16,29 +21,48 @@
 html, body {
   height: 100%;
   background-color: #F8FAFC;
-  /* Scroll fluide et UX mobile */
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: auto;
+  
+  /* CORRECTION : Ajout de la propriété standard pour calmer l'erreur */
+  -webkit-text-size-adjust: 100%; /* Pour Safari/Chrome anciens */
+  -moz-text-size-adjust: 100%;    /* Pour Firefox anciens */
+  text-size-adjust: 100%;         /* Standard moderne */
 }
 
-/* 2. UX NATIVE (Bloquer la sélection sauf inputs) */
+/* 2. UX NATIVE (Bloquer la sélection) */
 *:not(input):not(textarea) {
+  /* Support complet Safari/iOS */
   -webkit-user-select: none;
+  /* Support Firefox */
+  -moz-user-select: none;
+  /* Support IE/Edge */
+  -ms-user-select: none;
+  /* Standard */
   user-select: none;
+  
   -webkit-touch-callout: none;
 }
 
 input, textarea {
   -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
+  cursor: auto;
 }
 
 img {
-  -webkit-user-drag: none;
+  /* CORRECTION : Ajout du préfixe Safari manquant pour img */
+  -webkit-user-select: none;
   -moz-user-select: none;
+  -ms-user-select: none;
   user-select: none;
+  
+  /* Gestion du Drag (Firefox ignore -webkit-user-drag mais pointer-events le gère) */
+  -webkit-user-drag: none;
   pointer-events: none;
 }
 
@@ -47,7 +71,6 @@ main {
   background-color: #F8FAFC;
 }
 
-/* Barre de chargement NProgress (Jaune) */
 #nprogress .bar {
   background: #fbbf24 !important;
   height: 3px !important;
@@ -55,13 +78,16 @@ main {
 }
 
 /* Utilitaires Scrollbar */
+/* Navigateurs WebKit (Chrome, Safari) */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
+
+/* Navigateurs Standards (Firefox) */
 .scrollbar-hide {
   -ms-overflow-style: none;
-  scrollbar-width: none;
-  overflow: -moz-scrollbars-none;
+  /* L'avertissement ici est normal : c'est la seule façon de le faire sur Firefox */
+  scrollbar-width: none; 
 }
 
 /* Utilitaires Safe Area (Tailwind v4) */

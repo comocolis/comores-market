@@ -297,10 +297,10 @@ function MessagesContent() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
-                                        <h3 className={`text-[14px] truncate flex items-center gap-1.5 tracking-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-500'}`}>
+                                        <p className={`text-[14px] truncate flex items-center gap-1.5 tracking-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-500'}`}>
                                             {conv.counterpartName} 
                                             {conv.counterpartIsPro && <ShieldCheck size={12} className="text-brand fill-brand/10" />}
-                                        </h3>
+                                        </p>
                                         <span className={`text-[9px] font-black uppercase tracking-widest ${conv.unreadCount > 0 ? 'text-brand' : 'text-gray-300'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {day:'numeric', month:'short'})}</span>
                                     </div>
                                     <div className="flex justify-between items-end">
@@ -347,14 +347,14 @@ function MessagesContent() {
                     </div>
                 </Link>
                 <div className="flex gap-2">
-                    {activeConv?.productPhone && (<button onClick={handleCall} aria-label="Appeler" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><Phone size={20} /></button>)}
-                    <button onClick={() => setShowMenu(!showMenu)} aria-label="Menu" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><MoreVertical size={20} /></button>
+                    {activeConv?.productPhone && (<button onClick={handleCall} aria-label="Appeler le vendeur" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><Phone size={20} /></button>)}
+                    <button onClick={() => setShowMenu(!showMenu)} aria-label="Afficher le menu" className="p-3 bg-white/10 rounded-2xl text-white border border-white/10 active:scale-90 transition"><MoreVertical size={20} /></button>
                 </div>
             </div>
             {showMenu && (
                 <div className="absolute top-full right-6 mt-2 bg-white shadow-2xl rounded-4xl border border-gray-100 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
-                    <Link href={`/annonce/${activeConv?.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
-                    <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
+                    <Link href={`/annonce/${activeConv?.productId}`} aria-label="Voir l'annonce" className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
+                    <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} aria-label="Supprimer la conversation" className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
                 </div>
             )}
         </div>
@@ -402,7 +402,7 @@ function MessagesContent() {
         <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] to-transparent pt-4">
             <div className="flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" aria-label="Joindre une image" />
-                <button onClick={() => fileInputRef.current?.click()} className="p-4 text-gray-300 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100" disabled={isUploading}>
+                <button onClick={() => fileInputRef.current?.click()} aria-label="Joindre une photo" className="p-4 text-gray-300 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100" disabled={isUploading}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
                 <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] font-bold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-300" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
@@ -428,8 +428,8 @@ function MessagesContent() {
                     <h3 className="font-black text-xl mb-2 uppercase tracking-tight">Supprimer ?</h3>
                     <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-8 leading-relaxed">Cette conversation sera effacée pour vous.</p>
                     <div className="flex flex-col gap-3">
-                        <button onClick={handleDeleteConversation} className="w-full py-4 rounded-2xl font-black text-white bg-red-600 shadow-xl shadow-red-500/20 text-[10px] uppercase tracking-widest active:scale-95 transition">Confirmer</button>
-                        <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-2xl font-black text-gray-500 bg-gray-50 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
+                        <button onClick={handleDeleteConversation} aria-label="Confirmer la suppression" className="w-full py-4 rounded-2xl font-black text-white bg-red-600 shadow-xl shadow-red-500/20 text-[10px] uppercase tracking-widest active:scale-95 transition">Confirmer</button>
+                        <button onClick={() => setShowDeleteModal(false)} aria-label="Annuler la suppression" className="w-full py-4 rounded-2xl font-black text-gray-500 bg-gray-50 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
                     </div>
                 </div>
             </div>

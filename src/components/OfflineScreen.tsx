@@ -350,8 +350,8 @@ export default function OfflineScreen() {
             <h1 className="text-3xl font-bold mb-2 bg-linear-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
               Quiz des Comores
             </h1>
-            <p className="text-gray-300 mb-1.5 text-base">Pas de connexion Internet ?</p>
-            <p className="text-gray-400 mb-6 text-sm">
+            <p className="text-gray-200 mb-1.5 text-base">Pas de connexion Internet ?</p>
+            <p className="text-gray-300 mb-6 text-sm">
               Découvrez la richesse des Comores à travers ce quiz interactif !
             </p>
 
@@ -412,18 +412,18 @@ export default function OfflineScreen() {
             
             <div className="bg-white/5 rounded-xl p-4 mb-4">
               <div className="text-4xl font-bold mb-2 text-emerald-300">{score}</div>
-              <div className="text-gray-400 mb-3 text-sm">points au total</div>
+              <div className="text-gray-300 mb-3 text-sm">points au total</div>
               
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div className="bg-white/5 rounded-lg p-3">
                   <div className="text-2xl mb-1">✅</div>
                   <div className="font-semibold text-green-300">{correctAnswers}/{QUIZ_QUESTIONS.length}</div>
-                  <div className="text-xs text-gray-400">Bonnes réponses</div>
+                  <div className="text-xs text-gray-300">Bonnes réponses</div>
                 </div>
                 <div className="bg-white/5 rounded-lg p-3">
                   <div className="text-2xl mb-1">📊</div>
                   <div className="font-semibold text-blue-300">{Math.round((correctAnswers / QUIZ_QUESTIONS.length) * 100)}%</div>
-                  <div className="text-xs text-gray-400">Taux de réussite</div>
+                  <div className="text-xs text-gray-300">Taux de réussite</div>
                 </div>
               </div>
             </div>
@@ -459,7 +459,7 @@ export default function OfflineScreen() {
             <div className="mb-6">
               <div className="flex justify-between text-sm mb-2">
                 <span className="text-emerald-300 font-semibold">Question {currentQuestion + 1}/{QUIZ_QUESTIONS.length}</span>
-                <span className="text-gray-400">{question.category}</span>
+                <span className="text-gray-300">{question.category}</span>
               </div>
               <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
                 <div 

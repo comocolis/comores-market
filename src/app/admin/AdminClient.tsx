@@ -246,8 +246,8 @@ function AdminContent() {
                 </h3>
                 <p className="text-sm text-gray-500">{confirmModal.message}</p>
                 <div className="flex gap-3 pt-2">
-                    <button onClick={closeConfirm} className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
-                    <button onClick={() => executeAction(async () => confirmModal.action())} className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg ${confirmModal.isDanger ? 'bg-red-600' : 'bg-blue-600'}`}>Confirmer</button>
+                    <button onClick={closeConfirm} aria-label="Annuler l'action" className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
+                    <button onClick={() => executeAction(async () => confirmModal.action())} aria-label="Confirmer l'action" className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg ${confirmModal.isDanger ? 'bg-red-600' : 'bg-blue-600'}`}>Confirmer</button>
                 </div>
             </div>
         </div>
@@ -261,18 +261,18 @@ function AdminContent() {
                     <ShieldCheck className={currentUserRole === 'super_admin' ? "text-amber-500" : "text-blue-400"} /> 
                     {currentUserRole === 'super_admin' ? "SUPER ADMIN" : "ADMINISTRATION"}
                 </h1>
-                <p className="text-gray-500 text-xs mt-1 font-mono">
+                <p className="text-gray-400 text-xs mt-1 font-mono">
                     {currentUserRole === 'super_admin' ? "Contrôle Total" : "Modérateur"}
                 </p>
             </div>
             <Link href="/compte" aria-label="Déconnexion" className="bg-white/10 p-2 rounded-full hover:bg-white/20 transition"><LogOut size={20} /></Link>
         </div>
         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-            <button onClick={() => changeTab('dashboard')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Dashboard</button>
-            <button onClick={() => changeTab('reports')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-300'}`}><Flag size={14}/> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 px-1.5 rounded-full">{stats.reports}</span>}</button>
-            <button onClick={() => changeTab('users')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Utilisateurs</button>
-            <button onClick={() => changeTab('products')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-300'}`}>Annonces</button>
-            <button onClick={() => changeTab('reviews')} className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-300'}`}><Star size={14}/> Avis ({stats.reviews})</button>
+            <button onClick={() => changeTab('dashboard')} aria-label="Afficher le tableau de bord" className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'dashboard' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-100'}`}>Dashboard</button>
+            <button onClick={() => changeTab('reports')} aria-label="Afficher les signalements" className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex gap-2 ${activeTab === 'reports' ? 'bg-red-500 text-white' : 'bg-white/10 text-gray-100'}`}><Flag size={14}/> Signalements {stats.reports > 0 && <span className="bg-white text-red-600 px-1.5 rounded-full">{stats.reports}</span>}</button>
+            <button onClick={() => changeTab('users')} aria-label="Gérer les utilisateurs" className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'users' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-100'}`}>Utilisateurs</button>
+            <button onClick={() => changeTab('products')} aria-label="Gérer les annonces" className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition ${activeTab === 'products' ? 'bg-amber-500 text-white' : 'bg-white/10 text-gray-100'}`}>Annonces</button>
+            <button onClick={() => changeTab('reviews')} aria-label="Voir les avis clients" className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition flex gap-2 ${activeTab === 'reviews' ? 'bg-yellow-500 text-white' : 'bg-white/10 text-gray-100'}`}><Star size={14}/> Avis ({stats.reviews})</button>
         </div>
       </div>
 
@@ -333,6 +333,7 @@ function AdminContent() {
                                                 })
                                             }} 
                                             className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
+                                            aria-label="Générer la facture"
                                             title="Facture"
                                         >
                                             <FileText size={18} />
@@ -343,6 +344,7 @@ function AdminContent() {
                                         <button 
                                             onClick={() => toggleAdminRole(u.id, u.role)}
                                             className={`p-2.5 rounded-xl border transition shadow-sm ${isTargetAdmin ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
+                                            aria-label={isTargetAdmin ? "Rétrograder l'admin" : "Nommer administrateur"}
                                             title={isTargetAdmin ? "Rétrograder" : "Nommer Admin"}
                                         >
                                             <ShieldAlert size={18} />
@@ -355,11 +357,11 @@ function AdminContent() {
                                 </div>
                             </div>
                             <div className="grid grid-cols-4 gap-2">
-                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
-                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 An</button>
-                                <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} aria-label="Ajouter 1 mois d'abonnement" className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} aria-label="Ajouter 1 an d'abonnement" className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 An</button>
+                                <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} aria-label="Arrêter l'abonnement" className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>
                                 {!isTargetSuper && (
-                                    <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Action d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
+                                    <button onClick={() => askConfirm(u.is_banned ? "Débannir ?" : "Bannir ?", "Action d'accès.", () => toggleBanUser(u.id, u.is_banned), !u.is_banned)} aria-label={u.is_banned ? "Débannir l'utilisateur" : "Bannir l'utilisateur"} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
                                 )}
                             </div>
                         </div>
@@ -386,8 +388,8 @@ function AdminContent() {
                                 <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} aria-label="Supprimer l'annonce" className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
-                                <button onClick={() => toggleBoost(p.id, isBoosted)} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Retirer le boost" : "Booster pour 24h"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
+                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label="Voir l'annonce" className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )
@@ -407,8 +409,8 @@ function AdminContent() {
                         <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
                         <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 mt-2">
                             <button onClick={() => askConfirm("Supprimer le signalement ?", "Cela ne supprimera PAS l'annonce.", () => deleteReportOnly(r.id))} aria-label="Supprimer le signalement" className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200"><Trash2 size={16}/></button>
-                            {r.product && <button onClick={() => askConfirm("Supprimer L'ANNONCE ?", "L'annonce sera détruite. Irréversible.", () => deleteProduct(r.product_id))} className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"><XCircle size={14}/> Supprimer l'annonce</button>}
-                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"><CheckCircle size={14}/> Traité</button>}
+                            {r.product && <button onClick={() => askConfirm("Supprimer L'ANNONCE ?", "L'annonce sera détruite. Irréversible.", () => deleteProduct(r.product_id))} aria-label="Supprimer l'annonce signalée" className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"><XCircle size={14}/> Supprimer l'annonce</button>}
+                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} aria-label="Marquer comme traité" className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"><CheckCircle size={14}/> Traité</button>}
                         </div>
                     </div>
                 ))}
@@ -436,7 +438,7 @@ function AdminContent() {
                         <div className="bg-gray-50 p-3 rounded-xl mb-3"><p className="text-sm text-gray-600 italic">"{review.comment}"</p></div>
                         <div className="flex justify-between items-center">
                             <span className="text-[10px] text-gray-500 font-bold">{new Date(review.created_at).toLocaleDateString()}</span>
-                            <button onClick={() => askConfirm("Supprimer cet avis ?", "Irréversible.", () => deleteReview(review.id))} className="text-[10px] bg-red-50 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex gap-1 hover:bg-red-100"><Trash2 size={12}/> Supprimer</button>
+                            <button onClick={() => askConfirm("Supprimer cet avis ?", "Irréversible.", () => deleteReview(review.id))} aria-label="Supprimer l'avis" className="text-[10px] bg-red-50 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex gap-1 hover:bg-red-100"><Trash2 size={12}/> Supprimer</button>
                         </div>
                     </div>
                 ))}

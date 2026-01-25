@@ -119,7 +119,7 @@ export default function BottomNav() {
         </div>
 
         {/* MESSAGES AVEC BADGE ROUGE SYNCHRO */}
-        <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
+        <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
                 {unreadCount > 0 && (
@@ -132,7 +132,7 @@ export default function BottomNav() {
         </Link>
 
         {/* COMPTE AVEC BADGE AMBRE SYNCHRO */}
-        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
+        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />
                 {unreadNotifCount > 0 && (

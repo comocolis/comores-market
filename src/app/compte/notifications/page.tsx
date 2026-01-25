@@ -8,8 +8,7 @@ import {
   CheckCheck, Clock, Trash2, Loader2, MessageCircle 
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { formatDistanceToNow } from 'date-fns'
-import { fr } from 'date-fns/locale'
+import { formatDistanceToNow } from '@/utils/dateUtils'
 
 export default function NotificationsPage() {
   const supabase = createClient()
@@ -142,7 +141,7 @@ export default function NotificationsPage() {
                 
                 <div className="flex items-center gap-1.5 text-[9px] font-black text-gray-300 uppercase tracking-wider mt-3">
                   <Clock size={10} strokeWidth={3} />
-                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: fr })}
+                  {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true })}
                 </div>
               </div>
 

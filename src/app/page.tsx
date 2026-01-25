@@ -15,6 +15,7 @@ import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analyt
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
+import ProductSuggestions from '@/components/ProductSuggestions'
 
 // --- TYPE DEFINITIONS ---
 interface Product {
@@ -252,7 +253,7 @@ export default function HomePage() {
       <div className="bg-white border-b border-gray-100 py-3 sticky top-28.5 z-90 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} aria-label={`Filtrer par ${cat.label}`} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
                     <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
@@ -265,7 +266,7 @@ export default function HomePage() {
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
-              <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+              <button key={ile} onClick={() => setSelectedIsland(ile)} aria-label={`Filtrer par ${ile}`} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
                 {ile}
               </button>
             ))}
@@ -273,9 +274,9 @@ export default function HomePage() {
           
           {currentSubCats.length > 0 && (
             <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 pt-3">
-               <button onClick={() => setSelectedSubCategory('Tout')} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
+               <button onClick={() => setSelectedSubCategory('Tout')} aria-label="Afficher toutes les sous-catégories" className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
                {currentSubCats.map(sub => (
-                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
+                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} aria-label={`Filtrer par ${sub}`} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
                ))}
             </div>
           )}
@@ -364,6 +365,16 @@ export default function HomePage() {
                 )
               })}
             </div>
+
+            {/* SUGGESTIONS INTELLIGENTES - Affichées après les premiers produits */}
+            {!loading && products.length >= 12 && page === 0 && (
+              <ProductSuggestions 
+                userId={userId} 
+                category={selectedCategory}
+                limit={6}
+                title={userId ? "Recommandé pour vous" : "Annonces populaires"}
+              />
+            )}
 
             {hasMore && (
               <div className="mt-8 flex justify-center pb-10">
