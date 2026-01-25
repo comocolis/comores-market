@@ -450,7 +450,12 @@ export default function PublierClient() {
       })
       const data = await res.json()
       if (data.text) {
-        const clean = data.text.replace(/\*\*/g, '').replace(/#/g, '').normalize("NFC")
+        // CORRECTION: Avoid regex literal issues in build
+        let clean = data.text;
+        clean = clean.split('**').join('');
+        clean = clean.split('#').join('');
+        clean = clean.normalize("NFC");
+        
         setFormData(prev => ({ ...prev, description: clean }))
         toast.success("Texte sublimé !")
       }
