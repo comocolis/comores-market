@@ -74,7 +74,6 @@ export default function MesAnnoncesClient() {
       {/* MODALE SUPPRESSION */}
       <AnimatePresence>
         {deleteModal.isOpen && (
-          // CORRECTION: z-50 au lieu de z-100 (standard Tailwind)
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setDeleteModal({ isOpen: false, productId: null })}>
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
@@ -98,7 +97,11 @@ export default function MesAnnoncesClient() {
       <div className="bg-brand pt-safe px-4 pb-8 sticky top-0 z-40 shadow-md rounded-b-[2.5rem]">
         <div className="flex justify-between items-center pt-2 px-2">
             <div className="flex items-center gap-3">
-                <button onClick={() => router.back()} className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
+                <button 
+                  onClick={() => router.back()} 
+                  className="p-3 bg-white/20 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition"
+                  aria-label="Retour"
+                >
                     <ArrowLeft size={22} />
                 </button>
                 <div>
@@ -136,10 +139,19 @@ export default function MesAnnoncesClient() {
                     >
                         <div className="p-4 flex gap-4">
                             <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
-                                {img && <Image src={img} alt="" fill className="object-cover" />}
+                                {img && (
+                                  <Image 
+                                    src={img} 
+                                    alt="" 
+                                    fill 
+                                    className="object-cover"
+                                    priority={idx < 4} // 🚀 LCP Optimisation
+                                    sizes="96px" // 🚀 Optimisation taille (96px = w-24)
+                                  />
+                                )}
                                 {isBoosted && (
                                   <div className="absolute inset-0 bg-amber-500/10 flex items-center justify-center">
-                                       <Sparkles size={24} className="text-amber-500 opacity-50 animate-pulse" />
+                                        <Sparkles size={24} className="text-amber-500 opacity-50 animate-pulse" />
                                   </div>
                                 )}
                             </Link>
@@ -155,10 +167,18 @@ export default function MesAnnoncesClient() {
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <Link href={`/modifier/${product.id}`} className="p-3 text-blue-500 bg-blue-50/50 rounded-2xl hover:bg-blue-100 transition active:scale-90">
+                                <Link 
+                                  href={`/modifier/${product.id}`} 
+                                  className="p-3 text-blue-500 bg-blue-50/50 rounded-2xl hover:bg-blue-100 transition active:scale-90"
+                                  aria-label="Modifier l'annonce"
+                                >
                                     <Pencil size={18} />
                                 </Link>
-                                <button onClick={() => confirmDelete(product.id)} className="p-3 text-red-500 bg-red-50/50 rounded-2xl hover:bg-red-100 transition active:scale-90">
+                                <button 
+                                  onClick={() => confirmDelete(product.id)} 
+                                  className="p-3 text-red-500 bg-red-50/50 rounded-2xl hover:bg-red-100 transition active:scale-90"
+                                  aria-label="Supprimer l'annonce"
+                                >
                                     <Trash2 size={18} />
                                 </button>
                             </div>
@@ -174,7 +194,6 @@ export default function MesAnnoncesClient() {
                           ) : (
                             <Link
                               href={`/boost/${product.id}`}
-                              // CORRECTION : bg-gradient-to-r (standard) au lieu de bg-linear-to-r
                               className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                             >
                               <Zap size={14} fill="currentColor" className="group-hover:scale-110 transition-transform" />

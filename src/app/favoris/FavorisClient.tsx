@@ -45,7 +45,11 @@ export default function FavorisClient() {
       <div className="bg-brand pt-safe px-4 pb-6 sticky top-0 z-40 shadow-md rounded-b-4xl">
         <div className="flex justify-between items-center pt-2 px-2">
             <div className="flex items-center gap-3">
-                <button onClick={() => router.back()} className="p-2 -ml-2 text-white active:scale-90 transition">
+                <button 
+                  onClick={() => router.back()} 
+                  className="p-2 -ml-2 text-white active:scale-90 transition"
+                  aria-label="Retour" // ♿ Accessibilité
+                >
                     <ArrowLeft size={24} />
                 </button>
                 <h1 className="text-white font-black text-2xl tracking-tight">Mes Favoris</h1>
@@ -66,7 +70,7 @@ export default function FavorisClient() {
         ) : (
             <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence>
-                    {favorites.map((product) => {
+                    {favorites.map((product, index) => { // 🚀 Ajout de l'index
                         const img = getFirstProductImage(product.images)
                         const isPro = product.profiles?.is_pro 
 
@@ -90,9 +94,11 @@ export default function FavorisClient() {
                                                 src={img} 
                                                 alt={product.title} 
                                                 fill 
+                                                sizes="50vw" // 🚀 Optimisation taille
                                                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                                                 placeholder="blur"
                                                 blurDataURL={BLUR_PLACEHOLDERS.product}
+                                                priority={index < 4} // 🚀 Optimisation LCP
                                             />
                                         ) : (
                                             <div className="flex items-center justify-center h-full text-gray-200">

@@ -6,7 +6,7 @@ import InstallBanner from '@/components/InstallBanner';
 import EliteAssistant from '@/components/EliteAssistant';
 import SplashScreen from '@/components/SplashScreen';
 import NativeFeatures from '@/components/NativeFeatures';
-import { Suspense } from "react"; // <--- Assurez-vous que cet import est là
+import { Suspense } from "react"; 
 import Script from 'next/script';
 import GoogleAnalytics from '@/components/GoogleAnalytics';
 import CookieBanner from '@/components/CookieBanner';
@@ -57,12 +57,12 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fr" suppressHydrationWarning>
       <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
         
-        {/* CORRECTION CRITIQUE : Suspense autour de GA4 */}
+        {/* CORRECTION : Ajout de la prop GA_MEASUREMENT_ID requise */}
         <Suspense fallback={null}>
           <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_ID || ""} />
         </Suspense>
 
-        {/* GOOGLE ADS */}
+        {/* GOOGLE ADS - Chargement optimisé */}
         <Script src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" strategy="afterInteractive" />
         <Script id="google-ads-config" strategy="afterInteractive">
           {`
@@ -96,7 +96,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </div>
 
-        {/* Suspense autour de la bannière aussi par sécurité */}
         <Suspense fallback={null}>
           <CookieBanner />
         </Suspense>

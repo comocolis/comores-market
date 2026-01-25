@@ -169,7 +169,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       
       await supabase.from('profiles').update({ cover_url: publicUrl }).eq('id', currentUser.id)
       
-      // FIX CRITIQUE : On utilise la version callback du setter pour être sûr d'avoir l'état courant
       setProfile((prev) => (prev ? { ...prev, cover_url: publicUrl } : null))
       
       toast.success("Couverture mise à jour")
@@ -214,11 +213,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
     )
   }
   
-  // Sécurité supplémentaire : Si pas de profil après chargement
   if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Profil introuvable.</div>
 
-  // --- VARIABLES SECURISÉES AVEC OPTIONAL CHAINING ---
-  // On utilise ?. partout pour éviter le crash si profile est null (même si théoriquement impossible ici)
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
@@ -232,7 +228,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
       {/* SECTION COUVERTURE */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
         <Image
-            // FIX : Utilisation de ?. et valeur par défaut
             src={profile?.cover_url || "/cover-default.jpg"}
             alt="Couverture" 
             fill 
@@ -242,22 +237,36 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDERS.cover}
         />
+        {/* FIX: gradient au lieu de linear */}
         <div className="absolute inset-0 bg-linear-to-t from-[#F8FAFC] via-transparent to-black/50" />
 
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
-            <button onClick={() => router.back()} className={headerButtonStyle}>
+            <button 
+              onClick={() => router.back()} 
+              className={headerButtonStyle}
+              aria-label="Retour"
+            >
               <ArrowLeft size={22} strokeWidth={2.5} />
             </button>
             <div className="flex gap-2">
               {isOwner && (
                 <>
                   <input type="file" ref={coverInputRef} onChange={handleCoverUpload} accept="image/*" className="hidden" />
-                  <button onClick={() => coverInputRef.current?.click()} disabled={uploadingCover} className={headerButtonStyle}>
+                  <button 
+                    onClick={() => coverInputRef.current?.click()} 
+                    disabled={uploadingCover} 
+                    className={headerButtonStyle}
+                    aria-label="Modifier la couverture"
+                  >
                     {uploadingCover ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} strokeWidth={2.5} />}
                   </button>
                 </>
               )}
-              <button onClick={handleShare} className={headerButtonStyle}>
+              <button 
+                onClick={handleShare} 
+                className={headerButtonStyle}
+                aria-label="Partager le profil"
+              >
                 <Share2 size={22} strokeWidth={2.5} />
               </button>
             </div>
@@ -271,14 +280,14 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50' : 'bg-gray-100'}`}>
                 {profile?.avatar_url ? (
                     <Image 
-                        // FIX : Utilisation de ?.
                         src={profile.avatar_url} 
-                        alt="" 
+                        alt={profile?.full_name || "Avatar"} 
                         fill 
                         className="object-cover" 
                         sizes="(max-width: 768px) 33vw, 128px"
                         placeholder="blur"
                         blurDataURL={BLUR_PLACEHOLDERS.avatar}
+                        priority={true} // 🚀 LCP Optimization
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>
@@ -306,7 +315,6 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Annonces</span></div>
             <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Confiance</span></div>
             <div className="flex flex-col items-center">
-                {/* FIX : new Date() avec fallback */}
                 <span className="text-lg font-black text-gray-900">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
                 <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Depuis</span>
             </div>
@@ -336,12 +344,12 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
             {isProActive && (profile?.facebook_url || profile?.instagram_url) && (
               <div className="flex justify-center gap-3">
                 {profile?.facebook_url && (
-                  <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
+                  <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
                     <Facebook size={20} fill="currentColor" />
                   </a>
                 )}
                 {profile?.instagram_url && (
-                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" className="p-3.5 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all active:scale-90 border border-pink-100">
+                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-3.5 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all active:scale-90 border border-pink-100">
                     <Instagram size={20} />
                   </a>
                 )}
@@ -374,9 +382,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
           <AnimatePresence mode="wait">
             {activeTab === 'listings' ? (
                 <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
-                    {products.map(p => {
+                    {products.map((p, index) => { // 🚀 Ajout de l'index pour la priorité
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
-                        // FIX : Cast ou valeur par défaut
                         const boostedUntil = p.boosted_until || '';
                         const isBoosted = boostedUntil && new Date(boostedUntil).getTime() > new Date().getTime();
 
@@ -388,15 +395,17 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                     {img && (
                                         <Image 
                                             src={img} 
-                                            alt="" 
+                                            alt={p.title} 
                                             fill 
                                             className="object-cover group-hover:scale-110 transition-transform duration-700" 
                                             sizes="(max-width: 768px) 50vw, 300px"
                                             placeholder="blur"
                                             blurDataURL={BLUR_PLACEHOLDERS.product}
+                                            priority={index < 4} // 🚀 LCP Optimization (les 4 premiers produits)
                                         />
                                     )}
                                     {isBoosted && (
+                                      // FIX: gradient au lieu de linear
                                       <div className="absolute top-2 left-2 bg-linear-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
                                           <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
@@ -420,6 +429,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                               ) : (
                                 <Link 
                                   href={`/boost/${p.id}`}
+                                  // FIX: gradient au lieu de linear
                                   className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >
                                   <Zap size={14} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
@@ -439,8 +449,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                         </button>
                     )}
                     {reviews.map(r => {
-                         const reviewer = r.reviewer;
-                         return (
+                          const reviewer = r.reviewer;
+                          return (
                         <div key={r.id} className="bg-white p-7 rounded-4xl shadow-sm border border-white space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
@@ -448,7 +458,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                         {reviewer?.avatar_url ? (
                                             <Image 
                                                 src={reviewer.avatar_url} 
-                                                alt="" 
+                                                alt={reviewer.full_name || "Avatar"} 
                                                 fill 
                                                 className="object-cover"
                                                 sizes="40px"
@@ -476,8 +486,8 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
         {showReviewModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-200 bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
-                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} className="p-2 bg-gray-50 rounded-full text-gray-400"><X size={20}/></button></div>
-                  <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
+                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 rounded-full text-gray-400"><X size={20}/></button></div>
+                  <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} aria-label={`Noter ${s} étoiles`} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
                   <textarea className="w-full bg-[#F5F7F9] border-none rounded-3xl p-5 text-sm min-h-32 outline-none focus:ring-4 focus:ring-brand/5 transition" placeholder="Votre avis..." value={newComment} onChange={e => setNewComment(e.target.value)} />
                   <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-3xl shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>
               </motion.div>

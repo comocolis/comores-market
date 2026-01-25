@@ -11,7 +11,6 @@ import {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
-// AJOUT : Import du tracking optimisé
 import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
@@ -47,13 +46,12 @@ const CATEGORIES = [
   { id: 4, label: 'Tech', icon: Smartphone }, 
   { id: 5, label: 'Maison', icon: Sofa }, 
   { id: 6, label: 'Loisirs', icon: Ticket }, 
-  { id: 7, label: 'Alimentation', icon: Utensils }, // Harmonisé avec "Alimentation" au lieu de "Miam"
+  { id: 7, label: 'Alimentation', icon: Utensils },
   { id: 8, label: 'Services', icon: Wrench }, 
   { id: 9, label: 'Beauté', icon: Sparkles }, 
   { id: 10, label: 'Emploi', icon: Briefcase },
 ]
 
-// --- LISTE HARMONISÉE AVEC LA PAGE PUBLIER ---
 const SUB_CATEGORIES: { [key: number]: string[] } = {
   1: ['Voitures', 'Motos & Scooters', 'Pièces Détachées', 'Location Véhicules', 'Camions & Poids Lourds', 'Bateaux & Nautisme', 'Engins BTP', 'Vélos & Trottinettes'],
   2: ['Vente Maison', 'Vente Terrain', 'Vente Appartement', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Location Vacances', 'Terrains Agricoles', 'Colocation'],
@@ -227,7 +225,11 @@ export default function HomePage() {
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
             </h1>
-            <Link href={userId ? `/profil/${userId}` : "/auth"} className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10">
+            <Link 
+              href={userId ? `/profil/${userId}` : "/auth"} 
+              className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10"
+              aria-label="Mon Profil"
+            >
                 <User size={18} className="text-white" />
             </Link>
         </div>
@@ -236,7 +238,11 @@ export default function HomePage() {
                 <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-400" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
                 <Search className="absolute left-4 top-3.5 text-gray-400" size={18} />
             </div>
-            <button onClick={() => setShowFilters(true)} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative hover:shadow-md active:scale-95 ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard shadow-md shadow-mustard/20' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'}`}>
+            <button 
+              onClick={() => setShowFilters(true)} 
+              aria-label="Ouvrir les filtres"
+              className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative hover:shadow-md active:scale-95 ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard shadow-md shadow-mustard/20' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'}`}
+            >
                 <SlidersHorizontal size={20} />
             </button>
         </div>
@@ -285,7 +291,7 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
-              {products.map(product => {
+              {products.map((product, index) => { // NOTE: Récupération de l'index ici
                 const img = getFirstProductImage(product.images)
                 const isFav = favorites.has(product.id)
                 const isPro = product.is_pro
@@ -302,7 +308,19 @@ export default function HomePage() {
                         }`}>
                     
                     <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                      {img && <Image src={img} alt={product.title} fill sizes="50vw" className="object-cover transition duration-500 group-hover:scale-110" placeholder="blur" blurDataURL={BLUR_PLACEHOLDERS.product} />}
+                      {img && (
+                        <Image 
+                            src={img} 
+                            alt={product.title} 
+                            fill 
+                            sizes="50vw" 
+                            className="object-cover transition duration-500 group-hover:scale-110" 
+                            placeholder="blur" 
+                            blurDataURL={BLUR_PLACEHOLDERS.product}
+                            // 🚀 OPTIMISATION LCP : Priorise les 4 premières images
+                            priority={index < 4} 
+                        />
+                      )}
                       
                       <div className="absolute top-2 left-2 flex flex-col gap-1 z-10">
                         {isBoosted && (
@@ -317,7 +335,11 @@ export default function HomePage() {
                         )}
                       </div>
 
-                      <button onClick={(e) => toggleFavorite(e, product.id)} className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600">
+                      <button 
+                        onClick={(e) => toggleFavorite(e, product.id)} 
+                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} // ♿ Accessibilité
+                        className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600"
+                      >
                         <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
                       </button>
                       
@@ -345,7 +367,12 @@ export default function HomePage() {
 
             {hasMore && (
               <div className="mt-8 flex justify-center pb-10">
-                <button onClick={() => fetchProducts(false)} disabled={isFetchingMore} className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-3 hover:bg-gray-50">
+                <button 
+                    onClick={() => fetchProducts(false)} 
+                    disabled={isFetchingMore} 
+                    aria-label="Charger plus d'annonces"
+                    className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-3 hover:bg-gray-50"
+                >
                   {isFetchingMore ? <Loader2 size={16} className="animate-spin text-brand" /> : <>Voir plus d'annonces <ChevronDown size={14} /></>}
                 </button>
               </div>
