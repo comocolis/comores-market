@@ -174,5 +174,5 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Application de la configuration PWA
-export default withPWA(nextConfig);
+// Application de la configuration PWA (uniquement en production)
+export default process.env.NODE_ENV === 'development' ? nextConfig : withPWA(nextConfig);

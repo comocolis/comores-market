@@ -229,7 +229,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
       // Sort by score and take top 6
       const topSuggestions = scoredProducts
-        .sort((a, b) => b.similarityScore - a.similarityScore)
+        .sort((a: any, b: any) => b.similarityScore - a.similarityScore)
         .slice(0, 6)
 
       setSuggestedProducts(topSuggestions)
