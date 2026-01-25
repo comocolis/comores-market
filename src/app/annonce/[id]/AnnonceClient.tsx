@@ -19,6 +19,13 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
+// AJOUT : Import du tracking analytics
+import { 
+  trackProductView, 
+  trackAddToFavorites, 
+  trackMessageSent, 
+  trackEvent 
+} from '@/lib/analytics'
 
 // --- DICTIONNAIRE DES ICÔNES ---
 const ICON_MAP: Record<string, any> = {
@@ -159,13 +166,24 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     }
   }, [product])
 
+  // --- TRACKING VUE PRODUIT ---
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current || !product) return
         viewLogged.current = true
+        
+        // 1. Tracking Supabase (Interne)
         if (currentUser?.id !== product.user_id) {
             await supabase.from('product_views').insert({ product_id: product.id, viewer_id: currentUser?.id || null })
         }
+
+        // 2. Tracking Google Analytics (GA4)
+        trackProductView(
+            product.id,
+            product.title,
+            product.price,
+            product.sub_category || 'Autre'
+        )
     }
     logView()
   }, [product, currentUser, supabase])
@@ -220,7 +238,12 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         product_id: product.id
     })
     if (error) toast.error("Erreur")
-    else { toast.success("Message envoyé !"); setMessage('') }
+    else { 
+        toast.success("Message envoyé !"); 
+        setMessage('');
+        // 📊 TRACKING MESSAGE INTERNE (Lead)
+        trackMessageSent('internal_chat', product.id, 'text');
+    }
     setSending(false)
   }
 
@@ -235,6 +258,8 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         await supabase.from('favorites').insert({ user_id: currentUser.id, product_id: id })
         setFavorites(new Set([...favorites, id]))
         toast.success("Ajouté aux favoris")
+        // 📊 TRACKING FAVORIS (Wishlist)
+        trackAddToFavorites(product.id, product.title, product.price)
     }
   }
 
@@ -249,6 +274,14 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
   const handleWhatsAppClick = () => {
     if (!product.whatsapp_number) return;
+    
+    // 📊 TRACKING WHATSAPP (Lead important)
+    trackEvent('contact_whatsapp', {
+        listing_id: product.id,
+        listing_title: product.title,
+        seller_id: product.user_id
+    });
+
     const phone = product.whatsapp_number.replace(/\D/g, '')
     const text = encodeURIComponent(`Bonjour, je suis intéressé par votre annonce "${product.title}" sur Comores Market.`)
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank')

@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+// AJOUT : Import du tracking
+import { trackEvent, trackAdsConversion } from '@/lib/analytics'
 
 const ALLOWED_COUNTRIES = [
   { label: '🇰🇲 Comores', code: '+269', placeholder: '334 20 63 / 434 20 63', regex: /^(3[234]\d{5}|4\d{6})$/ },
@@ -102,6 +104,10 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.session) {
+            // 📊 TRACKING INSCRIPTION
+            trackEvent('sign_up', { method: 'email' })
+            trackAdsConversion('VOTRE_LABEL_INSCRIPTION', 0) // Conversion Ads pour inscription
+
             // --- ENVOI DE L'ALERTE ADMIN ---
             try {
                 await fetch('/api/emails/alert-signup', {
@@ -117,7 +123,6 @@ export default function AuthPage() {
                 });
             } catch (alertErr) {
                 console.error("Erreur alerte inscription", alertErr);
-                // On ne bloque pas l'inscription si l'email d'alerte échoue
             }
             // ------------------------------
 
@@ -140,6 +145,10 @@ export default function AuthPage() {
           password: formData.password,
         })
         if (error) throw error
+        
+        // 📊 TRACKING CONNEXION
+        trackEvent('login', { method: 'email' })
+
         toast.success("Connexion réussie")
         router.push('/compte')
         router.refresh()

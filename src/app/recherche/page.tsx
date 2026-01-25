@@ -7,6 +7,8 @@ import Image from 'next/image'
 import { Search, MapPin, Loader2, ArrowLeft, Crown, ShieldCheck } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
+// AJOUT : Import du tracking analytics
+import { trackSearch } from '@/lib/analytics'
 
 // --- INTERFACE AJOUTÉE POUR CORRIGER L'ERREUR DE BUILD ---
 interface SearchResult {
@@ -43,8 +45,13 @@ export default function RecherchePage() {
         .limit(20)
       
       // On cast les données reçues vers notre interface
-      setResults((data as SearchResult[]) || [])
+      const searchResults = (data as SearchResult[]) || []
+      setResults(searchResults)
       setLoading(false)
+
+      // 📊 TRACKING : On enregistre la recherche dans GA4
+      // Cela vous permettra de voir les mots-clés les plus tapés dans Analytics
+      trackSearch(query, searchResults.length)
     }
 
     const timer = setTimeout(search, 500)

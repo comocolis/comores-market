@@ -10,7 +10,7 @@ import {
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
   Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
-  MapPin, Star, AlertCircle, Save, PenTool // Ajout de PenTool
+  MapPin, Star, AlertCircle, Save, PenTool
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -21,6 +21,8 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
+// AJOUT : Import du tracking analytics
+import { trackEvent } from '@/lib/analytics'
 
 const FREE_PHOTOS_LIMIT = 3
 const PRO_PHOTOS_LIMIT = 10
@@ -31,7 +33,6 @@ const CATEGORIES_LIST = [
   { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
 ]
 
-// --- LISTE COMPLÈTE HARMONISÉE ---
 const SUB_CATEGORIES: { [key: number]: string[] } = {
   1: ['Voitures', 'Motos & Scooters', 'Pièces Détachées', 'Location Véhicules', 'Camions & Poids Lourds', 'Bateaux & Nautisme', 'Engins BTP', 'Vélos & Trottinettes'],
   2: ['Vente Maison', 'Vente Terrain', 'Vente Appartement', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Location Vacances', 'Terrains Agricoles', 'Colocation'],
@@ -570,6 +571,14 @@ export default function ModifierPage() {
         .eq('id', params.id)
 
       if (error) throw error
+
+      // 📊 TRACKING : Envoi de l'événement de mise à jour à GA4
+      trackEvent('listing_updated', {
+          listing_id: params.id,
+          title: formData.title,
+          category: CATEGORIES_LIST.find(c => c.id.toString() === formData.category_id)?.label,
+          price: parseInt(formData.price)
+      })
 
       toast.success("Annonce mise à jour !")
       router.push(`/annonce/${params.id}`)

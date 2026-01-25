@@ -2,9 +2,18 @@
 
 import Link from 'next/link'
 import { ArrowLeft, Mail } from 'lucide-react'
+// AJOUT : Import du tracking pour suivre les demandes de contact
+import { trackEvent } from '@/lib/analytics'
 
 export default function CGUPage() {
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
+
+  const handleContactClick = () => {
+    // 📊 TRACKING : Savoir que quelqu'un clique sur l'email depuis les CGU
+    trackEvent('contact_support_click', {
+        source: 'cgu_page'
+    })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
@@ -36,12 +45,13 @@ export default function CGUPage() {
             <p>Il est interdit de vendre des produits illicites, dangereux, ou contraires aux bonnes mœurs. Tout contenu abusif sera supprimé sans préavis.</p>
         </section>
 
-        {/* NOUVELLE SECTION CONTACT */}
+        {/* SECTION CONTACT */}
         <section className="pt-4 border-t border-gray-100 mt-4">
             <h2 className="text-gray-900 font-bold mb-3">5. Contact & Support</h2>
             <p className="mb-3">Pour toute question, signalement ou demande de suppression de compte, contactez-nous :</p>
             <a 
                 href={`mailto:${CONTACT_EMAIL}`}
+                onClick={handleContactClick}
                 className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center"
             >
                 <Mail size={18} /> {CONTACT_EMAIL}

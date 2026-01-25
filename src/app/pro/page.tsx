@@ -3,11 +3,12 @@
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
-// AJOUT DE 'Lock' DANS LES IMPORTS CI-DESSOUS
 import { Check, Crown, ShieldCheck, Zap, Smartphone, MessageCircle, ArrowLeft, CreditCard, LayoutGrid, Instagram, Image as ImageIcon, LogIn, Loader2, Lock } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
+// AJOUT : Import du tracking
+import { trackProSubscription, trackAdsConversion } from '@/lib/analytics'
 
 export default function ProPage() {
   const supabase = createClient()
@@ -36,13 +37,25 @@ export default function ProPage() {
   const getWhatsAppMessage = (plan: 'monthly' | 'yearly') => {
       const amount = plan === 'monthly' ? '2500' : '25000'
       const type = plan === 'monthly' ? 'MENSUEL' : 'ANNUEL'
-      // On ajoute l'email de l'utilisateur s'il est connecté pour faciliter le traitement
       const userEmail = user?.email ? `\n(Compte : ${user.email})` : ''
       
       return encodeURIComponent(
           `Bonjour, je viens d'envoyer ${amount} KMF par Mvola au ${MVOLA_NUMBER}.\n` +
           `Voici mon ID de transaction pour activer mon compte PRO ${type}.${userEmail}`
       )
+  }
+
+  // GESTION DU CLIC SUR LE BOUTON PAIEMENT
+  const handlePaymentClick = () => {
+      const price = selectedPlan === 'monthly' ? 2500 : 25000;
+      const duration = selectedPlan === 'monthly' ? '1 mois' : '1 an';
+
+      // 1. GA4 : On enregistre l'achat (ou l'intention d'achat forte)
+      trackProSubscription(price, duration);
+
+      // 2. Google Ads : On signale une conversion importante
+      // Remplacez 'VOTRE_LABEL_ABONNEMENT' par le label Ads correspondant si vous en avez un
+      trackAdsConversion('VOTRE_LABEL_ABONNEMENT', price);
   }
 
   // LISTE COMPLÈTE DES AVANTAGES
@@ -190,6 +203,7 @@ export default function ProPage() {
                           <a 
                             href={`https://wa.me/${WHATSAPP_CONTACT}?text=${getWhatsAppMessage(selectedPlan)}`}
                             target="_blank"
+                            onClick={handlePaymentClick}
                             className="w-full bg-[#25D366] hover:bg-[#20bd5a] text-white font-black py-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-green-500/20 transition transform active:scale-95 uppercase text-xs tracking-widest"
                           >
                             <MessageCircle size={18} fill="currentColor" />

@@ -9,6 +9,8 @@ import {
 } from 'lucide-react'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
+// AJOUT : Import du tracking
+import { trackBoostPurchase, trackAdsConversion } from '@/lib/analytics'
 
 export default function BoostLandingPage() {
   const supabase = createClient()
@@ -19,7 +21,7 @@ export default function BoostLandingPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
-  // --- PARAMÈTRES DE PAIEMENT (Mêmes que la page PRO) ---
+  // --- PARAMÈTRES DE PAIEMENT ---
   const MVOLA_NUMBER = "434 20 63"
   const WHATSAPP_CONTACT = "33758760743"
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
@@ -38,6 +40,13 @@ export default function BoostLandingPage() {
   }, [params.id, supabase])
 
   const handleConfirmPayment = () => {
+    // 1. GA4 : On enregistre l'achat du boost
+    trackBoostPurchase(params.id as string, '24h_visibility', 250);
+
+    // 2. Google Ads : On signale la conversion
+    // Remplacez 'VOTRE_LABEL_BOOST' par le label Ads correspondant
+    trackAdsConversion('VOTRE_LABEL_BOOST', 250);
+
     const msg = encodeURIComponent(
       `Bonjour ! Je souhaite activer le Boost (250 KMF) pour mon annonce :\n\n` +
       `📌 Titre : ${product?.title}\n` +
@@ -107,7 +116,7 @@ export default function BoostLandingPage() {
         </div>
       </div>
 
-      {/* SÉLECTEUR DE PAIEMENT (Comme Page PRO) */}
+      {/* SÉLECTEUR DE PAIEMENT */}
       <div className="px-4 mt-10 max-w-md mx-auto">
         <h3 className="font-black text-gray-900 mb-4 ml-1 uppercase text-[10px] tracking-widest opacity-50">Moyen de paiement</h3>
         

@@ -1,6 +1,6 @@
 /**
- * Google Analytics 4 (GA4) initialization and configuration
- * Tracks page views, user interactions, and conversions
+ * Google Analytics 4 (GA4) & Google Ads Event Helpers
+ * Used to track specific user interactions (clicks, purchases, searches)
  */
 
 declare global {
@@ -10,48 +10,8 @@ declare global {
 }
 
 /**
- * Initialize Google Analytics 4
- * Should be called once on app startup
- */
-export function initializeGA() {
-  if (typeof window === 'undefined') return;
-
-  // Check if gtag is already loaded
-  if (window.gtag) {
-    return;
-  }
-
-  // GA4 configuration
-  const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-  
-  if (!GA_ID) {
-    console.warn('NEXT_PUBLIC_GA_ID not configured. Analytics disabled.');
-    return;
-  }
-
-  // Log initialization
-  if (process.env.NODE_ENV === 'development') {
-    console.log(`📊 Google Analytics 4 initialized (${GA_ID})`);
-  }
-}
-
-/**
- * Track page view
- * Automatically called on route changes
- */
-export function trackPageView(path: string, title?: string) {
-  if (typeof window === 'undefined' || !window.gtag) return;
-
-  window.gtag('event', 'page_view', {
-    page_path: path,
-    page_title: title || document.title,
-  });
-}
-
-/**
- * Track custom event
- * @param eventName - Event name (e.g., 'search', 'add_to_favorites')
- * @param eventData - Event properties
+ * Generic helper to send events to GA4
+ * Safe to use anywhere (client-side)
  */
 export function trackEvent(
   eventName: string,
@@ -61,64 +21,39 @@ export function trackEvent(
 
   window.gtag('event', eventName, eventData || {});
 
-  // Log in development
+  // Log en mode développement pour vérifier que ça marche
   if (process.env.NODE_ENV === 'development') {
-    console.log(`📍 Event tracked: ${eventName}`, eventData);
+    console.log(`📊 GA4 Event: ${eventName}`, eventData);
   }
 }
 
 /**
- * Track conversion event
- * @param conversionId - Google Ads conversion ID
- * @param conversionLabel - Google Ads conversion label
- * @param conversionValue - Conversion value (for revenue tracking)
+ * Helper spécifique pour les conversions Google Ads
+ * À utiliser quand une action critique (achat, lead) se produit
+ * @param conversionLabel Le code de conversion fourni par Google Ads (ex: "AbC_123456")
  */
-export function trackConversion(
-  conversionId?: string,
-  conversionLabel?: string,
-  conversionValue?: number
-) {
+export function trackAdsConversion(conversionLabel: string, value?: number) {
   if (typeof window === 'undefined' || !window.gtag) return;
 
-  // GA4 conversion
-  trackEvent('conversion', {
-    conversion_value: conversionValue || 0,
-  });
+  // L'ID doit correspondre à celui dans layout.tsx
+  const ADS_ID = 'AW-16447515729'; 
 
-  // Google Ads conversion (if configured)
-  if (conversionId && conversionLabel) {
-    window.gtag('event', 'conversion', {
-      send_to: `${conversionId}/${conversionLabel}`,
-      value: conversionValue || 0,
+  window.gtag('event', 'conversion', {
+      send_to: `${ADS_ID}/${conversionLabel}`,
+      value: value || 0,
       currency: 'KMF',
-    });
+  });
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`💰 Google Ads Conversion: ${conversionLabel} - ${value} KMF`);
   }
 }
 
-/**
- * Set user properties
- * @param userId - Unique user identifier
- * @param userType - 'free' | 'pro' | 'admin'
- * @param email - User email (optional)
- */
-export function setUserProperties(
-  userId: string,
-  userType: 'free' | 'pro' | 'admin',
-  email?: string
-) {
-  if (typeof window === 'undefined' || !window.gtag) return;
-
-  window.gtag('config', process.env.NEXT_PUBLIC_GA_ID || '', {
-    user_id: userId,
-    user_properties: {
-      user_type: userType,
-      email: email,
-    },
-  });
-}
+// --- ÉVÉNEMENTS E-COMMERCE & BUSINESS ---
 
 /**
  * Track search event
+ * Utile pour savoir ce que les gens cherchent sur Comores Market
  */
 export function trackSearch(searchTerm: string, resultCount?: number) {
   trackEvent('search', {
@@ -128,7 +63,19 @@ export function trackSearch(searchTerm: string, resultCount?: number) {
 }
 
 /**
+ * Track category view (Correction de l'erreur)
+ * Utilisé sur la page d'accueil quand on change de catégorie
+ */
+export function trackCategoryView(categoryName: string, categoryId: number) {
+  trackEvent('view_item_list', {
+    item_category: categoryName,
+    item_category_id: categoryId,
+  });
+}
+
+/**
  * Track product view
+ * Quand on ouvre une annonce spécifique
  */
 export function trackProductView(
   productId: string,
@@ -137,6 +84,8 @@ export function trackProductView(
   category: string
 ) {
   trackEvent('view_item', {
+    currency: 'KMF',
+    value: productPrice,
     items: [
       {
         item_id: productId,
@@ -150,6 +99,7 @@ export function trackProductView(
 
 /**
  * Track add to favorites
+ * Quand on clique sur le coeur
  */
 export function trackAddToFavorites(
   productId: string,
@@ -157,6 +107,8 @@ export function trackAddToFavorites(
   productPrice: number
 ) {
   trackEvent('add_to_wishlist', {
+    currency: 'KMF',
+    value: productPrice,
     items: [
       {
         item_id: productId,
@@ -168,7 +120,7 @@ export function trackAddToFavorites(
 }
 
 /**
- * Track listing creation
+ * Track listing creation (Succès publication)
  */
 export function trackListingCreated(
   listingId: string,
@@ -176,7 +128,6 @@ export function trackListingCreated(
   category: string,
   price?: number
 ) {
-  trackConversion();
   trackEvent('listing_created', {
     listing_id: listingId,
     listing_title: listingTitle,
@@ -186,43 +137,53 @@ export function trackListingCreated(
 }
 
 /**
- * Track ad boost purchase
+ * Track ad boost purchase (MONÉTISATION 💰)
+ * Très important pour suivre vos revenus
  */
 export function trackBoostPurchase(
   listingId: string,
   boostType: string,
   price: number
 ) {
-  trackConversion();
-  trackEvent('boost_purchased', {
-    listing_id: listingId,
-    boost_type: boostType,
-    price: price,
+  // Événement standard GA4 pour achat
+  trackEvent('purchase', {
+    transaction_id: `BOOST-${listingId}-${Date.now()}`,
+    value: price,
     currency: 'KMF',
+    items: [{
+        item_id: `BOOST-${boostType}`,
+        item_name: `Boost ${boostType}`,
+        price: price
+    }]
   });
 }
 
 /**
- * Track pro subscription
+ * Track pro subscription (ABONNEMENT PRO 💰)
  */
 export function trackProSubscription(price: number, planDuration: string) {
-  trackConversion();
-  trackEvent('pro_subscription', {
-    price: price,
-    plan_duration: planDuration,
+  trackEvent('purchase', {
+    transaction_id: `SUB-${planDuration}-${Date.now()}`,
+    value: price,
     currency: 'KMF',
+    items: [{
+        item_id: `PRO-${planDuration}`,
+        item_name: `Abonnement Pro ${planDuration}`,
+        price: price
+    }]
   });
 }
 
 /**
- * Track messaging event
+ * Track contact/message (Lead)
+ * Quand un acheteur contacte un vendeur
  */
 export function trackMessageSent(
   conversationId: string,
   listingId: string,
   messageType: 'text' | 'image'
 ) {
-  trackEvent('message_sent', {
+  trackEvent('generate_lead', {
     conversation_id: conversationId,
     listing_id: listingId,
     message_type: messageType,
@@ -230,18 +191,25 @@ export function trackMessageSent(
 }
 
 /**
- * Track category view
- */
-export function trackCategoryView(categoryName: string, categoryId: number) {
-  trackEvent('view_item_list', {
-    item_category: categoryName,
-    item_category_id: categoryId,
-  });
-}
-
-/**
  * Track filter application
+ * Pour savoir quels filtres sont les plus utilisés
  */
 export function trackFilterApplied(filters: Record<string, string | number>) {
   trackEvent('filter_applied', filters);
+}
+
+/**
+ * Identification de l'utilisateur (Optionnel)
+ * Permet de segmenter Pro vs Gratuit dans GA4
+ */
+export function setUserProperties(
+  userId: string,
+  userType: 'free' | 'pro' | 'admin'
+) {
+  if (typeof window === 'undefined' || !window.gtag) return;
+
+  window.gtag('set', 'user_properties', {
+    user_type: userType,
+    user_id: userId 
+  });
 }

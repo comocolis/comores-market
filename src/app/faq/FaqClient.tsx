@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronDown, ChevronUp, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+// AJOUT : Import du tracking
+import { trackEvent } from '@/lib/analytics'
 
 // Données de la FAQ
 const faqData = [
@@ -62,6 +64,27 @@ export default function FaqClient() {
   const [openIndex, setOpenIndex] = useState<number | null>(0)
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
 
+  // Fonction pour gérer l'ouverture et le tracking
+  const handleToggle = (index: number) => {
+    if (openIndex === index) {
+        setOpenIndex(null)
+    } else {
+        setOpenIndex(index)
+        // 📊 TRACKING : Savoir quelle question intéresse le plus l'utilisateur
+        trackEvent('faq_question_opened', {
+            question_index: index,
+            question_title: faqData[index].question
+        })
+    }
+  }
+
+  const handleContactClick = () => {
+      // 📊 TRACKING : Savoir que quelqu'un cherche de l'aide
+      trackEvent('contact_support_click', {
+          source: 'faq_page'
+      })
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
       
@@ -81,7 +104,7 @@ export default function FaqClient() {
         {faqData.map((item, i) => (
           <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
             <button 
-              onClick={() => setOpenIndex(openIndex === i ? null : i)}
+              onClick={() => handleToggle(i)}
               className="w-full flex justify-between items-center p-5 text-left active:bg-gray-50 transition"
             >
               <span className={`text-sm font-bold pr-4 ${openIndex === i ? 'text-brand' : 'text-gray-800'}`}>
@@ -113,6 +136,7 @@ export default function FaqClient() {
             <p className="text-sm text-gray-500 mb-4">Notre équipe est là pour vous aider.</p>
             <a 
                 href={`mailto:${CONTACT_EMAIL}`}
+                onClick={handleContactClick}
                 className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center text-sm"
             >
                 <Mail size={18} /> Contacter le support

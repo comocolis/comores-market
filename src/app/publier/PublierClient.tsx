@@ -10,7 +10,7 @@ import {
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
   Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
-  MapPin, Star, AlertCircle, PenTool // Icône ajoutée pour le champ personnalisé
+  MapPin, Star, AlertCircle, PenTool 
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -21,6 +21,8 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
+// IMPORT DU TRACKING ANALYTICS
+import { trackListingCreated, trackAdsConversion } from '@/lib/analytics'
 
 // --- CONSTANTES GLOBALES ---
 const FREE_ADS_LIMIT = 3
@@ -523,18 +525,24 @@ export default function PublierClient() {
           user_id: user.id,
           images: JSON.stringify(images.map(img => img.url)),
           quality_score: check.quality_score,
-          sub_category: finalSubCategory // On utilise la valeur corrigée (Autre -> Texte)
+          sub_category: finalSubCategory 
       })
 
       if (!productError) {
-          // --- GOOGLE ADS TRACKING ---
-          if (typeof window !== 'undefined' && (window as any).gtag) {
-              (window as any).gtag('event', 'conversion', {
-                  'send_to': 'AW-16447515729/VOTRE_LABEL_ICI', // <--- REMPLACER PAR VOTRE LABEL
-                  'value': 1.0,
-                  'currency': 'KMF'
-              });
-          }
+          // --- SUCCÈS : ENVOI DES ÉVÉNEMENTS DE TRACKING ---
+          
+          // 1. GA4 : Suivi de l'événement (pour vos stats internes)
+          trackListingCreated(
+             'new_listing', // ID non dispo ici sans requête supp, on utilise un placeholder
+             formData.title,
+             CATEGORIES_LIST.find(c => c.id.toString() === formData.category_id)?.label || 'Autre',
+             parseInt(formData.price)
+          )
+
+          // 2. GOOGLE ADS : Conversion Publicitaire
+          // Remplacez 'VOTRE_LABEL_ICI' par le label de conversion fourni par Google Ads
+          trackAdsConversion('VOTRE_LABEL_ICI', 1.0)
+
 
           await supabase.from('notifications').insert({
             user_id: user.id,
@@ -567,7 +575,6 @@ export default function PublierClient() {
   const adsLimitReached = !isPro && adsCount >= FREE_ADS_LIMIT
 
   return (
-    // CORRECTION : bg-transparent pour uniformité
     <div className="min-h-screen bg-transparent font-sans pb-24">
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
         <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>

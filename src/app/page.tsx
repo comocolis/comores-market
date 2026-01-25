@@ -5,12 +5,13 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
-  MapPin, Search, Loader2, Package, X, Heart, User, ShieldCheck, Crown, SlidersHorizontal, Check, RefreshCw,
-  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Clock, ChevronDown
+  MapPin, Search, Loader2, User, ShieldCheck, Crown, SlidersHorizontal,
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Clock, ChevronDown, Heart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
+// AJOUT : Import du tracking optimisé
 import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
@@ -46,23 +47,24 @@ const CATEGORIES = [
   { id: 4, label: 'Tech', icon: Smartphone }, 
   { id: 5, label: 'Maison', icon: Sofa }, 
   { id: 6, label: 'Loisirs', icon: Ticket }, 
-  { id: 7, label: 'Miam', icon: Utensils }, 
+  { id: 7, label: 'Alimentation', icon: Utensils }, // Harmonisé avec "Alimentation" au lieu de "Miam"
   { id: 8, label: 'Services', icon: Wrench }, 
   { id: 9, label: 'Beauté', icon: Sparkles }, 
   { id: 10, label: 'Emploi', icon: Briefcase },
 ]
 
+// --- LISTE HARMONISÉE AVEC LA PAGE PUBLIER ---
 const SUB_CATEGORIES: { [key: number]: string[] } = {
-  1: ['Voitures', 'Motos', 'Pièces Détachées', 'Location', 'Camions', 'Bateaux'],
-  2: ['Vente Maison', 'Vente Terrain', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Colocation'],
-  3: ['Vêtements Homme', 'Vêtements Femme', 'Enfant & Bébé', 'Chaussures', 'Montres & Bijoux', 'Sacs & Accessoires'],
-  4: ['Téléphones', 'Ordinateurs', 'Audio & Son', 'Appareils Photo', 'Accessoires Info', 'Consoles & Jeux'],
-  5: ['Meubles', 'Décoration', 'Électroménager', 'Bricolage', 'Jardin', 'Linge de maison'],
-  6: ['Sports', 'Instruments de musique', 'Livres', 'Vélos', 'Voyages & Billets'],
-  7: ['Fruits & Légumes', 'Plats cuisinés', 'Épicerie', 'Boissons', 'Produits frais'],
-  8: ['Cours & Formations', 'Réparations', 'Déménagement', 'Événements', 'Ménage & Aide'],
-  9: ['Parfums', 'Maquillage', 'Soins Visage & Corps', 'Coiffure', 'Matériel Pro'],
-  10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim'],
+  1: ['Voitures', 'Motos & Scooters', 'Pièces Détachées', 'Location Véhicules', 'Camions & Poids Lourds', 'Bateaux & Nautisme', 'Engins BTP', 'Vélos & Trottinettes'],
+  2: ['Vente Maison', 'Vente Terrain', 'Vente Appartement', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Location Vacances', 'Terrains Agricoles', 'Colocation'],
+  3: ['Vêtements Homme', 'Vêtements Femme', 'Enfant & Bébé', 'Chaussures', 'Montres & Bijoux', 'Sacs & Accessoires', 'Mariage & Tradition', 'Lingerie', 'Sportswear'],
+  4: ['Téléphones', 'Tablettes', 'Ordinateurs', 'TV & Home Cinéma', 'Audio & Son', 'Appareils Photo', 'Accessoires Info', 'Consoles & Jeux', 'Objets Connectés'],
+  5: ['Meubles', 'Décoration', 'Électroménager', 'Bricolage', 'Jardin & Plantes', 'Linge de maison', 'Arts de la table', 'Animaux'],
+  6: ['Sports', 'Instruments de musique', 'Livres & Papeterie', 'Jeux & Jouets', 'Voyages & Billets', 'Chasse & Pêche', 'Collections'],
+  7: ['Fruits & Légumes', 'Plats cuisinés', 'Épicerie', 'Boissons', 'Produits frais', 'Épices & Vanille', 'Miel & Confitures', 'Pâtisserie'],
+  8: ['Cours & Formations', 'Réparations', 'Déménagement', 'Événements', 'Ménage & Aide', 'Transport & Logistique', 'Couture & Retouches', 'Santé & Bien-être'],
+  9: ['Parfums', 'Maquillage', 'Soins Visage & Corps', 'Coiffure', 'Matériel Pro', 'Onglerie', 'Hygiène'],
+  10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim', 'Freelance'],
 }
 
 const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion']
@@ -94,7 +96,6 @@ export default function HomePage() {
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY
-      // On fait disparaître après 200px de scroll pour éviter les petits sauts
       if (currentScrollY > lastScrollY && currentScrollY > 200) {
         setShowSubNav(false)
       } else {
@@ -110,8 +111,29 @@ export default function HomePage() {
   useEffect(() => { setSelectedSubCategory('Tout') }, [selectedCategory])
 
   const fetchProducts = useCallback(async (isInitial = true) => {
-    if (isInitial) setLoading(true)
-    else setIsFetchingMore(true)
+    if (isInitial) {
+        setLoading(true)
+        
+        // 📊 TRACKING
+        if (searchTerm.trim().length > 2) {
+            trackSearch(searchTerm)
+        }
+        
+        if (selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout' || priceMin || priceMax) {
+             const categoryLabel = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'Tout';
+             
+             trackFilterApplied({
+                island: selectedIsland,
+                category: categoryLabel,
+                sub_category: selectedSubCategory,
+                price_min: priceMin,
+                price_max: priceMax
+             })
+        }
+
+    } else {
+        setIsFetchingMore(true)
+    }
 
     const currentPage = isInitial ? 0 : page + 1
     const start = currentPage * ITEMS_PER_PAGE
@@ -150,6 +172,7 @@ export default function HomePage() {
     setIsFetchingMore(false)
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, page, products, supabase])
 
+  // DEBOUNCE
   useEffect(() => {
     const timer = setTimeout(() => fetchProducts(true), 400)
     return () => clearTimeout(timer)
@@ -159,22 +182,9 @@ export default function HomePage() {
   useEffect(() => {
     if (selectedCategory !== 0) {
       const category = CATEGORIES.find(c => c.id === selectedCategory)
-      trackCategoryView(category?.label || '', selectedCategory)
+      trackCategoryView(category?.label || 'Inconnu', selectedCategory)
     }
   }, [selectedCategory])
-
-  // Track filter application
-  useEffect(() => {
-    if (searchTerm || priceMin || priceMax || selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout') {
-      trackFilterApplied({
-        search_term: searchTerm,
-        price_min: priceMin ? parseInt(priceMin) : 0,
-        price_max: priceMax ? parseInt(priceMax) : 0,
-        island: selectedIsland,
-        sub_category: selectedSubCategory,
-      })
-    }
-  }, [searchTerm, priceMin, priceMax, selectedIsland, selectedSubCategory])
 
   useEffect(() => {
     const loadUser = async () => {
@@ -245,7 +255,6 @@ export default function HomePage() {
       </div>
 
       {/* 3. BARRE SOUS-CATEGORIES & ILES (INTELLIGENTE) */}
-      {/* On utilise transition-transform et translate-y pour la faire glisser sous la barre Categories */}
       <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-80 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-50 translate-y-0 opacity-100' : 'top-28.5 -translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
@@ -267,7 +276,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* GRID PRODUITS (DESIGN CONSERVÉ) */}
+      {/* GRID PRODUITS */}
       <div className="px-4 py-2 pb-24 mt-4">
         {loading ? (
           <SkeletonProductGrid count={12} />
@@ -283,7 +292,7 @@ export default function HomePage() {
                 const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
                 
                 return (
-                  <Link key={product.id} href={`/annonce/${product.id}`} 
+                  <Link key={product.id} href={`/annonce/${product.id}`} 
                         className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                           isBoosted 
                           ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-amber-50' 
