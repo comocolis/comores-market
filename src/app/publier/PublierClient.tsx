@@ -254,10 +254,10 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
     
+    // Only keep dynamic transform/transition in style (required by dnd-kit library)
     const style = { 
         transform: CSS.Transform.toString(transform), 
         transition,
-        opacity: isDragging ? 0.5 : 1,
     }
   
     return (
@@ -266,7 +266,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
         style={style} 
         {...attributes} 
         {...listeners} 
-        className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm"
+        className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
       >
         <Image src={url} alt="Product photo" fill className="object-cover pointer-events-none" />
         

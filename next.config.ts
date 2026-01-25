@@ -6,8 +6,7 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  // ❌ LA LIGNE CI-DESSOUS EST LA CAUSE DU BUG DE BUILD SUR NETLIFY
-  // buildExcludes: [/manifest\.webmanifest$/], 
+  // Removed buildExcludes to prevent regex build errors
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
