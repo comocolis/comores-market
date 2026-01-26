@@ -251,10 +251,11 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
     
+    // NOTE: 'transform' and 'transition' MUST remain inline for dnd-kit to function correctly.
+    // 'opacity' has been moved to className to resolve inline-style linting error partially.
     const style = { 
         transform: CSS.Transform.toString(transform), 
         transition,
-        opacity: isDragging ? 0.5 : 1,
     }
   
     return (
@@ -263,9 +264,9 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
         style={style} 
         {...attributes} 
         {...listeners} 
-        className="relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm"
+        className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
       >
-        <Image src={url} alt="" fill className="object-cover pointer-events-none" />
+        <Image src={url} alt="Aperçu de l'image" fill className="object-cover pointer-events-none" />
         
         <div className="absolute bottom-0 w-full bg-black/30 h-5 flex items-center justify-center pointer-events-none">
             <GripHorizontal className="text-white/80" size={12} />
@@ -273,6 +274,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
 
         <button 
             type="button" 
+            aria-label="Supprimer l'image"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => { e.stopPropagation(); onRemove() }} 
             className="absolute top-1 right-1 bg-black/50 text-white p-1 rounded-full z-10 hover:bg-red-500 transition active:scale-90"
@@ -597,7 +599,7 @@ export default function ModifierPage() {
     // BG TRANSPARENT
     <div className="min-h-screen bg-transparent font-sans pb-24">
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
+        <button aria-label="Retour" onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
         <h1 className="font-extrabold text-xl text-gray-900">Modifier</h1>
         <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
             {isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}
@@ -624,7 +626,7 @@ export default function ModifierPage() {
                         </div>
                     </SortableContext>
                 </DndContext>
-                <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
+                <input aria-label="Ajouter des photos" type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
             </div>
 
             {/* 2. INFOS PRINCIPALES */}
@@ -634,6 +636,7 @@ export default function ModifierPage() {
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
                         <Type size={18} className="text-gray-500" />
                         <input 
+                            aria-label="Titre de l'annonce"
                             type="text" 
                             className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             value={formData.title} 
@@ -647,6 +650,7 @@ export default function ModifierPage() {
                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
                         <span className="text-gray-500 font-black text-xs px-2">KMF</span>
                         <input 
+                            aria-label="Prix"
                             type="number" 
                             className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
                             value={formData.price} 
@@ -659,6 +663,7 @@ export default function ModifierPage() {
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Catégorie</label>
                         <select 
+                            aria-label="Catégorie"
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.category_id} 
                             onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
@@ -669,6 +674,7 @@ export default function ModifierPage() {
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Sous-catégorie</label>
                         <select 
+                            aria-label="Sous-catégorie"
                             className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
                             value={formData.sub_category} 
                             onChange={e => setFormData({ ...formData, sub_category: e.target.value })}
@@ -687,6 +693,7 @@ export default function ModifierPage() {
                         <div className="flex items-center bg-white rounded-xl px-3 border-2 border-brand/20 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10 transition">
                             <PenTool size={18} className="text-brand mr-2" />
                             <input 
+                                aria-label="Précisez la sous-catégorie"
                                 type="text" 
                                 className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-500" 
                                 placeholder="Ex: Drone, Tondeuse..." 
@@ -709,6 +716,7 @@ export default function ModifierPage() {
                                         <field.icon size={16} className="text-gray-500 mr-2 shrink-0" />
                                         {field.type === 'select' ? (
                                             <select 
+                                                aria-label={field.label}
                                                 className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900"
                                                 value={specs[field.key] || ''}
                                                 onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
@@ -718,6 +726,7 @@ export default function ModifierPage() {
                                             </select>
                                         ) : (
                                             <input 
+                                                aria-label={field.label}
                                                 type={field.type} 
                                                 className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900 placeholder:text-gray-500" 
                                                 placeholder={field.placeholder}
@@ -739,6 +748,7 @@ export default function ModifierPage() {
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Île</label>
                         <select 
+                            aria-label="Île"
                             className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200" 
                             value={formData.location_island} 
                             onChange={e => setFormData({...formData, location_island: e.target.value})}
@@ -752,6 +762,7 @@ export default function ModifierPage() {
                     <div>
                         <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Ville</label>
                         <input 
+                            aria-label="Ville"
                             type="text" 
                             className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200 placeholder:text-gray-500" 
                             placeholder="Moroni" 
@@ -774,6 +785,7 @@ export default function ModifierPage() {
                     </div>
                 </div>
                 <textarea 
+                    aria-label="Description"
                     className="w-full bg-gray-100 p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none text-gray-900 placeholder:text-gray-500" 
                     placeholder="Décrivez votre produit..." 
                     value={formData.description} 
@@ -784,7 +796,7 @@ export default function ModifierPage() {
             <button type="submit" disabled={loading || isRephrasing} className="w-full bg-brand text-white font-bold py-5 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
             {loading ? <Loader2 className="animate-spin" /> : <><Save size={18} /> Mettre à jour</>}
             </button>
-        </form>
+      </form>
     </div>
   )
 }

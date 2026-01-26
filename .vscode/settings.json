@@ -28,9 +28,13 @@
   "editor.quickSuggestions": {
     "strings": true
   },
+  
+  /* --- CONFIGURATION ANTI-ERREURS TAILWIND V4 --- */
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,
   "css.lint.unknownAtRules": "ignore",
-  "scss.lint.unknownAtRules": "ignore"
+  "scss.lint.unknownAtRules": "ignore",
+  "css.lint.unknownProperties": "ignore",
+  "css.lint.validProperties": []
 }

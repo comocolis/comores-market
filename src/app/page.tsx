@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   MapPin, Search, Loader2, User, ShieldCheck, Crown, SlidersHorizontal,
-  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Clock, ChevronDown, Heart
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, ChevronDown, Heart
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
@@ -16,6 +16,8 @@ import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 import ProductSuggestions from '@/components/ProductSuggestions'
+import FilterModal from '@/components/FilterModal' 
+import BottomNav from '@/components/BottomNav'     
 
 // --- TYPE DEFINITIONS ---
 interface Product {
@@ -220,7 +222,7 @@ export default function HomePage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* 1. HEADER FIXE */}
-      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-100 shadow-md">
+      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-50 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="font-extrabold text-2xl tracking-tight">
                 <span className="text-white">Comores</span>
@@ -228,20 +230,28 @@ export default function HomePage() {
             </h1>
             <Link 
               href={userId ? `/profil/${userId}` : "/auth"} 
-              className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10"
+              className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/30 transition"
               aria-label="Mon Profil"
+              title="Mon Profil"
             >
                 <User size={18} className="text-white" />
             </Link>
         </div>
         <div className="flex gap-2">
             <div className="relative flex-1">
-                <input type="text" placeholder="Que cherchez-vous ?" className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-500" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} />
+                <input 
+                    type="text" 
+                    placeholder="Que cherchez-vous ?" 
+                    className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-500 border border-transparent focus:border-mustard transition-all" 
+                    value={searchTerm} 
+                    onChange={e => setSearchTerm(e.target.value)} 
+                />
                 <Search className="absolute left-4 top-3.5 text-gray-500" size={18} />
             </div>
             <button 
               onClick={() => setShowFilters(true)} 
               aria-label="Ouvrir les filtres"
+              title="Filtres"
               className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative hover:shadow-md active:scale-95 ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard shadow-md shadow-mustard/20' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'}`}
             >
                 <SlidersHorizontal size={20} />
@@ -250,7 +260,7 @@ export default function HomePage() {
       </div>
 
       {/* 2. BARRE CATEGORIES FIXE */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-28.5 z-90 shadow-sm">
+      <div className="bg-white border-b border-gray-100 py-3 sticky top-27 z-40 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
                 <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} aria-label={`Filtrer par ${cat.label}`} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
@@ -262,7 +272,7 @@ export default function HomePage() {
       </div>
 
       {/* 3. BARRE SOUS-CATEGORIES & ILES (INTELLIGENTE) */}
-      <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-80 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-50 translate-y-0 opacity-100' : 'top-28.5 -translate-y-full opacity-0 pointer-events-none'}`}>
+      <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-30 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-44.5 translate-y-0 opacity-100' : 'top-27 -translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
@@ -292,7 +302,7 @@ export default function HomePage() {
         ) : (
           <>
             <div className="grid grid-cols-2 gap-3">
-              {products.map((product, index) => { // NOTE: Récupération de l'index ici
+              {products.map((product, index) => { 
                 const img = getFirstProductImage(product.images)
                 const isFav = favorites.has(product.id)
                 const isPro = product.is_pro
@@ -305,7 +315,7 @@ export default function HomePage() {
                           ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-amber-50' 
                           : isPro 
                             ? 'bg-mustard/5 border-2 border-mustard shadow-md shadow-mustard/20 ring-2 ring-mustard/10' 
-                            : 'bg-white shadow-sm border border-gray-100'
+                            : 'bg-white shadow-sm border border-gray-200'
                         }`}>
                     
                     <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
@@ -318,7 +328,6 @@ export default function HomePage() {
                             className="object-cover transition duration-500 group-hover:scale-110" 
                             placeholder="blur" 
                             blurDataURL={BLUR_PLACEHOLDERS.product}
-                            // 🚀 OPTIMISATION LCP : Priorise les 4 premières images
                             priority={index < 4} 
                         />
                       )}
@@ -338,8 +347,9 @@ export default function HomePage() {
 
                       <button 
                         onClick={(e) => toggleFavorite(e, product.id)} 
-                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} // ♿ Accessibilité
-                        className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600"
+                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} 
+                        title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+                        className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600 hover:text-red-500 transition"
                       >
                         <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
                       </button>
@@ -366,7 +376,7 @@ export default function HomePage() {
               })}
             </div>
 
-            {/* SUGGESTIONS INTELLIGENTES - Affichées après les premiers produits */}
+            {/* SUGGESTIONS INTELLIGENTES */}
             {!loading && products.length >= 12 && page === 0 && (
               <ProductSuggestions 
                 userId={userId} 
@@ -382,6 +392,7 @@ export default function HomePage() {
                     onClick={() => fetchProducts(false)} 
                     disabled={isFetchingMore} 
                     aria-label="Charger plus d'annonces"
+                    title="Voir plus"
                     className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-3 hover:bg-gray-50"
                 >
                   {isFetchingMore ? <Loader2 size={16} className="animate-spin text-brand" /> : <>Voir plus d'annonces <ChevronDown size={14} /></>}
@@ -391,6 +402,20 @@ export default function HomePage() {
           </>
         )}
       </div>
+
+      {/* ✅ AJOUT MODALE FILTRE */}
+      {showFilters && (
+        <FilterModal 
+          onClose={() => setShowFilters(false)}
+          priceMin={priceMin}
+          setPriceMin={setPriceMin}
+          priceMax={priceMax}
+          setPriceMax={setPriceMax}
+        />
+      )}
+
+      {/* ✅ AJOUT BOTTOM NAV */}
+      <BottomNav />
     </div>
   )
 }
