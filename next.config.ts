@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 // Configuration PWA (Progressive Web App)
+// eslint-disable-next-line @typescript-eslint/no-require-imports
 const withPWA = require('next-pwa')({
   dest: 'public',
   register: true,
@@ -40,7 +41,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   reactStrictMode: true,
   
@@ -99,7 +99,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Security Headers
+  // Security Headers (CORRIGÉS POUR ANALYTICS & SUPABASE)
   async headers() {
     return [
       {
@@ -117,10 +117,13 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https: http:",
+              // img-src doit inclure les domaines externes utilisés
+              "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com",
-              "frame-src 'self' https://www.google.com",
+              // connect-src doit inclure ipapi.co et google tag manager pour éviter les erreurs de fetch
+              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://ipapi.co",
+              // frame-src nécessaire pour certains tags Google
+              "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
