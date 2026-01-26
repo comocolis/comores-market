@@ -9,15 +9,19 @@ export default function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_
   const searchParams = useSearchParams()
 
   useEffect(() => {
-    if (pathname && GA_MEASUREMENT_ID) {
-      // Envoi manuel de la page vue lors du changement de route
-      if (typeof window !== 'undefined' && (window as any).gtag) {
-        (window as any).gtag('config', GA_MEASUREMENT_ID, {
-          page_path: pathname,
-        })
-      }
+    if (!GA_MEASUREMENT_ID) return;
+
+    const url = pathname + searchParams.toString()
+
+    // Envoi manuel de la page vue lors du changement de route (Navigation SPA)
+    if (typeof window !== 'undefined' && (window as any).gtag) {
+      (window as any).gtag('config', GA_MEASUREMENT_ID, {
+        page_path: url,
+      })
     }
   }, [pathname, searchParams, GA_MEASUREMENT_ID])
+
+  if (!GA_MEASUREMENT_ID) return null;
 
   return (
     <>
@@ -34,15 +38,15 @@ export default function GoogleAnalytics({ GA_MEASUREMENT_ID }: { GA_MEASUREMENT_
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
 
-            // 1. REFUS PAR DÉFAUT (Respect RGPD)
-            gtag('consent', 'default', {
-              'analytics_storage': 'denied',
-              'ad_storage': 'denied'
-            });
+            // J'ai supprimé le bloc 'consent' 'denied' pour activer le suivi direct.
+            // Si vous voulez le RGPD strict, il faut réactiver le bloc et configurer le CookieBanner.
 
             gtag('config', '${GA_MEASUREMENT_ID}', {
               page_path: window.location.pathname,
             });
+            
+            // Configuration Google Ads (Optionnel, à garder si vous faites de la pub)
+            gtag('config', 'AW-16447515729'); 
           `,
         }}
       />
