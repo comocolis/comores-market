@@ -60,8 +60,9 @@ export const viewport: Viewport = {
   themeColor: "#F8FAFC",
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
-  userScalable: true,
+  // ✅ CORRECTION PWA : Empêche le zoom auto sur les inputs (Sensation App Native)
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
