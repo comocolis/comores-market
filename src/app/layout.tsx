@@ -5,7 +5,10 @@ import BottomNav from '@/components/BottomNav';
 import OfflineScreen from '@/components/OfflineScreen';
 import { Suspense, lazy } from "react"; 
 import Script from 'next/script';
-import GoogleAnalytics from '@/components/GoogleAnalytics';
+// ✅ OPTIMISATION 1 : Import de la police optimisée
+import { Inter } from "next/font/google";
+// ✅ OPTIMISATION 2 : Import de la librairie tierce optimisée
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 // Lazy load heavy components
 const InstallBanner = lazy(() => import('@/components/InstallBanner'));
@@ -13,6 +16,13 @@ const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
 const SplashScreen = lazy(() => import('@/components/SplashScreen'));
 const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
 const CookieBanner = lazy(() => import('@/components/CookieBanner'));
+
+// ✅ CONFIGURATION POLICE
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
@@ -58,14 +68,15 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body className="font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto">
+      {/* ✅ APPLICATION DE LA POLICE SUR LE BODY */}
+      <body className={`${inter.className} font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto`}>
         
-        {/* CORRECTION : Ajout de la prop GA_MEASUREMENT_ID requise */}
-        <Suspense fallback={null}>
-          <GoogleAnalytics GA_MEASUREMENT_ID={process.env.NEXT_PUBLIC_GA_ID || ""} />
-        </Suspense>
+        {/* ✅ GOOGLE ANALYTICS OPTIMISÉ */}
+        {process.env.NEXT_PUBLIC_GA_ID && (
+           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
 
-        {/* GOOGLE ADS - Chargement optimisé */}
+        {/* GOOGLE ADS - Chargement manuel conservé pour le tracking spécifique (AW) */}
         <Script src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" strategy="afterInteractive" />
         <Script id="google-ads-config" strategy="afterInteractive">
           {`

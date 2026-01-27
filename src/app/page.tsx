@@ -16,8 +16,14 @@ import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 import ProductSuggestions from '@/components/ProductSuggestions'
-import FilterModal from '@/components/FilterModal' 
-import BottomNav from '@/components/BottomNav'     
+import dynamic from 'next/dynamic'
+
+// ✅ OPTIMISATION : Lazy Loading de la modale Filtres
+// Elle ne sera téléchargée que si l'utilisateur clique sur le bouton "Filtres"
+const FilterModal = dynamic(() => import('@/components/FilterModal'), {
+  loading: () => null,
+  ssr: false 
+})
 
 // --- TYPE DEFINITIONS ---
 interface Product {
@@ -39,7 +45,6 @@ interface Favorite {
 }
 
 // --- FONCTION UTILITAIRE : MÉLANGE ALÉATOIRE (Fisher-Yates) ---
-// Permet de varier les produits affichés en premier sur l'accueil
 function shuffleArray<T>(array: T[]): T[] {
   const newArray = [...array];
   for (let i = newArray.length - 1; i > 0; i--) {
@@ -125,24 +130,11 @@ export default function HomePage() {
   const fetchProducts = useCallback(async (isInitial = true) => {
     if (isInitial) {
         setLoading(true)
-        
-        // 📊 TRACKING
-        if (searchTerm.trim().length > 2) {
-            trackSearch(searchTerm)
-        }
-        
+        if (searchTerm.trim().length > 2) trackSearch(searchTerm)
         if (selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout' || priceMin || priceMax) {
              const categoryLabel = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'Tout';
-             
-             trackFilterApplied({
-                island: selectedIsland,
-                category: categoryLabel,
-                sub_category: selectedSubCategory,
-                price_min: priceMin,
-                price_max: priceMax
-             })
+             trackFilterApplied({ island: selectedIsland, category: categoryLabel, sub_category: selectedSubCategory, price_min: priceMin, price_max: priceMax })
         }
-
     } else {
         setIsFetchingMore(true)
     }
@@ -178,17 +170,10 @@ export default function HomePage() {
     }
 
     if (data) {
-      // 🎲 LOGIQUE D'ALÉATOIRE INTELLIGENT
-      // On mélange les résultats UNIQUEMENT si :
-      // 1. C'est le chargement initial (page 0)
-      // 2. L'utilisateur n'a pas fait de recherche par mot-clé
-      // 3. L'utilisateur est sur la catégorie "Tout" (0)
-      // Cela évite de perturber la pertinence des recherches précises.
       let processedData = data;
       if (isInitial && !searchTerm && selectedCategory === 0) {
          processedData = shuffleArray(data);
       }
-
       setProducts(isInitial ? processedData : [...products, ...processedData])
       setPage(currentPage)
       setHasMore(data.length === ITEMS_PER_PAGE)
@@ -256,7 +241,6 @@ export default function HomePage() {
               href={userId ? `/profil/${userId}` : "/auth"} 
               className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/30 transition"
               aria-label="Mon Profil"
-              title="Mon Profil"
             >
                 <User size={18} className="text-white" />
             </Link>
@@ -274,8 +258,7 @@ export default function HomePage() {
             </div>
             <button 
               onClick={() => setShowFilters(true)} 
-              aria-label="Ouvrir les filtres"
-              title="Filtres"
+              aria-label="Filtres"
               className={`w-12 h-12 rounded-2xl flex items-center justify-center transition border relative hover:shadow-md active:scale-95 ${(priceMin || priceMax) ? 'bg-mustard text-gray-900 border-mustard shadow-md shadow-mustard/20' : 'bg-white/20 text-white border-white/10 hover:bg-white/30'}`}
             >
                 <SlidersHorizontal size={20} />
@@ -287,7 +270,7 @@ export default function HomePage() {
       <div className="bg-white border-b border-gray-100 py-3 sticky top-27 z-40 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} aria-label={`Filtrer par ${cat.label}`} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
+                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
                     <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
@@ -300,7 +283,7 @@ export default function HomePage() {
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
-              <button key={ile} onClick={() => setSelectedIsland(ile)} aria-label={`Filtrer par ${ile}`} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+              <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
                 {ile}
               </button>
             ))}
@@ -308,9 +291,9 @@ export default function HomePage() {
           
           {currentSubCats.length > 0 && (
             <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 pt-3">
-               <button onClick={() => setSelectedSubCategory('Tout')} aria-label="Afficher toutes les sous-catégories" className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
+               <button onClick={() => setSelectedSubCategory('Tout')} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
                {currentSubCats.map(sub => (
-                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} aria-label={`Filtrer par ${sub}`} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
+                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
                ))}
             </div>
           )}
@@ -348,7 +331,8 @@ export default function HomePage() {
                             src={img} 
                             alt={product.title} 
                             fill 
-                            sizes="50vw" 
+                            // ✅ OPTIMISATION : Tailles adaptatives pour mobile
+                            sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                             className="object-cover transition duration-500 group-hover:scale-110" 
                             placeholder="blur" 
                             blurDataURL={BLUR_PLACEHOLDERS.product}
@@ -371,9 +355,8 @@ export default function HomePage() {
 
                       <button 
                         onClick={(e) => toggleFavorite(e, product.id)} 
-                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} 
-                        title={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
                         className="absolute top-2 right-2 p-2 rounded-full bg-white/90 backdrop-blur-md shadow-sm z-10 text-gray-600 hover:text-red-500 transition"
+                        aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
                       >
                         <Heart size={16} className={isFav ? "fill-red-500 text-red-500" : ""} />
                       </button>
@@ -415,8 +398,6 @@ export default function HomePage() {
                 <button 
                     onClick={() => fetchProducts(false)} 
                     disabled={isFetchingMore} 
-                    aria-label="Charger plus d'annonces"
-                    title="Voir plus"
                     className="bg-white border border-gray-100 px-8 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest text-gray-600 shadow-sm hover:shadow-md active:scale-95 transition-all flex items-center gap-3 hover:bg-gray-50"
                 >
                   {isFetchingMore ? <Loader2 size={16} className="animate-spin text-brand" /> : <>Voir plus d'annonces <ChevronDown size={14} /></>}
@@ -427,7 +408,7 @@ export default function HomePage() {
         )}
       </div>
 
-      {/* ✅ AJOUT MODALE FILTRE */}
+      {/* ✅ MODALE FILTRE CHARGÉE À LA DEMANDE */}
       {showFilters && (
         <FilterModal 
           onClose={() => setShowFilters(false)}
@@ -437,9 +418,6 @@ export default function HomePage() {
           setPriceMax={setPriceMax}
         />
       )}
-
-      {/* ✅ AJOUT BOTTOM NAV */}
-      <BottomNav />
     </div>
   )
 }
