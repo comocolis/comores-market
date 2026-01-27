@@ -38,6 +38,17 @@ interface Favorite {
   product_id: string
 }
 
+// --- FONCTION UTILITAIRE : MÉLANGE ALÉATOIRE (Fisher-Yates) ---
+// Permet de varier les produits affichés en premier sur l'accueil
+function shuffleArray<T>(array: T[]): T[] {
+  const newArray = [...array];
+  for (let i = newArray.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+  }
+  return newArray;
+}
+
 // --- CONSTANTES ---
 const ITEMS_PER_PAGE = 12
 
@@ -158,14 +169,27 @@ export default function HomePage() {
     if (priceMax) query = query.lte('price', parseInt(priceMax))
 
     const { data, error } = await query
+    
     if (error) {
       toast.error('Erreur lors du chargement des produits')
       setLoading(false)
       setIsFetchingMore(false)
       return
     }
+
     if (data) {
-      setProducts(isInitial ? data : [...products, ...data])
+      // 🎲 LOGIQUE D'ALÉATOIRE INTELLIGENT
+      // On mélange les résultats UNIQUEMENT si :
+      // 1. C'est le chargement initial (page 0)
+      // 2. L'utilisateur n'a pas fait de recherche par mot-clé
+      // 3. L'utilisateur est sur la catégorie "Tout" (0)
+      // Cela évite de perturber la pertinence des recherches précises.
+      let processedData = data;
+      if (isInitial && !searchTerm && selectedCategory === 0) {
+         processedData = shuffleArray(data);
+      }
+
+      setProducts(isInitial ? processedData : [...products, ...processedData])
       setPage(currentPage)
       setHasMore(data.length === ITEMS_PER_PAGE)
     }

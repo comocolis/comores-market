@@ -4,17 +4,41 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Send, X, Loader2, Bot, GripVertical } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
+import { usePathname, useParams } from 'next/navigation'
 
 export default function EliteAssistant() {
   const [isVisible, setIsVisible] = useState(true)
   const [isOpen, setIsOpen] = useState(false)
   const [message, setMessage] = useState('')
-  // On type explicitement l'historique pour éviter les erreurs "undefined"
+  // On garde la structure stricte 'parts' pour la compatibilité Gemini
   const [history, setHistory] = useState<{ role: 'user' | 'model'; parts: { text: string }[] }[]>([])
   const [loading, setLoading] = useState(false)
   
+  // Contexte de la page
+  const [contextData, setContextData] = useState<string>('')
+  
   const scrollRef = useRef<HTMLDivElement>(null)
   const constraintsRef = useRef<HTMLDivElement>(null)
+  
+  const pathname = usePathname()
+  const params = useParams()
+
+  // 1. DÉTECTION DU CONTEXTE (Inchangé)
+  useEffect(() => {
+    let currentContext = ""
+    
+    if (pathname === '/') {
+        currentContext = "(Contexte: L'utilisateur est sur la page d'accueil)."
+    } else if (pathname?.startsWith('/annonce/') && params?.id) {
+        currentContext = `(Contexte: L'utilisateur consulte l'annonce ID ${params.id}).`
+    } else if (pathname === '/publier') {
+        currentContext = "(Contexte: L'utilisateur est sur le formulaire de publication)."
+    } else if (pathname === '/compte') {
+        currentContext = "(Contexte: L'utilisateur est sur son profil)."
+    }
+
+    setContextData(currentContext)
+  }, [pathname, params])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -22,26 +46,17 @@ export default function EliteAssistant() {
     }
   }, [history, loading, isOpen])
 
-  // --- FONCTION DE NETTOYAGE (VERSION SIMPLE) ---
+  // Fonction de nettoyage des balises parasites
   const cleanResponse = (text: string): string => {
     if (!text) return "";
-    
     let cleaned = text;
-    
-    // On utilise new RegExp avec des chaînes de caractères pour éviter les bugs de syntaxe
-    // Cela enlève (Supabase [cite...]) et
     try {
-        const regexSupabase = new RegExp("\\(Supabase.*?\\)", "g");
-        const regexSource = new RegExp("\\(Source.*?\\)", "g");
-        const regexCite = new RegExp("\\", "g");
-
-        cleaned = cleaned.replace(regexSupabase, "");
-        cleaned = cleaned.replace(regexSource, "");
-        cleaned = cleaned.replace(regexCite, "");
+        cleaned = cleaned.replace(/\(Supabase.*?\)/g, "");
+        cleaned = cleaned.replace(/\(Source.*?\)/g, "");
+        cleaned = cleaned.replace(/\[cite.*?\]/g, "");
     } catch (e) {
       return text;
     }
-    
     return cleaned.trim();
   }
 
@@ -52,36 +67,54 @@ export default function EliteAssistant() {
     const userMessage = message
     setMessage('')
     
-    // Mise à jour de l'interface locale
+    // 1. Affichage UX (On n'affiche QUE le message de l'utilisateur, pas le contexte caché)
     const newHistoryEntry = { role: 'user' as const, parts: [{ text: userMessage }] };
     const newHistory = [...history, newHistoryEntry];
     setHistory(newHistory)
     setLoading(true)
 
     try {
-      // Préparation propre de l'historique pour l'API
+      // 2. Préparation pour l'API (Format Gemini)
       const apiHistory = history.map((h) => ({
           role: h.role,
           parts: [{ text: h.parts[0].text || "" }]
       }));
 
+      // ASTUCE : On injecte le contexte AVANT le message pour l'aider, sans casser l'API
+      const finalMessageToSend = contextData 
+        ? `${contextData} Question: ${userMessage}`
+        : userMessage;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, history: apiHistory }),
+        // On revient au format d'origine : 'message' et 'history'
+        body: JSON.stringify({ 
+            message: finalMessageToSend, 
+            history: apiHistory 
+        }),
       })
+
+      if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Erreur API Chat:", response.status, errorData);
+          throw new Error("Erreur serveur");
+      }
 
       const data = await response.json()
       
+      // 3. Traitement de la réponse
       if (data && data.text) {
-        // Utilisation sécurisée de normalize
         const rawText = data.text.toString(); 
         const cleanText = cleanResponse(rawText).normalize("NFC");
-        
         setHistory((prev) => [...prev, { role: 'model', parts: [{ text: cleanText }] }])
+      } else {
+        throw new Error("Format de réponse invalide");
       }
+
     } catch (error) {
-      setHistory((prev) => [...prev, { role: 'model', parts: [{ text: "Problème de connexion. Veuillez réessayer." }] }])
+      console.error("Erreur Catch:", error);
+      setHistory((prev) => [...prev, { role: 'model', parts: [{ text: "Désolé, je rencontre un problème de connexion. (Vérifiez la console)" }] }])
     } finally {
       setLoading(false)
     }
@@ -125,7 +158,7 @@ export default function EliteAssistant() {
                     </div>
                     <button 
                       onClick={() => setIsOpen(false)}
-                      aria-label="Fermer l'assistant"
+                      aria-label="Fermer"
                       className="text-white/60 hover:text-white transition bg-white/10 p-2 rounded-full active:scale-90"
                     >
                       <X size={18} />
@@ -143,6 +176,12 @@ export default function EliteAssistant() {
                         <p className="text-gray-500 text-xs font-medium px-4 leading-relaxed">
                           Je suis l'IA de Comores Market. Je peux vous aider à trouver un produit ou estimer un prix.
                         </p>
+                        {/* DEBUG : Pour voir si le contexte est bien détecté */}
+                        {contextData && (
+                            <p className="text-[8px] text-amber-400 mt-2 opacity-50 uppercase font-mono">
+                                {pathname === '/' ? 'Mode Accueil' : 'Mode Contexte'}
+                            </p>
+                        )}
                       </div>
                     )}
                     
@@ -180,12 +219,12 @@ export default function EliteAssistant() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Votre question..."
-                        className="w-full bg-gray-50 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-gray-500"
+                        className="w-full bg-gray-50 rounded-2xl py-3.5 pl-4 pr-12 text-xs font-bold shadow-inner focus:ring-2 focus:ring-amber-500/20 outline-none transition-all placeholder:text-gray-500 text-gray-900"
                       />
                       <button
                         type="submit"
                         disabled={!message.trim() || loading}
-                        aria-label="Envoyer le message"
+                        aria-label="Envoyer"
                         className="absolute right-1.5 top-1.5 bg-amber-500 text-white p-2 rounded-xl shadow-lg shadow-amber-500/20 active:scale-90 transition-all disabled:opacity-30 disabled:shadow-none"
                       >
                         <Send size={16} />
@@ -208,7 +247,7 @@ export default function EliteAssistant() {
                     e.stopPropagation()
                     setIsVisible(false)
                   }}
-                  aria-label="Fermer l'assistant"
+                  aria-label="Fermer"
                   className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-500 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
                 >
                   <X size={12} strokeWidth={3} />

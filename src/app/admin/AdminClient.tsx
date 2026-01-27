@@ -5,7 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
-  Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, CheckCircle, XCircle, Shield, ShieldAlert
+  Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, CheckCircle, XCircle, Shield, ShieldAlert,
+  Send, MessageSquare
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
@@ -37,6 +38,11 @@ function AdminContent() {
   const [reports, setReports] = useState<any[]>([])
   const [reviewsList, setReviewsList] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState('')
+
+  // NOUVEAU : Etats pour la messagerie admin
+  const [targetId, setTargetId] = useState('')
+  const [adminMsg, setAdminMsg] = useState('')
+  const [sendingMsg, setSendingMsg] = useState(false)
 
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean; title: string; message: string; action: () => void; isDanger: boolean;
@@ -109,6 +115,29 @@ function AdminContent() {
   const executeAction = async (actionFn: () => Promise<void>) => { await actionFn(); closeConfirm() }
 
   // --- ACTIONS ---
+
+  const sendAdminMessage = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if(!targetId || !adminMsg) return toast.error("ID utilisateur et message requis")
+    
+    setSendingMsg(true)
+    const { error } = await supabase.from('messages').insert({
+        content: `[ADMIN] ${adminMsg}`,
+        sender_id: currentUserId,
+        receiver_id: targetId,
+        is_read: false
+    })
+
+    if(error) {
+        toast.error("Erreur d'envoi")
+        console.error(error)
+    } else {
+        toast.success("Message officiel envoyé !")
+        setAdminMsg('')
+        setTargetId('')
+    }
+    setSendingMsg(false)
+  }
 
   const toggleAdminRole = async (targetId: string, currentRole: string) => {
       if (currentUserRole !== 'super_admin') {
@@ -238,7 +267,6 @@ function AdminContent() {
     <div className="min-h-screen bg-gray-100 font-sans pb-20">
       {/* MODAL DE CONFIRMATION */}
       {confirmModal.isOpen && (
-        // CORRECTION: z-50 au lieu de z-[110]
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
             <div className={`bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4 ${confirmModal.isDanger ? 'border-t-red-500' : 'border-t-blue-500'}`} onClick={e => e.stopPropagation()}>
                 <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
@@ -279,19 +307,49 @@ function AdminContent() {
       <div className="p-4">
         {/* DASHBOARD - CORRECTION CSS : Suppression des bg-white inutiles */}
         {activeTab === 'dashboard' && (
-            <div className="grid grid-cols-2 gap-4 animate-in slide-in-from-bottom-2">
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
-                <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
-                <div className="p-5 rounded-2xl shadow-sm border border-amber-200 bg-amber-50/30"><div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 mb-3"><Crown size={20} /></div><p className="text-2xl font-extrabold text-amber-600">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes Élite</p></div>
-                {currentUserRole === 'super_admin' ? (
-                    <div className="p-5 rounded-2xl shadow-sm border border-blue-200 bg-blue-50/30"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Shield size={20} /></div><p className="text-2xl font-extrabold text-blue-600">{stats.admins}</p><p className="text-xs text-gray-500 font-bold uppercase">Admins</p></div>
-                ) : (
-                    <div className="p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
-                )}
+            <div className="space-y-6 animate-in slide-in-from-bottom-2">
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
+                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
+                    <div className="p-5 rounded-2xl shadow-sm border border-amber-200 bg-amber-50/30"><div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 mb-3"><Crown size={20} /></div><p className="text-2xl font-extrabold text-amber-600">{stats.pro}</p><p className="text-xs text-gray-500 font-bold uppercase">Comptes Élite</p></div>
+                    {currentUserRole === 'super_admin' ? (
+                        <div className="p-5 rounded-2xl shadow-sm border border-blue-200 bg-blue-50/30"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Shield size={20} /></div><p className="text-2xl font-extrabold text-blue-600">{stats.admins}</p><p className="text-xs text-gray-500 font-bold uppercase">Admins</p></div>
+                    ) : (
+                        <div className="p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
+                    )}
+                </div>
+
+                {/* --- NOUVEAU BLOC MESSAGERIE --- */}
+                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2 mb-4">
+                        <MessageSquare className="text-brand" size={16} /> Envoyer un Message
+                    </h2>
+                    <form onSubmit={sendAdminMessage} className="space-y-3">
+                        <div className="flex gap-2">
+                            <input 
+                                type="text" 
+                                placeholder="ID Utilisateur (UUID)..." 
+                                value={targetId}
+                                onChange={e => setTargetId(e.target.value)}
+                                className="w-1/3 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-mono outline-none"
+                            />
+                            <input 
+                                type="text" 
+                                placeholder="Message système..." 
+                                value={adminMsg}
+                                onChange={e => setAdminMsg(e.target.value)}
+                                className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none"
+                            />
+                        </div>
+                        <button disabled={sendingMsg} type="submit" className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition">
+                            {sendingMsg ? <Loader2 size={16} className="animate-spin"/> : <><Send size={16}/> Envoyer</>}
+                        </button>
+                    </form>
+                </div>
             </div>
         )}
 
-        {/* UTILISATEURS - CORRECTION CSS : Logique de classe unique */}
+        {/* UTILISATEURS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -316,7 +374,10 @@ function AdminContent() {
                                             {isTargetSuper && <ShieldCheck size={12} className="text-red-600" />}
                                             {isTargetAdmin && !isTargetSuper && <Shield size={12} className="text-blue-500" />}
                                         </p>
-                                        <p className="text-[10px] text-gray-500 font-bold">{u.email}</p>
+                                        <p className="text-[10px] text-gray-500 font-bold flex items-center gap-2">
+                                            {u.email}
+                                            <button onClick={() => {setTargetId(u.id); setActiveTab('dashboard'); toast.info("ID copié vers messagerie")}} className="text-blue-500 hover:underline cursor-pointer" title="Envoyer un message">Message</button>
+                                        </p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -370,7 +431,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* PRODUITS - CORRECTION CSS */}
+        {/* PRODUITS */}
         {activeTab === 'products' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {products.map(p => {
@@ -397,7 +458,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* SIGNALEMENTS - CORRECTION CSS */}
+        {/* SIGNALEMENTS */}
         {activeTab === 'reports' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reports.map(r => (

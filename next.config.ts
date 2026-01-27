@@ -7,7 +7,6 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
-  // Removed buildExcludes to prevent regex build errors
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
@@ -25,6 +24,9 @@ const withPWA = require('next-pwa')({
     },
   ],
 });
+
+// Détection du mode développement
+const isDev = process.env.NODE_ENV === 'development';
 
 const nextConfig: NextConfig = {
   // Optimisation des images
@@ -51,7 +53,6 @@ const nextConfig: NextConfig = {
   
   // Webpack optimizations
   webpack: (config, { dev, isServer }) => {
-    // Production optimizations
     if (!dev && !isServer) {
       config.optimization = {
         ...config.optimization,
@@ -62,14 +63,12 @@ const nextConfig: NextConfig = {
           cacheGroups: {
             default: false,
             vendors: false,
-            // Vendor chunk for node_modules
             vendor: {
               name: 'vendor',
               chunks: 'all',
               test: /node_modules/,
               priority: 20,
             },
-            // Common chunk for shared code
             common: {
               name: 'common',
               minChunks: 2,
@@ -78,14 +77,12 @@ const nextConfig: NextConfig = {
               reuseExistingChunk: true,
               enforce: true,
             },
-            // Supabase chunk
             supabase: {
               name: 'supabase',
               test: /[\\/]node_modules[\\/]@supabase[\\/]/,
               chunks: 'all',
               priority: 30,
             },
-            // UI libraries chunk
             ui: {
               name: 'ui',
               test: /[\\/]node_modules[\\/](lucide-react|framer-motion|sonner)[\\/]/,
@@ -99,74 +96,54 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Security Headers (CORRIGÉS POUR ANALYTICS & SUPABASE)
+  // Security Headers (CORRIGÉS POUR LOCALHOST)
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
-          // HTTP Strict Transport Security (HSTS)
           {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
           },
-          // Content Security Policy (CSP)
           {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
               "style-src 'self' 'unsafe-inline'",
-              // img-src doit inclure les domaines externes utilisés
               "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
               "font-src 'self' data:",
-              // connect-src doit inclure ipapi.co et google tag manager pour éviter les erreurs de fetch
               "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://ipapi.co",
-              // frame-src nécessaire pour certains tags Google
               "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
               "frame-ancestors 'none'",
-              "upgrade-insecure-requests"
-            ].join('; ')
+              // IMPORTANT : On active "upgrade-insecure-requests" SEULEMENT en production
+              isDev ? "" : "upgrade-insecure-requests" 
+            ].filter(Boolean).join('; ') // .filter(Boolean) retire les chaînes vides
           },
-          // X-Frame-Options (clickjacking protection)
           {
             key: 'X-Frame-Options',
             value: 'DENY'
           },
-          // X-Content-Type-Options
           {
             key: 'X-Content-Type-Options',
             value: 'nosniff'
           },
-          // Referrer-Policy
           {
             key: 'Referrer-Policy',
             value: 'strict-origin-when-cross-origin'
           },
-          // Cross-Origin-Opener-Policy (COOP)
           {
             key: 'Cross-Origin-Opener-Policy',
             value: 'same-origin'
           },
-          // Cross-Origin-Resource-Policy
-          {
-            key: 'Cross-Origin-Resource-Policy',
-            value: 'cross-origin'
-          },
-          // Cross-Origin-Embedder-Policy (credentialless allows cross-origin images without CORP header)
-          {
-            key: 'Cross-Origin-Embedder-Policy',
-            value: 'credentialless'
-          },
-          // Permissions-Policy
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(self), payment=()'
           },
-          // X-DNS-Prefetch-Control
           {
             key: 'X-DNS-Prefetch-Control',
             value: 'on'
@@ -177,5 +154,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-// Application de la configuration PWA (uniquement en production)
 export default process.env.NODE_ENV === 'development' ? nextConfig : withPWA(nextConfig);
