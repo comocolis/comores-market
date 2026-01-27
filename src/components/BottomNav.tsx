@@ -22,64 +22,71 @@ export default function BottomNav() {
   const isChatOpen = pathname === '/messages' && (searchParams.get('id') || searchParams.get('user'))
   const isAuthPage = pathname === '/auth'
 
+  // 1. Initialisation et récupération de l'utilisateur
   useEffect(() => {
     setMounted(true)
-    const init = async () => {
+    const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
         refreshCounts(user.id)
       }
     }
-    init()
-  }, [pathname]) // Rafraîchir au changement de page pour être sûr
+    getUser()
+  }, [])
+
+  // 2. Refresh forcé quand on change de page (ex: retour de conversation)
+  useEffect(() => {
+    if (userId && !isChatOpen) {
+        refreshCounts(userId)
+    }
+  }, [pathname, searchParams, isChatOpen, userId])
 
   const refreshCounts = async (uid: string) => {
-    // 1. Messages non lus
+    // On compte les messages où je suis le receveur ET qui ne sont pas lus
     const { count: msgCount } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
       .eq('receiver_id', uid)
       .eq('is_read', false)
+    
     setUnreadCount(msgCount || 0)
 
-    // 2. Notifications non lues
     const { count: notifCount } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', uid)
       .eq('is_read', false)
+    
     setUnreadNotifCount(notifCount || 0)
   }
 
+  // 3. Abonnement Realtime (Temps réel)
   useEffect(() => {
     if (!userId) return
 
-    // 1. CANAL MESSAGES (Insert + Update pour détecter la lecture)
-    const channelMessages = supabase.channel('nav-messages-v2')
+    const channel = supabase.channel('bottom-nav-realtime')
       .on('postgres_changes', { 
-        event: '*', 
+        event: '*', // On écoute TOUT (INSERT, UPDATE, DELETE)
         schema: 'public', 
         table: 'messages', 
         filter: `receiver_id=eq.${userId}` 
       }, 
         (payload: any) => {
-            // Toujours rafraîchir le compteur (rouge)
-            refreshCounts(userId)
+            // Petite pause pour laisser le temps à la DB de finir l'écriture (UPDATE is_read=true)
+            setTimeout(() => {
+                refreshCounts(userId)
+            }, 500)
             
-            // Notification toast UNIQUEMENT si nouveau message (INSERT)
-            // et que l'utilisateur n'est pas déjà dans la messagerie
+            // Notification seulement si c'est un NOUVEAU message (INSERT)
             if (payload.eventType === 'INSERT' && !pathname.includes('/messages')) {
                 toast.message('Nouveau message !', {
-                    description: payload.new.content ? payload.new.content.substring(0, 40) + '...' : 'Vous avez reçu un message',
-                    action: { label: 'Répondre', onClick: () => router.push('/messages') },
+                    description: payload.new.content ? payload.new.content.substring(0, 40) + '...' : 'Message reçu',
+                    action: { label: 'Voir', onClick: () => router.push('/messages') },
                 })
             }
         }
-      ).subscribe()
-
-    // 2. CANAL NOTIFICATIONS
-    const channelNotifs = supabase.channel('nav-notifications-v2')
+      )
       .on('postgres_changes', { 
         event: '*', 
         schema: 'public', 
@@ -87,7 +94,8 @@ export default function BottomNav() {
         filter: `user_id=eq.${userId}` 
       }, 
         (payload: any) => {
-            refreshCounts(userId)
+            setTimeout(() => refreshCounts(userId), 500)
+            
             if (payload.eventType === 'INSERT') {
                 toast.info(payload.new.title, {
                     description: payload.new.message,
@@ -96,11 +104,11 @@ export default function BottomNav() {
                 })
             }
         }
-      ).subscribe()
+      )
+      .subscribe()
 
     return () => { 
-        supabase.removeChannel(channelMessages) 
-        supabase.removeChannel(channelNotifs)
+        supabase.removeChannel(channel)
     }
   }, [userId, router, supabase, pathname])
 
@@ -118,7 +126,7 @@ export default function BottomNav() {
           </Link>
         </div>
 
-        {/* MESSAGES AVEC BADGE ROUGE */}
+        {/* MESSAGES */}
         <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
@@ -131,7 +139,7 @@ export default function BottomNav() {
             <span className="text-[9px] font-bold">Messages</span>
         </Link>
 
-        {/* COMPTE AVEC BADGE AMBRE */}
+        {/* COMPTE */}
         <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />

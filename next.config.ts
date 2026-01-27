@@ -96,7 +96,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Security Headers (CORRIGÉS POUR LOCALHOST)
+  // Security Headers (CORRIGÉS POUR WSS ET GOOGLE)
   async headers() {
     return [
       {
@@ -110,11 +110,14 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://eprocure.gov.km",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com",
+              // CORRECTION 1: Ajout de google.com pour les images (pixel)
+              "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com",
               "font-src 'self' data:",
-              "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://ipapi.co",
+              // CORRECTION 2: Ajout de wss://*.supabase.co (Indispensable pour le temps réel)
+              // CORRECTION 3: Ajout de google.com (Indispensable pour vos logs d'erreur)
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://ipapi.co https://www.google.com",
               "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
               "object-src 'none'",
               "base-uri 'self'",
