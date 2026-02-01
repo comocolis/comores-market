@@ -18,7 +18,6 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from '@/utils/dateUtils'
-// AJOUT : Import du tracking analytics
 import { 
   trackProductView, 
   trackAddToFavorites, 
@@ -83,6 +82,14 @@ const getOptimizedImage = (url: string | null, width = 800) => {
   }
   return url;
 };
+
+// ✅ FONCTION DE TRACKING GOOGLE ADS
+// À déclarer ici pour qu'elle soit accessible
+declare global {
+  interface Window {
+    gtag_report_conversion?: (url?: string) => boolean;
+  }
+}
 
 interface AnnonceClientProps {
   initialData?: any
@@ -190,42 +197,29 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     const fetchSuggestions = async () => {
       if (!product) return
 
-      // Algorithm: Find similar products based on multiple factors
       const { data: allProducts } = await supabase
         .from('products')
         .select('id, title, price, images, location_island, location_city, sub_category, boosted_until, created_at')
-        .neq('id', product.id) // Exclude current product
-        .limit(50) // Get more for better filtering
+        .neq('id', product.id) 
+        .limit(50) 
 
       if (!allProducts) return
 
-      // Score each product based on similarity
       const scoredProducts = allProducts.map((p: any) => {
         let score = 0
-        
-        // Same subcategory (highest weight)
         if (p.sub_category === product.sub_category) score += 50
-        
-        // Similar price range (+/- 30%)
         const priceRangeLow = product.price * 0.7
         const priceRangeHigh = product.price * 1.3
         if (p.price >= priceRangeLow && p.price <= priceRangeHigh) score += 30
-        
-        // Same location island
         if (p.location_island === product.location_island) score += 15
-        
-        // Boost for PRO/Boosted listings
         const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date()
         if (isBoosted) score += 10
-        
-        // Recency bonus (newer products)
         const daysSinceCreation = (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24)
         if (daysSinceCreation < 7) score += 5
 
         return { ...p, similarityScore: score }
       })
 
-      // Sort by score and take top 6
       const topSuggestions = scoredProducts
         .sort((a: any, b: any) => b.similarityScore - a.similarityScore)
         .slice(0, 6)
@@ -289,7 +283,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     else { 
         toast.success("Message envoyé !"); 
         setMessage('');
-        // 📊 TRACKING MESSAGE INTERNE (Lead)
         trackMessageSent('internal_chat', product.id, 'text');
     }
     setSending(false)
@@ -306,7 +299,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
         await supabase.from('favorites').insert({ user_id: currentUser.id, product_id: id })
         setFavorites(new Set([...favorites, id]))
         toast.success("Ajouté aux favoris")
-        // 📊 TRACKING FAVORIS (Wishlist)
         trackAddToFavorites(product.id, product.title, product.price)
     }
   }
@@ -323,7 +315,13 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const handleWhatsAppClick = () => {
     if (!product.whatsapp_number) return;
     
-    // 📊 TRACKING WHATSAPP
+    // ✅ TRACKING CONVERSION GOOGLE ADS (Le nerf de la guerre)
+    // On appelle la fonction gtag_report_conversion si elle existe (injectée par le script Google)
+    if (typeof window !== 'undefined' && window.gtag_report_conversion) {
+      window.gtag_report_conversion();
+    }
+
+    // 📊 TRACKING ANALYTICS
     trackEvent('contact_whatsapp', {
         listing_id: product.id,
         listing_title: product.title,
@@ -334,8 +332,6 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     const currentUrl = window.location.href;
     const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price);
     
-    // MESSAGE PLUS HUMAIN ET NATUREL
-    // Note: On n'inclut pas l'URL brute de l'image. WhatsApp génère la miniature via le lien.
     let messageBody = `Salam ! Je suis intéressé par votre annonce *${product.title}* à ${formattedPrice} KMF sur Comores Market.\n\n`;
     messageBody += `Est-ce toujours disponible ?\n\n`;
     messageBody += `Lien de l'annonce : ${currentUrl}`;
@@ -546,7 +542,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                 </div>
             )}
 
-            {/* SUGGESTIONS INTELLIGENTES - DÉPLACÉES ICI */}
+            {/* SUGGESTIONS INTELLIGENTES */}
             {suggestedProducts.length > 0 && (
                 <div className="mt-12 mb-8">
                     <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">

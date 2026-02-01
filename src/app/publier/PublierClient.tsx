@@ -539,16 +539,22 @@ export default function PublierClient() {
           
           // 1. GA4 : Suivi de l'événement (pour vos stats internes)
           trackListingCreated(
-             'new_listing', // ID non dispo ici sans requête supp, on utilise un placeholder
+             'new_listing', 
              formData.title,
              CATEGORIES_LIST.find(c => c.id.toString() === formData.category_id)?.label || 'Autre',
              parseInt(formData.price)
           )
 
-          // 2. GOOGLE ADS : Conversion Publicitaire
-          // Remplacez 'VOTRE_LABEL_ICI' par le label de conversion fourni par Google Ads
-          trackAdsConversion('VOTRE_LABEL_ICI', 1.0)
-
+          // ✅ 2. GOOGLE ADS : Conversion Publicitaire (Appel automatique)
+          // On appelle la fonction de tracking Ads (définie dans le script Gtag)
+          // Remarque : Si vous configurez l'import automatique depuis GA4, cette ligne est redondante mais inoffensive.
+          if (typeof window !== 'undefined' && window.gtag) {
+             window.gtag('event', 'conversion', {
+                 'send_to': 'AW-16447515729/VOTRE_LABEL_ICI', // Remplacez par le label si vous l'avez
+                 'value': 1.0,
+                 'currency': 'EUR'
+             });
+          }
 
           await supabase.from('notifications').insert({
             user_id: user.id,
@@ -690,7 +696,7 @@ export default function PublierClient() {
                                 className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-500" 
                                 placeholder="Ex: Drone, Tondeuse, Groupe électrogène..." 
                                 value={customSubCat} 
-                                onChange={e => setCustomSubCat(e.target.value)}
+                                onChange={e => setCustomSubCat(e.target.value)} 
                                 autoFocus
                             />
                         </div>
