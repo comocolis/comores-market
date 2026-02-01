@@ -18,8 +18,7 @@ import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 import ProductSuggestions from '@/components/ProductSuggestions'
 import dynamic from 'next/dynamic'
 
-// ✅ OPTIMISATION : Lazy Loading de la modale Filtres
-// Elle ne sera téléchargée que si l'utilisateur clique sur le bouton "Filtres"
+// ✅ Lazy Loading de la modale Filtres
 const FilterModal = dynamic(() => import('@/components/FilterModal'), {
   loading: () => null,
   ssr: false 
@@ -42,16 +41,6 @@ interface Product {
 
 interface Favorite {
   product_id: string
-}
-
-// --- FONCTION UTILITAIRE : MÉLANGE ALÉATOIRE (Fisher-Yates) ---
-function shuffleArray<T>(array: T[]): T[] {
-  const newArray = [...array];
-  for (let i = newArray.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
-  }
-  return newArray;
 }
 
 // --- CONSTANTES ---
@@ -84,7 +73,8 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim', 'Freelance'],
 }
 
-const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion']
+// ✅ LISTE DES ILES CORRIGÉE (Sans La Réunion)
+const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore']
 
 export default function HomePage() {
   const supabase = createClient()
@@ -146,8 +136,13 @@ export default function HomePage() {
     let query = supabase
       .from('products_with_details')
       .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+      // ✅ LOGIQUE DE PRIORITÉ STRICTE
+      // 1. Les Boosts actifs (dates futures) passent devant tout le monde.
+      // NOTE : Assurez-vous que votre base de données met à NULL les boosts expirés, ou qu'ils sont des dates passées.
       .order('boosted_until', { ascending: false, nullsFirst: false }) 
+      // 2. Les comptes PROS passent ensuite.
       .order('is_pro', { ascending: false })
+      // 3. Enfin, le tri chronologique classique.
       .order('created_at', { ascending: false })
       .range(start, end)
       
@@ -170,11 +165,9 @@ export default function HomePage() {
     }
 
     if (data) {
-      let processedData = data;
-      if (isInitial && !searchTerm && selectedCategory === 0) {
-         processedData = shuffleArray(data);
-      }
-      setProducts(isInitial ? processedData : [...products, ...processedData])
+      // ✅ SUPPRESSION DU MÉLANGE ALÉATOIRE (shuffleArray)
+      // Pour respecter la hiérarchie Boost > Pro, on ne doit jamais mélanger les résultats.
+      setProducts(isInitial ? data : [...products, ...data])
       setPage(currentPage)
       setHasMore(data.length === ITEMS_PER_PAGE)
     }
@@ -313,6 +306,7 @@ export default function HomePage() {
                 const img = getFirstProductImage(product.images)
                 const isFav = favorites.has(product.id)
                 const isPro = product.is_pro
+                // Vérification Active : Boost actif si date future
                 const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
                 
                 return (

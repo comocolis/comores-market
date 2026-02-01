@@ -39,26 +39,42 @@ export default function NotificationsPage() {
     }
     
     setLoading(false)
-
-    // 2. Marquer comme lu (DÉCLENCHE LE REALTIME DE LA BOTTOMNAV)
-    const unreadIds = data?.filter((n: any) => !n.is_read).map((n: any) => n.id) || []
-    if (unreadIds.length > 0) {
-      const { error: updateError } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .in('id', unreadIds) // On ne met à jour que les IDs affichés
-
-      if (updateError) console.error("Erreur marqueur 'lu':", updateError)
-    }
+    // NOTE : On ne marque plus tout comme "lu" automatiquement ici.
+    // L'utilisateur doit cliquer pour acquitter.
   }
 
   useEffect(() => {
     loadNotifs()
   }, [])
 
+  // GESTION DU CLIC : MARQUER COMME LU + REDIRECTION
+  const handleClick = async (notif: any) => {
+    // 1. Si déjà lu et pas de lien, on ne fait rien
+    if (notif.is_read && !notif.link) return;
+
+    // 2. Mise à jour Optimiste (UI immédiate)
+    setNotifications(prev => prev.map(n => 
+        n.id === notif.id ? { ...n, is_read: true } : n
+    ))
+
+    // 3. Mise à jour DB (Marquer comme lu)
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notif.id)
+
+    if (error) console.error("Erreur lecture:", error)
+
+    // 4. Redirection intelligente (si lien présent)
+    if (notif.link) {
+        router.push(notif.link)
+    }
+  }
+
   // SUPPRESSION SÉCURISÉE
-  const deleteNotif = async (id: string) => {
-    // On ne filtre pas l'UI tout de suite pour vérifier si la base accepte
+  const deleteNotif = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation(); // Empêche de déclencher le clic sur la carte
+    
     const { error } = await supabase
       .from('notifications')
       .delete()
@@ -68,7 +84,6 @@ export default function NotificationsPage() {
       console.error("❌ Échec de suppression en base:", error.message)
       toast.error("Action impossible : " + error.message)
     } else {
-      // Succès : On met à jour l'écran
       setNotifications(prev => prev.filter(n => n.id !== id))
       toast.success("Notification supprimée")
     }
@@ -123,7 +138,8 @@ export default function NotificationsPage() {
           notifications.map((notif) => (
             <div 
               key={notif.id} 
-              className={`p-5 rounded-[2.2rem] border transition-all duration-500 flex gap-4 relative animate-in slide-in-from-bottom-3 ${
+              onClick={() => handleClick(notif)} // ✅ Gère le clic sur toute la carte
+              className={`p-5 rounded-[2.2rem] border transition-all duration-500 flex gap-4 relative animate-in slide-in-from-bottom-3 cursor-pointer active:scale-[0.98] ${
                 notif.is_read 
                   ? 'bg-white border-gray-100 grayscale-[0.5] opacity-80' 
                   : 'bg-white border-amber-100 shadow-xl shadow-amber-900/5 ring-1 ring-amber-50'
@@ -147,10 +163,7 @@ export default function NotificationsPage() {
 
               {/* BOUTON SUPPRIMER */}
               <button 
-                onClick={(e) => {
-                    e.preventDefault();
-                    deleteNotif(notif.id);
-                }}
+                onClick={(e) => deleteNotif(e, notif.id)}
                 aria-label="Supprimer la notification"
                 className="absolute top-5 right-5 p-2 text-gray-200 hover:text-red-500 hover:bg-red-50 rounded-full transition-all active:scale-90"
               >

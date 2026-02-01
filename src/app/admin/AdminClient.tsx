@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation' // Correction ordre import
 import { useEffect, useState, Suspense } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
@@ -305,7 +305,7 @@ function AdminContent() {
       </div>
 
       <div className="p-4">
-        {/* DASHBOARD - CORRECTION CSS : Suppression des bg-white inutiles */}
+        {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-2">
                 <div className="grid grid-cols-2 gap-4">
@@ -319,7 +319,7 @@ function AdminContent() {
                     )}
                 </div>
 
-                {/* --- NOUVEAU BLOC MESSAGERIE --- */}
+                {/* BLOC MESSAGERIE */}
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2 mb-4">
                         <MessageSquare className="text-brand" size={16} /> Envoyer un Message
@@ -349,7 +349,7 @@ function AdminContent() {
             </div>
         )}
 
-        {/* UTILISATEURS */}
+        {/* UTILISATEURS - FIX CSS APPLIQUÉ */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <input type="text" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
@@ -364,23 +364,24 @@ function AdminContent() {
 
                     return (
                         <div key={u.id} className={`p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : (isTargetAdmin ? 'border-blue-300 bg-blue-50/30' : (isProActive ? 'border-amber-200 bg-amber-50/30' : 'bg-white border-gray-100'))}`}>
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
-                                    <div>
-                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1">
+                            {/* LIGNE DU HAUT : INFO + ACTIONS ICONES */}
+                            <div className="flex items-center justify-between mb-3 gap-3">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500 shrink-0">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1 truncate">
                                             {u.full_name} 
-                                            {isProActive && <Crown size={12} className="text-amber-500" />}
-                                            {isTargetSuper && <ShieldCheck size={12} className="text-red-600" />}
-                                            {isTargetAdmin && !isTargetSuper && <Shield size={12} className="text-blue-500" />}
+                                            {isProActive && <Crown size={12} className="text-amber-500 shrink-0" />}
+                                            {isTargetSuper && <ShieldCheck size={12} className="text-red-600 shrink-0" />}
+                                            {isTargetAdmin && !isTargetSuper && <Shield size={12} className="text-blue-500 shrink-0" />}
                                         </p>
-                                        <p className="text-[10px] text-gray-500 font-bold flex items-center gap-2">
+                                        <p className="text-[10px] text-gray-500 font-bold flex items-center gap-2 truncate">
                                             {u.email}
-                                            <button onClick={() => {setTargetId(u.id); setActiveTab('dashboard'); toast.info("ID copié vers messagerie")}} className="text-blue-500 hover:underline cursor-pointer" title="Envoyer un message">Message</button>
+                                            <button onClick={() => {setTargetId(u.id); setActiveTab('dashboard'); toast.info("ID copié vers messagerie")}} className="text-blue-500 hover:underline cursor-pointer shrink-0" title="Envoyer un message">Message</button>
                                         </p>
                                     </div>
                                 </div>
-                                <div className="flex gap-2">
+                                <div className="flex gap-2 shrink-0">
                                     {isProActive && (
                                         <button 
                                             onClick={() => {
@@ -395,7 +396,6 @@ function AdminContent() {
                                             }} 
                                             className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"
                                             aria-label="Générer la facture"
-                                            title="Facture"
                                         >
                                             <FileText size={18} />
                                         </button>
@@ -406,7 +406,6 @@ function AdminContent() {
                                             onClick={() => toggleAdminRole(u.id, u.role)}
                                             className={`p-2.5 rounded-xl border transition shadow-sm ${isTargetAdmin ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}
                                             aria-label={isTargetAdmin ? "Rétrograder l'admin" : "Nommer administrateur"}
-                                            title={isTargetAdmin ? "Rétrograder" : "Nommer Admin"}
                                         >
                                             <ShieldAlert size={18} />
                                         </button>
@@ -417,7 +416,9 @@ function AdminContent() {
                                     )}
                                 </div>
                             </div>
-                            <div className="grid grid-cols-4 gap-2">
+
+                            {/* LIGNE DU BAS : BOUTONS ACTIONS (GRILLE RESPONSIVE) */}
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                                 <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} aria-label="Ajouter 1 mois d'abonnement" className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
                                 <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} aria-label="Ajouter 1 an d'abonnement" className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 An</button>
                                 <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} aria-label="Arrêter l'abonnement" className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>

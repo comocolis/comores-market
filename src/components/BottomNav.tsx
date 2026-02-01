@@ -3,7 +3,7 @@
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { Home, Heart, MessageCircle, User, Plus, Bell, LucideIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -13,6 +13,9 @@ export default function BottomNav() {
   const searchParams = useSearchParams()
   const router = useRouter()
   
+  // Ref pour suivre le chemin sans relancer l'abonnement realtime à chaque clic
+  const pathnameRef = useRef(pathname)
+
   const [unreadCount, setUnreadCount] = useState(0)
   const [unreadNotifCount, setUnreadNotifCount] = useState(0) 
   const [userId, setUserId] = useState<string | null>(null)
@@ -21,6 +24,11 @@ export default function BottomNav() {
   // Masquer la nav si une conversation est ouverte
   const isChatOpen = pathname === '/messages' && (searchParams.get('id') || searchParams.get('user'))
   const isAuthPage = pathname === '/auth'
+
+  // Mise à jour de la Ref à chaque changement de page
+  useEffect(() => {
+    pathnameRef.current = pathname
+  }, [pathname])
 
   // 1. Initialisation et récupération de l'utilisateur
   useEffect(() => {
@@ -35,7 +43,7 @@ export default function BottomNav() {
     getUser()
   }, [])
 
-  // 2. Refresh forcé quand on change de page (ex: retour de conversation)
+  // 2. Refresh forcé quand on change de page (pour être sûr d'être à jour)
   useEffect(() => {
     if (userId && !isChatOpen) {
         refreshCounts(userId)
@@ -43,7 +51,7 @@ export default function BottomNav() {
   }, [pathname, searchParams, isChatOpen, userId])
 
   const refreshCounts = async (uid: string) => {
-    // On compte les messages où je suis le receveur ET qui ne sont pas lus
+    // Compteur Messages
     const { count: msgCount } = await supabase
       .from('messages')
       .select('*', { count: 'exact', head: true })
@@ -52,6 +60,7 @@ export default function BottomNav() {
     
     setUnreadCount(msgCount || 0)
 
+    // Compteur Notifications
     const { count: notifCount } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
@@ -61,25 +70,22 @@ export default function BottomNav() {
     setUnreadNotifCount(notifCount || 0)
   }
 
-  // 3. Abonnement Realtime (Temps réel)
+  // 3. Abonnement Realtime (STABILISÉ)
   useEffect(() => {
     if (!userId) return
 
     const channel = supabase.channel('bottom-nav-realtime')
       .on('postgres_changes', { 
-        event: '*', // On écoute TOUT (INSERT, UPDATE, DELETE)
+        event: '*', // On écoute TOUT : INSERT (nouveau) et UPDATE (lu)
         schema: 'public', 
         table: 'messages', 
         filter: `receiver_id=eq.${userId}` 
       }, 
         (payload: any) => {
-            // Petite pause pour laisser le temps à la DB de finir l'écriture (UPDATE is_read=true)
-            setTimeout(() => {
-                refreshCounts(userId)
-            }, 500)
+            setTimeout(() => refreshCounts(userId), 500)
             
-            // Notification seulement si c'est un NOUVEAU message (INSERT)
-            if (payload.eventType === 'INSERT' && !pathname.includes('/messages')) {
+            // Notification seulement si INSERT et qu'on n'est pas déjà dans les messages
+            if (payload.eventType === 'INSERT' && !pathnameRef.current?.includes('/messages')) {
                 toast.message('Nouveau message !', {
                     description: payload.new.content ? payload.new.content.substring(0, 40) + '...' : 'Message reçu',
                     action: { label: 'Voir', onClick: () => router.push('/messages') },
@@ -94,6 +100,8 @@ export default function BottomNav() {
         filter: `user_id=eq.${userId}` 
       }, 
         (payload: any) => {
+            // On rafraîchit le compteur qu'il s'agisse d'une nouvelle notif (INSERT)
+            // ou d'une notif lue (UPDATE)
             setTimeout(() => refreshCounts(userId), 500)
             
             if (payload.eventType === 'INSERT') {
@@ -110,7 +118,8 @@ export default function BottomNav() {
     return () => { 
         supabase.removeChannel(channel)
     }
-  }, [userId, router, supabase, pathname])
+    // On retire 'pathname' et 'router' des dépendances pour éviter les déconnexions
+  }, [userId, supabase])
 
   if (!mounted || isChatOpen || isAuthPage) return null
 
