@@ -33,8 +33,8 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // 3. On vérifie l'utilisateur
-  // getUser est important ici pour rafraîchir le token si besoin
+  // 3. On vérifie l'utilisateur (rafraîchissement du token)
+  // IMPORTANT : On ne bloque pas si getUser échoue, on continue juste sans user
   const { data: { user } } = await supabase.auth.getUser()
 
   // 4. Protection des routes
@@ -49,14 +49,15 @@ export async function middleware(request: NextRequest) {
 
   const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
-  // CAS 1 : On veut aller sur une page privée mais on n'est pas connecté
+  // CAS 1 : Accès à une page protégée sans être connecté
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
     return NextResponse.redirect(url)
   }
 
-  // CAS 2 : On est déjà connecté et on essaie d'aller sur /auth (sauf pour le callback)
+  // CAS 2 : Déjà connecté et essaie d'aller sur /auth (Login/Register)
+  // On exclut '/auth/callback' pour ne pas casser la confirmation d'email
   if (request.nextUrl.pathname.startsWith('/auth') && user && !request.nextUrl.pathname.includes('/callback')) {
     const url = request.nextUrl.clone()
     url.pathname = '/compte'
@@ -66,8 +67,19 @@ export async function middleware(request: NextRequest) {
   return response
 }
 
+// ✅ CONFIGURATION OPTIMISÉE POUR GOOGLE & PWA
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    /*
+     * Matcher toutes les routes SAUF celles qui commencent par :
+     * - _next/static (fichiers statiques)
+     * - _next/image (optimisation d'images)
+     * - favicon.ico (icône)
+     * - sitemap.xml (SEO - Important à exclure !)
+     * - robots.txt (SEO - Important à exclure !)
+     * - manifest.json (PWA)
+     * - images (svg, png, jpg, etc.)
+     */
+    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
