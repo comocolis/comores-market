@@ -8,8 +8,11 @@ android {
         applicationId "com.comoresmarket.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        
+        // ✅ CORRECTION ICI : On passe à la version 2 pour que Google accepte le fichier
+        versionCode 2
+        versionName "1.0.1" // (Optionnel : j'ai mis à jour le nom aussi)
+        
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -18,19 +21,19 @@ android {
         }
     }
 
-    // ✅ NOUVEAU BLOC : Configuration de la signature
+    // ✅ Configuration de la signature (Vos mots de passe sont corrects ici)
     signingConfigs {
         release {
             storeFile file("comores-release.keystore")
-            storePassword "781227" // ⚠️ Remplacez par votre mot de passe
+            storePassword "781227"
             keyAlias "comores-alias"
-            keyPassword "781227"   // ⚠️ Remplacez par votre mot de passe
+            keyPassword "781227"
         }
     }
 
     buildTypes {
         release {
-            // ✅ LIGNE AJOUTÉE : On active la signature pour la version finale
+            // ✅ On active la signature pour la version finale
             signingConfig signingConfigs.release
             
             minifyEnabled false
