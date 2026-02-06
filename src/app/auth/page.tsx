@@ -7,8 +7,19 @@ import Image from 'next/image'
 import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
-// AJOUT : Import du tracking
-import { trackEvent, trackAdsConversion } from '@/lib/analytics'
+import { trackEvent } from '@/lib/analytics'
+
+// ✅ FONCTION DE CONVERSION GOOGLE ADS
+const triggerRegistrationConversion = () => {
+  if (typeof window !== 'undefined' && (window as any).gtag) {
+    (window as any).gtag('event', 'conversion', {
+      'send_to': 'AW-16447515729/-voaCKWeu_EbENHY5KI9',
+      'value': 1.0,
+      'currency': 'EUR'
+    });
+    console.log("✅ Conversion Inscription Google Ads envoyée !");
+  }
+}
 
 const ALLOWED_COUNTRIES = [
   { label: '🇰🇲 Comores', code: '+269', placeholder: '334 20 63 / 434 20 63', regex: /^(3[234]\d{5}|4\d{6})$/ },
@@ -65,7 +76,6 @@ export default function AuthPage() {
     setLoading(true)
 
     try {
-      // --- INSCRIPTION ---
       if (view === 'register') {
         const cleanBody = formData.phoneBody.replace(/\s/g, '').replace(/^0/, '')
         
@@ -104,11 +114,9 @@ export default function AuthPage() {
         if (error) throw error
 
         if (data.session) {
-            // 📊 TRACKING INSCRIPTION
             trackEvent('sign_up', { method: 'email' })
-            trackAdsConversion('VOTRE_LABEL_INSCRIPTION', 0) // Conversion Ads pour inscription
+            triggerRegistrationConversion() 
 
-            // --- ENVOI DE L'ALERTE ADMIN ---
             try {
                 await fetch('/api/emails/alert-signup', {
                     method: 'POST',
@@ -124,7 +132,6 @@ export default function AuthPage() {
             } catch (alertErr) {
                 console.error("Erreur alerte inscription", alertErr);
             }
-            // ------------------------------
 
             toast.success("Bienvenue ! Compte créé avec succès.")
             router.push('/compte')
@@ -138,7 +145,6 @@ export default function AuthPage() {
         setAvatarPreview(null)
       }
       
-      // --- CONNEXION CLASSIQUE ---
       else if (view === 'login') {
         const { error } = await supabase.auth.signInWithPassword({
           email: formData.email,
@@ -146,7 +152,6 @@ export default function AuthPage() {
         })
         if (error) throw error
         
-        // 📊 TRACKING CONNEXION
         trackEvent('login', { method: 'email' })
 
         toast.success("Connexion réussie")
@@ -154,7 +159,6 @@ export default function AuthPage() {
         router.refresh()
       }
 
-      // --- MOT DE PASSE OUBLIÉ ---
       else if (view === 'forgot') {
         const origin = window.location.origin
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
@@ -166,7 +170,6 @@ export default function AuthPage() {
         setView('login')
       }
 
-      // --- LIEN MAGIQUE ---
       else if (view === 'magic_link') {
         const origin = window.location.origin
         const { error } = await supabase.auth.signInWithOtp({
@@ -230,35 +233,89 @@ export default function AuthPage() {
                 {view === 'register' && (
                     <div className="space-y-4 animate-in fade-in">
                         <div className="flex justify-center mb-6 relative">
+                            {/* CORRECTION ACCESSIBILITÉ: Bouton avatar */}
                             <div className="relative">
-                                <div onClick={() => fileInputRef.current?.click()} className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}>
+                                <button 
+                                  type="button" 
+                                  aria-label="Ajouter une photo de profil"
+                                  onClick={() => fileInputRef.current?.click()} 
+                                  className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}
+                                >
                                     {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-500 group-hover:text-mustard transition" size={32} />}
-                                </div>
-                                {avatarPreview && <button type="button" onClick={removeAvatar} className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"><X size={14} /></button>}
+                                </button>
+                                {/* CORRECTION ACCESSIBILITÉ: Bouton supprimer */}
+                                {avatarPreview && (
+                                  <button 
+                                    type="button" 
+                                    aria-label="Supprimer la photo"
+                                    onClick={removeAvatar} 
+                                    className="absolute -top-1 -right-1 bg-red-500 text-white p-1.5 rounded-full hover:bg-red-600 transition shadow-md z-20"
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                )}
                             </div>
-                            <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
+                            {/* CORRECTION ACCESSIBILITÉ: Input file caché */}
+                            <input 
+                              type="file" 
+                              aria-label="Choisir une image"
+                              ref={fileInputRef} 
+                              onChange={handleAvatarChange} 
+                              accept="image/*" 
+                              className="hidden" 
+                            />
                         </div>
 
                         <div className="relative group">
                             <User className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                            <input type="text" placeholder="Nom complet" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} required />
+                            {/* CORRECTION ACCESSIBILITÉ: Input Name */}
+                            <input 
+                              type="text" 
+                              aria-label="Nom complet"
+                              placeholder="Nom complet" 
+                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" 
+                              value={formData.fullName} 
+                              onChange={e => setFormData({...formData, fullName: e.target.value})} 
+                              required 
+                            />
                         </div>
 
                         <div className="flex gap-2">
                             <div className="w-1/3 relative">
-                                <select className="w-full h-full bg-gray-50 border border-gray-200 rounded-xl px-2 text-sm font-bold outline-none appearance-none text-center cursor-pointer focus:border-mustard transition" value={selectedCountry.code} onChange={e => setSelectedCountry(ALLOWED_COUNTRIES.find(c => c.code === e.target.value) || ALLOWED_COUNTRIES[0])}>
+                                {/* CORRECTION ACCESSIBILITÉ: Select Country */}
+                                <select 
+                                  aria-label="Indicatif pays"
+                                  className="w-full h-full bg-gray-50 border border-gray-200 rounded-xl px-2 text-sm font-bold outline-none appearance-none text-center cursor-pointer focus:border-mustard transition" 
+                                  value={selectedCountry.code} 
+                                  onChange={e => setSelectedCountry(ALLOWED_COUNTRIES.find(c => c.code === e.target.value) || ALLOWED_COUNTRIES[0])}
+                                >
                                     {ALLOWED_COUNTRIES.map((c, i) => (<option key={i} value={c.code}>{c.label.split(' ')[0]} {c.code}</option>))}
                                 </select>
                             </div>
                             <div className="relative group flex-1">
                                 <Phone className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                <input type="tel" placeholder={selectedCountry.placeholder} className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.phoneBody} onChange={e => setFormData({...formData, phoneBody: e.target.value})} required />
+                                {/* CORRECTION ACCESSIBILITÉ: Input Phone */}
+                                <input 
+                                  type="tel" 
+                                  aria-label="Numéro de téléphone"
+                                  placeholder={selectedCountry.placeholder} 
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-mustard font-medium transition" 
+                                  value={formData.phoneBody} 
+                                  onChange={e => setFormData({...formData, phoneBody: e.target.value})} 
+                                  required 
+                                />
                             </div>
                         </div>
 
                         <div className="flex gap-2">
                             <div className="w-1/2 relative group">
-                                <select className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 text-sm font-medium outline-none focus:border-mustard appearance-none cursor-pointer transition" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
+                                {/* CORRECTION ACCESSIBILITÉ: Select Island */}
+                                <select 
+                                  aria-label="Choisir l'île"
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 text-sm font-medium outline-none focus:border-mustard appearance-none cursor-pointer transition" 
+                                  value={formData.island} 
+                                  onChange={e => setFormData({...formData, island: e.target.value})}
+                                >
                                     <option>Ngazidja</option>
                                     <option>Ndzouani</option>
                                     <option>Mwali</option>
@@ -269,7 +326,16 @@ export default function AuthPage() {
                             </div>
                             <div className="w-1/2 relative group">
                                 <MapPin className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                <input type="text" placeholder="Ville" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 outline-none focus:border-mustard text-sm font-medium transition" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} required />
+                                {/* CORRECTION ACCESSIBILITÉ: Input City */}
+                                <input 
+                                  type="text" 
+                                  aria-label="Ville"
+                                  placeholder="Ville" 
+                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 outline-none focus:border-mustard text-sm font-medium transition" 
+                                  value={formData.city} 
+                                  onChange={e => setFormData({...formData, city: e.target.value})} 
+                                  required 
+                                />
                             </div>
                         </div>
                     </div>
@@ -277,14 +343,40 @@ export default function AuthPage() {
 
                 <div className="relative group">
                     <Mail className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                    <input type="email" placeholder="Adresse email" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} required />
+                    {/* CORRECTION ACCESSIBILITÉ: Input Email */}
+                    <input 
+                      type="email" 
+                      aria-label="Adresse email"
+                      placeholder="Adresse email" 
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" 
+                      value={formData.email} 
+                      onChange={e => setFormData({...formData, email: e.target.value})} 
+                      required 
+                    />
                 </div>
 
                 {(view === 'login' || view === 'register') && (
                     <div className="relative group">
                         <Lock className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                        <input type={showPassword ? "text" : "password"} placeholder="Mot de passe" className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-mustard font-medium transition" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required />
-                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-600 transition focus:outline-none">{showPassword ? <EyeOff size={20} /> : <Eye size={20} />}</button>
+                        {/* CORRECTION ACCESSIBILITÉ: Input Password */}
+                        <input 
+                          type={showPassword ? "text" : "password"} 
+                          aria-label="Mot de passe"
+                          placeholder="Mot de passe" 
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-mustard font-medium transition" 
+                          value={formData.password} 
+                          onChange={e => setFormData({...formData, password: e.target.value})} 
+                          required 
+                        />
+                        {/* CORRECTION ACCESSIBILITÉ: Bouton Eye */}
+                        <button 
+                          type="button" 
+                          aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                          onClick={() => setShowPassword(!showPassword)} 
+                          className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-600 transition focus:outline-none"
+                        >
+                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                        </button>
                     </div>
                 )}
 

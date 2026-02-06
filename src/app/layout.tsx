@@ -7,8 +7,6 @@ import { Suspense, lazy } from "react";
 import Script from 'next/script';
 // ✅ OPTIMISATION 1 : Import de la police optimisée
 import { Inter } from "next/font/google";
-// ✅ OPTIMISATION 2 : Import de la librairie tierce optimisée
-import { GoogleAnalytics } from '@next/third-parties/google';
 
 // Lazy load heavy components
 const InstallBanner = lazy(() => import('@/components/InstallBanner'));
@@ -60,7 +58,7 @@ export const viewport: Viewport = {
   themeColor: "#F8FAFC",
   width: "device-width",
   initialScale: 1,
-  // ✅ CORRECTION PWA : Empêche le zoom auto sur les inputs (Sensation App Native)
+  // ✅ CORRECTION PWA : Empêche le zoom auto sur les inputs
   maximumScale: 1,
   userScalable: false,
   viewportFit: "cover",
@@ -72,18 +70,24 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       {/* ✅ APPLICATION DE LA POLICE SUR LE BODY */}
       <body className={`${inter.className} font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto`}>
         
-        {/* ✅ GOOGLE ANALYTICS OPTIMISÉ */}
-        {process.env.NEXT_PUBLIC_GA_ID && (
-           <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
-        )}
-
-        {/* GOOGLE ADS - Chargement manuel conservé pour le tracking spécifique (AW) */}
-        <Script src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" strategy="afterInteractive" />
-        <Script id="google-ads-config" strategy="afterInteractive">
+        {/* ✅ GOOGLE TAGS (ANALYTICS + ADS) COMBINÉS */}
+        {/* Chargement de la librairie globale */}
+        <Script 
+          src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" 
+          strategy="afterInteractive" 
+        />
+        
+        {/* Configuration des identifiants */}
+        <Script id="google-tags-config" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
+
+            // Configuration Google Analytics
+            gtag('config', 'G-MRDLKB8904');
+
+            // Configuration Google Ads (Conversion Linker)
             gtag('config', 'AW-16447515729');
           `}
         </Script>
