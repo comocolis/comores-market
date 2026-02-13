@@ -3,13 +3,11 @@ import { CapacitorConfig } from '@capacitor/cli';
 const config: CapacitorConfig = {
   appId: 'com.comoresmarket.app',
   appName: 'Comores Market',
-  webDir: 'public', // On pointe vers public car le vrai contenu vient du serveur
+  webDir: 'public',
   server: {
-    // ⚠️ IMPORTANT : Mettez ici l'URL exacte de votre site en ligne (https://...)
-    url: 'https://comores-market.com', 
     cleartext: true,
-    // 👇 CORRECTION : Autorisation de naviguer vers votre domaine 👇
-    allowNavigation: ['comores-market.com', '*.comores-market.com']
+    // L'astérisque force Capacitor à TOUT garder à l'intérieur de l'application
+    allowNavigation: ['*']
   },
   android: {
     allowMixedContent: true

@@ -5,20 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comores Market</title>
     <style>
-        /* Un fond neutre pendant la fraction de seconde où l'app se lance */
-        body { 
-            background-color: #ffffff; 
-            margin: 0; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
+        /* Le style est maintenant correctement placé ici */
+        body {
+            background-color: #ffffff;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        p {
+            font-family: sans-serif;
+            color: #888888;
         }
     </style>
 </head>
 <body>
+    
+    <p>Chargement de Comores Market...</p>
+    
     <script>
-        window.location.replace("https://comores-market.com");
+        // Le léger délai empêche Android d'ouvrir Chrome par erreur
+        setTimeout(function() {
+            window.location.href = "https://comores-market.com";
+        }, 100);
     </script>
 </body>
 </html>
