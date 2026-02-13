@@ -11,7 +11,7 @@ android {
         
         // ✅ CORRECTION ICI : On passe à la version 2 pour que Google accepte le fichier
         versionCode 3
-        versionName "1.0.2" // (Optionnel : j'ai mis à jour le nom aussi)
+        versionName "1.0.3" // (Optionnel : j'ai mis à jour le nom aussi)
         
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
