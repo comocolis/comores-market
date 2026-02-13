@@ -7,7 +7,9 @@ const config: CapacitorConfig = {
   server: {
     // ⚠️ IMPORTANT : Mettez ici l'URL exacte de votre site en ligne (https://...)
     url: 'https://comores-market.com', 
-    cleartext: true
+    cleartext: true,
+    // 👇 CORRECTION : Autorisation de naviguer vers votre domaine 👇
+    allowNavigation: ['comores-market.com', '*.comores-market.com']
   },
   android: {
     allowMixedContent: true
