@@ -25,6 +25,9 @@ const withPWA = require('next-pwa')({
   ],
 });
 
+// Détection du mode développement
+const isDev = process.env.NODE_ENV === 'development';
+
 const nextConfig: NextConfig = {
   // Optimisation des images
   images: {
@@ -93,19 +96,36 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Security Headers (VERSION CORRIGÉE ET ASSOUPLIE)
+  // Security Headers (VERSION ORIGINALE STRICTE)
   async headers() {
     return [
       {
         source: '/:path*',
         headers: [
           {
-            key: 'X-DNS-Prefetch-Control',
-            value: 'on'
-          },
-          {
             key: 'Strict-Transport-Security',
             value: 'max-age=63072000; includeSubDomains; preload'
+          },
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://eprocure.gov.km",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://www.google.com",
+              "font-src 'self' data:",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.googletagmanager.com https://ipapi.co https://www.google.com",
+              "frame-src 'self' https://www.googletagmanager.com https://www.google.com",
+              "object-src 'none'",
+              "base-uri 'self'",
+              "form-action 'self'",
+              "frame-ancestors 'none'",
+              isDev ? "" : "upgrade-insecure-requests" 
+            ].filter(Boolean).join('; ')
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY'
           },
           {
             key: 'X-Content-Type-Options',
@@ -113,21 +133,20 @@ const nextConfig: NextConfig = {
           },
           {
             key: 'Referrer-Policy',
-            value: 'origin-when-cross-origin'
+            value: 'strict-origin-when-cross-origin'
           },
-          // ⚠️ CORRECTION MAJEURE : On autorise la caméra et le micro !
+          {
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin'
+          },
           {
             key: 'Permissions-Policy',
-            value: 'camera=*, microphone=*, geolocation=(self), payment=()'
+            value: 'camera=(), microphone=(), geolocation=(self), payment=()'
           },
-          // ⚠️ CORRECTION MAJEURE : On empêche le blocage de l'iframe/webview
           {
-            key: 'X-Frame-Options',
-            value: 'SAMEORIGIN' 
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
           }
-          // NOTE : J'ai temporairement retiré la "Content-Security-Policy" (CSP).
-          // Elle est souvent source de bugs majeurs (écran blanc) si mal configurée.
-          // Mieux vaut un site qui marche sans CSP qu'un site sécurisé qui ne s'affiche pas.
         ],
       },
     ]
