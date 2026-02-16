@@ -1,5 +1,7 @@
 import { MetadataRoute } from 'next'
 
+export const dynamic = 'force-static'
+
 export default function robots(): MetadataRoute.Robots {
   // ⚠️ Assurez-vous que c'est bien votre URL finale
   const baseUrl = 'https://comores-market.com'

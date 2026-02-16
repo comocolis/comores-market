@@ -93,7 +93,7 @@ export default function RecherchePage() {
                 return (
                     <Link 
                         key={product.id} 
-                        href={`/annonce/${product.id}`} 
+                        href={`/annonce?id=${product.id}`} 
                         className={`p-3 rounded-xl flex gap-4 shadow-sm border active:scale-[0.99] transition ${
                             isPro 
                             ? 'bg-mustard/5 border-mustard ring-1 ring-mustard/20' 

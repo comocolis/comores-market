@@ -1,21 +1,22 @@
 'use client'
 
+
+
 import { createClient } from '@/utils/supabase/client'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
 import { 
   Camera, Loader2, DollarSign, Type, X, ChevronLeft, Lock, Crown, 
-  Phone, Ban, Sparkles, ShieldCheck, GripHorizontal,
+  Sparkles, ShieldCheck, GripHorizontal,
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
   Music, Book, Plane, Utensils, Wrench, GraduationCap, Clock, 
-  MapPin, Star, AlertCircle, Save, PenTool
+  MapPin, Star, Save, PenTool
 } from 'lucide-react'
 import { toast } from 'sonner'
-import Link from 'next/link'
 
-import { DndContext, closestCenter, TouchSensor, MouseSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, closestCenter, TouchSensor, MouseSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 
@@ -23,6 +24,7 @@ import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
 // AJOUT : Import du tracking analytics
 import { trackEvent } from '@/lib/analytics'
+import { rephraseText, moderateContent } from '@/lib/edge-functions'
 
 const FREE_PHOTOS_LIMIT = 3
 const PRO_PHOTOS_LIMIT = 10
@@ -46,7 +48,16 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
   10: ['Offres d\'emploi', 'Demandes d\'emploi', 'Stages', 'Intérim', 'Freelance'],
 }
 
-const SPECIFIC_FIELDS: Record<string, any[]> = {
+interface FieldConfig {
+    key: string
+    label: string
+    icon: React.ElementType
+    type: string
+    placeholder?: string
+    options?: string[]
+}
+
+const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
     // === 1. VÉHICULES ===
     'Voitures': [
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: 'Ex: 2018' },
@@ -256,7 +267,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
     const style = { 
         transform: CSS.Transform.toString(transform), 
         transition,
-    }
+    } as React.CSSProperties
   
     return (
       <div 
@@ -288,7 +299,8 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
 export default function ModifierPage() {
   const supabase = createClient()
   const router = useRouter()
-  const params = useParams()
+  const searchParams = useSearchParams()
+  const params = { id: searchParams.get('id') }
   
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -384,7 +396,7 @@ export default function ModifierPage() {
             if (Array.isArray(rawImages)) {
                 setImages(rawImages.map((url: string) => ({ id: url, url: url })))
             }
-        } catch (e) {
+        } catch {
             if (product.images) setImages([{ id: product.images, url: product.images }])
         }
 
@@ -468,16 +480,16 @@ export default function ModifierPage() {
       setImages(prev => [...prev, ...newImages])
       if (newImages.length > 0) toast.success("Photos ajoutées !")
       
-    } catch (error: any) { 
+    } catch { 
         toast.error('Erreur upload global.') 
     } finally { 
         setUploading(false) 
     }
   }
 
-  const handleDragEnd = (event: any) => {
+  const handleDragEnd = (event: DragEndEvent) => {
       const { active, over } = event
-      if (active.id !== over.id) {
+      if (over && active.id !== over.id) {
           setImages((items) => {
               const oldIndex = items.findIndex(i => i.id === active.id)
               const newIndex = items.findIndex(i => i.id === over.id)
@@ -493,18 +505,18 @@ export default function ModifierPage() {
     }
     setIsRephrasing(true)
     try {
-      const res = await fetch('/api/rephrase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: formData.description }),
-      })
-      const data = await res.json()
-      if (data.text) {
-        const clean = data.text.replace(/\*\*/g, '').replace(/#/g, '').normalize("NFC")
+      const data = await rephraseText(formData.description);
+      
+      if (data.rephrased) {
+        let clean = data.rephrased;
+        clean = clean.split('**').join('');
+        clean = clean.split('#').join('');
+        clean = clean.normalize("NFC");
+
         setFormData(prev => ({ ...prev, description: clean }))
         toast.success("Texte sublimé !")
       }
-    } catch (err) { toast.error("Erreur reformulation.") } finally { setIsRephrasing(false) }
+    } catch { toast.error("Erreur reformulation.") } finally { setIsRephrasing(false) }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -535,7 +547,7 @@ export default function ModifierPage() {
       
       if (Object.keys(specs).length > 0) {
           let specsText = "\n\n--- ✨ CARACTÉRISTIQUES ---\n";
-          currentSpecFields.forEach((field: any) => {
+          currentSpecFields.forEach((field) => {
               if (specs[field.key]) {
                   specsText += `• ${field.label} : ${specs[field.key]}\n`;
               }
@@ -544,12 +556,7 @@ export default function ModifierPage() {
       }
 
       // MODÉRATION
-      const moderateRes = await fetch('/api/moderate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, description: finalDescription }),
-      })
-      const check = await moderateRes.json()
+      const check = await moderateContent(formData.title, finalDescription, formData.price);
 
       if (!check.is_safe) {
         toast.error(`Refusé : ${check.reason}`)
@@ -583,9 +590,9 @@ export default function ModifierPage() {
       })
 
       toast.success("Annonce mise à jour !")
-      router.push(`/annonce/${params.id}`)
+      router.push(`/annonce?id=${params.id}`)
 
-    } catch (err: any) { 
+    } catch (err) { 
         toast.error("Erreur lors de la mise à jour.") 
         console.error(err)
     } finally { 
@@ -709,7 +716,7 @@ export default function ModifierPage() {
                     <div className="animate-in slide-in-from-top-2 fade-in pt-2 border-t border-dashed border-gray-100 mt-2">
                         <p className="text-xs font-black text-brand uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
                         <div className="grid grid-cols-2 gap-3">
-                            {currentSpecFields.map((field: any) => (
+                            {currentSpecFields.map((field) => (
                                 <div key={field.key} className={field.key === 'fuel' || field.key === 'storage' ? "col-span-2" : ""}>
                                     <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">{field.label}</label>
                                     <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 transition">
@@ -722,7 +729,7 @@ export default function ModifierPage() {
                                                 onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
                                             >
                                                 <option value="">Sélectionner...</option>
-                                                {field.options.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                                {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
                                             </select>
                                         ) : (
                                             <input 

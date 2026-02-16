@@ -8,6 +8,7 @@ import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
+import { sendAdminAlert } from '@/lib/edge-functions'
 
 // ✅ FONCTION DE CONVERSION GOOGLE ADS
 const triggerRegistrationConversion = () => {
@@ -118,17 +119,13 @@ export default function AuthPage() {
             triggerRegistrationConversion() 
 
             try {
-                await fetch('/api/emails/alert-signup', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        fullName: formData.fullName,
-                        email: formData.email,
-                        phone: fullPhone,
-                        island: formData.island,
-                        city: formData.city
-                    })
-                });
+                await sendAdminAlert(
+                  formData.fullName,
+                  formData.email,
+                  fullPhone,
+                  formData.island,
+                  formData.city
+                );
             } catch (alertErr) {
                 console.error("Erreur alerte inscription", alertErr);
             }

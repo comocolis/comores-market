@@ -1,8 +1,10 @@
 'use client'
 
+
+
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -12,9 +14,24 @@ import {
 
 export default function ProductViewersPage() {
   const supabase = createClient()
-  const params = useParams()
+  const searchParams = useSearchParams()
+  const params = { id: searchParams.get('id') }
   const router = useRouter()
-  const [viewers, setViewers] = useState<any[]>([])
+  
+  interface ViewerProfile {
+    id: string
+    full_name: string
+    avatar_url: string
+    city: string
+    is_pro: boolean
+  }
+  
+  interface Viewer {
+    created_at: string
+    profile: ViewerProfile
+  }
+
+  const [viewers, setViewers] = useState<Viewer[]>([])
   const [loading, setLoading] = useState(true)
   const [productTitle, setProductTitle] = useState('')
 
@@ -25,7 +42,7 @@ export default function ProductViewersPage() {
         if (prod) setProductTitle(prod.title)
 
         // 2. Récupérer les vues avec les profils associés
-        const { data, error } = await supabase
+        const { data } = await supabase
             .from('product_views')
             .select(`
                 created_at,
@@ -39,10 +56,10 @@ export default function ProductViewersPage() {
             .order('created_at', { ascending: false })
 
         if (data) {
-            const uniqueViewers: any[] = []
+            const uniqueViewers: Viewer[] = []
             const seenIds = new Set()
             
-            data.forEach((entry: any) => {
+            data.forEach((entry: { viewer_id: string, created_at: string, profiles: ViewerProfile }) => {
                 if (entry.profiles && !seenIds.has(entry.viewer_id)) {
                     seenIds.add(entry.viewer_id)
                     uniqueViewers.push({
@@ -62,7 +79,7 @@ export default function ProductViewersPage() {
     <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">
       {/* HEADER */}
       <div className="bg-white p-4 sticky top-0 z-40 shadow-sm pt-safe flex items-center gap-3">
-        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition">
+        <button onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition" aria-label="Retour">
             <ArrowLeft size={22} />
         </button>
         <div className="min-w-0">
@@ -77,7 +94,7 @@ export default function ProductViewersPage() {
         ) : viewers.length === 0 ? (
             <div className="text-center text-gray-500 pt-20">
                 <Users size={48} className="mx-auto opacity-10 mb-4" />
-                <p className="text-sm">Aucun utilisateur connecté n'a encore <br/>consulté cette annonce.</p>
+                <p className="text-sm">Aucun utilisateur connecté n&apos;a encore <br/>consulté cette annonce.</p>
             </div>
         ) : (
             <div className="space-y-3">
@@ -92,7 +109,7 @@ export default function ProductViewersPage() {
                         className="bg-white p-3 rounded-2xl flex items-center gap-3 border border-gray-100 shadow-sm hover:border-brand/30 transition group"
                     >
                         {/* CLIC SUR L'IMAGE -> PROFIL */}
-                        <Link href={`/profil/${entry.profile.id}`} className="relative shrink-0">
+                        <Link href={`/profil?id=${entry.profile.id}`} className="relative shrink-0">
                             <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden relative border-2 border-white shadow-sm active:scale-90 transition">
                                 {entry.profile.avatar_url ? (
                                     <Image src={entry.profile.avatar_url} alt="" fill className="object-cover" />
@@ -108,7 +125,7 @@ export default function ProductViewersPage() {
                         </Link>
 
                         {/* INFOS VISITEUR */}
-                        <Link href={`/profil/${entry.profile.id}`} className="flex-1 min-w-0">
+                        <Link href={`/profil?id=${entry.profile.id}`} className="flex-1 min-w-0">
                             <h3 className="font-bold text-sm truncate text-gray-900 group-hover:text-brand transition">
                                 {entry.profile.full_name}
                             </h3>
@@ -128,7 +145,7 @@ export default function ProductViewersPage() {
                             >
                                 <MessageCircle size={18} />
                             </Link>
-                            <Link href={`/profil/${entry.profile.id}`} className="p-2 text-gray-300 hover:text-gray-600 transition">
+                            <Link href={`/profil?id=${entry.profile.id}`} className="p-2 text-gray-300 hover:text-gray-600 transition">
                                 <ChevronRight size={18} />
                             </Link>
                         </div>
@@ -143,7 +160,7 @@ export default function ProductViewersPage() {
           <div className="mx-4 mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100 flex gap-3">
               <div className="text-blue-500 shrink-0"><MessageCircle size={20} /></div>
               <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                  <strong>Conseil :</strong> N'hésitez pas à envoyer un message de courtoisie pour savoir si le visiteur a besoin d'informations complémentaires sur votre annonce.
+                  <strong>Conseil :</strong> N&apos;hésitez pas à envoyer un message de courtoisie pour savoir si le visiteur a besoin d&apos;informations complémentaires sur votre annonce.
               </p>
           </div>
       )}

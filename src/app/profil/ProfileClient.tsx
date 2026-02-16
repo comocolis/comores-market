@@ -1,20 +1,20 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useParams, useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link' 
 import { 
-  MapPin, User, ShieldCheck, ArrowLeft, Loader2, 
+  MapPin, User, ArrowLeft, Loader2, 
   Facebook, Instagram, Star, Plus, X, 
-  Crown, Award, CheckCircle2, ShoppingBag, Share2, Clock, Camera, Sparkles,
+  Crown, Award, ShoppingBag, Share2, Clock, Camera, Sparkles,
   FileText, Zap
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
-import { SkeletonProfileHeader, SkeletonProductGrid, SkeletonReviewsList } from '@/components/Skeleton'
+import { SkeletonProfileHeader, SkeletonProductGrid } from '@/components/Skeleton'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 
 // --- INTERFACES STRICTES ---
@@ -65,9 +65,9 @@ interface ProfileClientProps {
   id?: string
 }
 
-export default function ProfileClient({ initialData, id }: ProfileClientProps) {
+export default function ProfileClient({ initialData, id: propId }: ProfileClientProps) {
   const supabase = createClient()
-  const params = useParams()
+  const searchParams = useSearchParams()
   const router = useRouter()
   const coverInputRef = useRef<HTMLInputElement>(null)
   
@@ -85,7 +85,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
   const [newComment, setNewComment] = useState('')
   const [submittingReview, setSubmittingReview] = useState(false)
 
-  const profileId = id || (params?.id as string)
+  const profileId = propId || searchParams.get('id')
   const isOwner = currentUser?.id === profileId
 
   const calculateResponseTime = async (userId: string) => {
@@ -127,7 +127,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
         setCurrentUser({ id: user.id, email: user.email } as UserProfile)
     }
     
-    if (!initialData) {
+    if (!initialData && profileId) {
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', profileId).single()
         if (prof) setProfile(prof as UserProfile)
     }
@@ -389,7 +389,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
                         return (
                           <div key={p.id} className="flex flex-col gap-3">
-                            <Link href={`/annonce/${p.id}`} className="group relative">
+                            <Link href={`/annonce?id=${p.id}`} className="group relative">
                               <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
                                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
                                     {img && (
@@ -428,7 +428,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
                                 </div>
                               ) : (
                                 <Link 
-                                  href={`/boost/${p.id}`}
+                                  href={`/boost?id=${p.id}`}
                                   // FIX: gradient au lieu de linear
                                   className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >

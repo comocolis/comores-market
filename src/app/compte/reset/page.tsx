@@ -1,7 +1,7 @@
 'use client'
 
 // 1. Force le mode dynamique (IMPORTANT pour le build)
-export const dynamic = 'force-dynamic'
+// export const dynamic = 'force-dynamic'
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/utils/supabase/client'

@@ -81,7 +81,7 @@ export default function FavorisClient() {
                                 animate={{ opacity: 1 }}
                             >
                                 <Link 
-                                    href={`/annonce/${product.id}`} 
+                                    href={`/annonce?id=${product.id}`} 
                                     className={`rounded-xl overflow-hidden flex flex-col transition border group ${
                                         isPro 
                                         ? 'bg-mustard/5 border-mustard shadow-sm shadow-mustard/20' 

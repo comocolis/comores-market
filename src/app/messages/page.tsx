@@ -445,7 +445,7 @@ function MessagesContent() {
             {showMenu && (
                 <div className="absolute top-full right-6 mt-2 bg-white shadow-2xl rounded-4xl border border-gray-100 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
                     {activeConv?.productId && !activeConv.isSystem && (
-                        <Link href={`/annonce/${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
+                        <Link href={`/annonce?id=${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
                     )}
                     <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
                 </div>

@@ -305,7 +305,7 @@ export default function ComptePage() {
             
             <div className="flex gap-2">
               <Link 
-                href={`/profil/${user?.id}`} 
+                href={`/profil?id=${user?.id}`} 
                 className="bg-blue-50 p-3 rounded-2xl text-blue-600 border border-blue-100 transition hover:bg-blue-100 active:scale-90 shadow-sm"
               >
                 <ExternalLink size={20} />

@@ -231,7 +231,7 @@ export default function HomePage() {
                 <span className="text-mustard">Market</span>
             </h1>
             <Link 
-              href={userId ? `/profil/${userId}` : "/auth"} 
+              href={userId ? `/profil?id=${userId}` : "/auth"} 
               className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/30 transition"
               aria-label="Mon Profil"
             >
@@ -310,7 +310,7 @@ export default function HomePage() {
                 const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
                 
                 return (
-                  <Link key={product.id} href={`/annonce/${product.id}`} 
+                  <Link key={product.id} href={`/annonce?id=${product.id}`} 
                         className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                           isBoosted 
                           ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10 ring-4 ring-amber-50' 

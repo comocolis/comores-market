@@ -287,6 +287,8 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
     )
 }
 
+import { rephraseText, moderateContent } from '@/lib/edge-functions'
+
 export default function PublierClient() {
   const supabase = createClient()
   const router = useRouter()
@@ -444,15 +446,11 @@ export default function PublierClient() {
     }
     setIsRephrasing(true)
     try {
-      const res = await fetch('/api/rephrase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: formData.description }),
-      })
-      const data = await res.json()
-      if (data.text) {
+      const data = await rephraseText(formData.description);
+      
+      if (data.rephrased) {
         // CORRECTION: Avoid regex literal issues in build
-        let clean = data.text;
+        let clean = data.rephrased;
         clean = clean.split('**').join('');
         clean = clean.split('#').join('');
         clean = clean.normalize("NFC");
@@ -512,12 +510,7 @@ export default function PublierClient() {
           finalDescription += specsText;
       }
 
-      const moderateRes = await fetch('/api/moderate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, description: finalDescription }),
-      })
-      const check = await moderateRes.json()
+      const check = await moderateContent(formData.title, finalDescription, formData.price);
 
       if (!check.is_safe) {
         toast.error(`Refusé : ${check.reason}`)

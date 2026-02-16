@@ -138,7 +138,7 @@ export default function MesAnnoncesClient() {
                       className={`bg-white rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50' : 'border-white'}`}
                     >
                         <div className="p-4 flex gap-4">
-                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
+                            <Link href={`/annonce?id=${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
                                 {img && (
                                   <Image 
                                     src={img} 
@@ -157,7 +157,7 @@ export default function MesAnnoncesClient() {
                             </Link>
 
                             <div className="flex-1 min-w-0 flex flex-col py-1">
-                                <Link href={`/annonce/${product.id}`}>
+                                <Link href={`/annonce?id=${product.id}`}>
                                   <h3 className="font-black text-gray-900 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
                                 </Link>
                                 <p className="text-brand font-black text-lg mt-0.5">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p>
@@ -168,7 +168,7 @@ export default function MesAnnoncesClient() {
 
                             <div className="flex flex-col gap-2">
                                 <Link 
-                                  href={`/modifier/${product.id}`} 
+                                  href={`/modifier?id=${product.id}`} 
                                   className="p-3 text-blue-500 bg-blue-50/50 rounded-2xl hover:bg-blue-100 transition active:scale-90"
                                   aria-label="Modifier l'annonce"
                                 >
@@ -193,7 +193,7 @@ export default function MesAnnoncesClient() {
                             </div>
                           ) : (
                             <Link
-                              href={`/boost/${product.id}`}
+                              href={`/boost?id=${product.id}`}
                               className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                             >
                               <Zap size={14} fill="currentColor" className="group-hover:scale-110 transition-transform" />
@@ -204,7 +204,7 @@ export default function MesAnnoncesClient() {
 
                         {/* SECTION STATISTIQUES */}
                         <Link 
-                            href={`/mes-annonces/${product.id}/vues`}
+                            href={`/mes-annonces/vues?id=${product.id}`}
                             className="flex items-center justify-between bg-[#F5F7F9] px-5 py-3.5 active:bg-gray-100 transition mt-2"
                         >
                             <div className="flex items-center gap-3">

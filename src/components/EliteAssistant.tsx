@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Sparkles, Send, X, Loader2, Bot, GripVertical } from 'lucide-react'
 import ReactMarkdown from 'react-markdown'
-import { usePathname, useParams } from 'next/navigation'
+import { usePathname, useParams, useSearchParams } from 'next/navigation'
+import { chatWithAI } from '@/lib/edge-functions'
 
 export default function EliteAssistant() {
   const [isVisible, setIsVisible] = useState(true)
@@ -22,6 +23,7 @@ export default function EliteAssistant() {
   
   const pathname = usePathname()
   const params = useParams()
+  const searchParams = useSearchParams()
 
   // 1. DÉTECTION DU CONTEXTE (Inchangé)
   useEffect(() => {
@@ -29,8 +31,9 @@ export default function EliteAssistant() {
     
     if (pathname === '/') {
         currentContext = "(Contexte: L'utilisateur est sur la page d'accueil)."
-    } else if (pathname?.startsWith('/annonce/') && params?.id) {
-        currentContext = `(Contexte: L'utilisateur consulte l'annonce ID ${params.id}).`
+    } else if (pathname?.startsWith('/annonce') && (params?.id || searchParams.get('id'))) {
+        const id = params?.id || searchParams.get('id');
+        currentContext = `(Contexte: L'utilisateur consulte l'annonce ID ${id}).`
     } else if (pathname === '/publier') {
         currentContext = "(Contexte: L'utilisateur est sur le formulaire de publication)."
     } else if (pathname === '/compte') {
@@ -38,7 +41,7 @@ export default function EliteAssistant() {
     }
 
     setContextData(currentContext)
-  }, [pathname, params])
+  }, [pathname, params, searchParams])
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -85,23 +88,7 @@ export default function EliteAssistant() {
         ? `${contextData} Question: ${userMessage}`
         : userMessage;
 
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        // On revient au format d'origine : 'message' et 'history'
-        body: JSON.stringify({ 
-            message: finalMessageToSend, 
-            history: apiHistory 
-        }),
-      })
-
-      if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          console.error("Erreur API Chat:", response.status, errorData);
-          throw new Error("Erreur serveur");
-      }
-
-      const data = await response.json()
+      const data = await chatWithAI(finalMessageToSend, apiHistory);
       
       // 3. Traitement de la réponse
       if (data && data.text) {

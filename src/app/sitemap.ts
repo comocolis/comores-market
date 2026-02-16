@@ -1,11 +1,14 @@
 import { MetadataRoute } from 'next'
-import { createClient } from '@/utils/supabase/server' // <--- CORRECTION MAJEURE ICI
+import { createStaticClient } from '@/utils/supabase/static'
+// import { createClient } from '@/utils/supabase/server' // <--- CORRECTION MAJEURE ICI
+
+export const dynamic = 'force-static'
 
 const BASE_URL = 'https://comores-market.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Initialisation du client serveur
-  const supabase = await createClient()
+  const supabase = createStaticClient()
   
   // 2. Récupération optimisée
   // On ne récupère QUE les colonnes nécessaires (id, updated_at) pour ne pas saturer la mémoire
@@ -18,7 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // 3. Génération des URLs dynamiques (Produits)
   const productUrls: MetadataRoute.Sitemap = (products || []).map((product) => ({
-    url: `${BASE_URL}/annonce/${product.id}`,
+    url: `${BASE_URL}/annonce?id=${product.id}`,
     // Si updated_at est null, on utilise la date actuelle pour ne pas casser le format
     lastModified: new Date(product.updated_at || new Date()),
     changeFrequency: 'weekly',

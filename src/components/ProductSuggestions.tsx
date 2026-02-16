@@ -151,7 +151,7 @@ export default function ProductSuggestions({
           return (
             <Link 
               key={product.id} 
-              href={`/annonce/${product.id}`}
+              href={`/annonce?id=${product.id}`}
               className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                 isBoosted 
                   ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10' 

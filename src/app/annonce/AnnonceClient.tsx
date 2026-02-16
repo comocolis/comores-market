@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter, useParams } from 'next/navigation'
-import { useEffect, useState, useRef, TouchEvent, useCallback } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState, useRef, TouchEvent, useCallback, Suspense } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { 
@@ -11,7 +11,6 @@ import {
   X, Crown, Sparkles, MessageCircle, Clock,
   AlertTriangle, ShieldCheck,
   Grid, Camera,
-  // --- IMPORT DE TOUTES LES ICÔNES NÉCESSAIRES ---
   Calendar, Gauge, Fuel, Layers, Truck, Anchor, Ruler, Wrench, Maximize, Home, Shirt, Type, Gem, Watch, HardDrive, Zap, Music, Book, Plane, DollarSign, Utensils, GraduationCap, MapPin as MapPinIcon, Star, Briefcase, Lock, Scissors
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -84,24 +83,21 @@ const getOptimizedImage = (url: string | null, width = 800) => {
 };
 
 // ✅ FONCTION DE TRACKING GOOGLE ADS
-// À déclarer ici pour qu'elle soit accessible
 declare global {
   interface Window {
     gtag_report_conversion?: (url?: string) => boolean;
   }
 }
 
-interface AnnonceClientProps {
-  initialData?: any
-}
-
-export default function AnnonceClient({ initialData }: AnnonceClientProps) {
+function AnnonceContent() {
   const supabase = createClient()
   const router = useRouter()
-  const params = useParams()
+  // MODIFICATION: Use searchParams instead of params
+  const searchParams = useSearchParams()
+  const id = searchParams.get('id')
   
-  const [product, setProduct] = useState<any>(initialData)
-  const [loading, setLoading] = useState(!initialData)
+  const [product, setProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
   const [message, setMessage] = useState('')
@@ -134,6 +130,9 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
     : []
 
   const getData = useCallback(async () => {
+    if (!id) return;
+    
+    // Auth Check
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     
@@ -142,20 +141,23 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
-    if (!initialData) {
-      const { data: productData } = await supabase
+    // Fetch Product
+    const { data: productData, error } = await supabase
         .from('products')
         .select(`
           id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until, sub_category,
           profiles(full_name, avatar_url, is_pro, subscription_end_date, phone_number)
         `)
-        .eq('id', params.id) 
+        .eq('id', id)
         .single()
       
-      if (productData) setProduct(productData)
-      setLoading(false)
+    if (productData) {
+        setProduct(productData)
+    } else {
+        console.error("Product fetch error:", error);
     }
-  }, [supabase, params.id, initialData])
+    setLoading(false)
+  }, [supabase, id])
 
   useEffect(() => { getData() }, [getData])
 
@@ -315,8 +317,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   const handleWhatsAppClick = () => {
     if (!product.whatsapp_number) return;
     
-    // ✅ TRACKING CONVERSION GOOGLE ADS (Le nerf de la guerre)
-    // On appelle la fonction gtag_report_conversion si elle existe (injectée par le script Google)
+    // ✅ TRACKING CONVERSION GOOGLE ADS
     if (typeof window !== 'undefined' && window.gtag_report_conversion) {
       window.gtag_report_conversion();
     }
@@ -341,7 +342,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
   }
 
   if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={40} /></div>
-  if (!product) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Annonce introuvable.</div>
+  if (!product) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Annonce introuvable ou chargement...</div>
 
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
@@ -455,7 +456,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
 
             {/* PROFIL VENDEUR */}
             <div className="flex flex-col gap-4 mb-8">
-              <Link href={`/profil/${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
+              <Link href={`/profil?id=${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
                       <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
                           {seller?.avatar_url ? (
@@ -557,7 +558,7 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
                             return (
                                 <Link 
                                     key={suggested.id} 
-                                    href={`/annonce/${suggested.id}`}
+                                    href={`/annonce?id=${suggested.id}`} 
                                     className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md active:scale-[0.98] transition-all"
                                 >
                                     <div className="relative w-full aspect-square bg-gray-100">
@@ -669,4 +670,12 @@ export default function AnnonceClient({ initialData }: AnnonceClientProps) {
       </AnimatePresence>
     </div>
   )
+}
+
+export default function AnnonceClient() {
+    return (
+        <Suspense fallback={<div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={40} /></div>}>
+            <AnnonceContent />
+        </Suspense>
+    )
 }

@@ -1,11 +1,10 @@
-'use server'
 
-import { createClient } from '@/utils/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { createClient } from '@/utils/supabase/client'
+// import { revalidatePath } from 'next/cache' // Not supported client-side
 
 export async function submitContactForm(prevState: any, formData: FormData) {
-  // ✅ CORRECTION : On attend la création du client (await)
-  const supabase = await createClient()
+  // Client-side Supabase client
+  const supabase = createClient()
 
   const name = formData.get('name') as string
   const email = formData.get('email') as string
@@ -31,7 +30,7 @@ export async function submitContactForm(prevState: any, formData: FormData) {
         return { success: false, message: "Une erreur est survenue lors de l'envoi." }
     }
 
-    revalidatePath('/contact')
+    // revalidatePath('/contact')
     return { success: true, message: 'Message envoyé avec succès !' }
     
   } catch (error) {

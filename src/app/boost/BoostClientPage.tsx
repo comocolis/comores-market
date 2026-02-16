@@ -1,13 +1,14 @@
 'use client'
 
+
+
 import { createClient } from '@/utils/supabase/client'
-import { useRouter, useParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { 
-  ArrowLeft, Sparkles, Zap, Clock, ShieldCheck, 
+  ArrowLeft, Zap, Clock, ShieldCheck, 
   MessageCircle, Loader2, Smartphone, CreditCard, Mail
 } from 'lucide-react'
-import { motion } from 'framer-motion'
 import Image from 'next/image'
 // AJOUT : Import du tracking
 import { trackBoostPurchase, trackAdsConversion } from '@/lib/analytics'
@@ -15,9 +16,16 @@ import { trackBoostPurchase, trackAdsConversion } from '@/lib/analytics'
 export default function BoostLandingPage() {
   const supabase = createClient()
   const router = useRouter()
-  const params = useParams()
+  const searchParams = useSearchParams()
+  const params = { id: searchParams.get('id') }
   
-  const [product, setProduct] = useState<any>(null)
+  interface Product {
+    title: string
+    images: string
+    price: number
+  }
+
+  const [product, setProduct] = useState<Product | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
@@ -72,6 +80,7 @@ export default function BoostLandingPage() {
         <button 
           onClick={() => router.back()} 
           className="absolute top-14 left-4 bg-white/20 p-2 rounded-full text-white hover:bg-white/30 transition active:scale-90"
+          aria-label="Retour"
         >
           <ArrowLeft size={20} />
         </button>
@@ -185,7 +194,7 @@ export default function BoostLandingPage() {
                 </div>
                 <h3 className="font-black text-gray-900 mb-2">Bientôt disponible</h3>
                 <p className="text-gray-500 text-xs font-bold leading-relaxed">
-                  Le paiement par carte bancaire (Stripe/PayPal) arrive prochainement. Pour l'instant, merci d'utiliser Mvola.
+                  Le paiement par carte bancaire (Stripe/PayPal) arrive prochainement. Pour l&apos;instant, merci d&apos;utiliser Mvola.
                 </p>
             </div>
         )}

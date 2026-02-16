@@ -418,7 +418,7 @@ function AdminContent() {
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
                                 <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <Link href={`/annonce?id=${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )
