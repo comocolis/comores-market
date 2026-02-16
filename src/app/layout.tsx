@@ -6,12 +6,13 @@ import OfflineScreen from '@/components/OfflineScreen';
 import { Suspense, lazy } from "react"; 
 import Script from 'next/script';
 // ✅ OPTIMISATION 1 : Import de la police optimisée
-import { Inter } from "next/font/google";
+import { Inter } from "next/font/google"; // Removed duplicate imports to combine them
+import SplashScreen from '@/components/SplashScreen'; // Direct import for faster loading
 
 // Lazy load heavy components
 const InstallBanner = lazy(() => import('@/components/InstallBanner'));
 const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
-const SplashScreen = lazy(() => import('@/components/SplashScreen'));
+// Removed lazy SplashScreen
 const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
 const CookieBanner = lazy(() => import('@/components/CookieBanner'));
 
@@ -95,9 +96,35 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Suspense fallback={null}>
           <NativeFeatures />
         </Suspense>
-        <Suspense fallback={null}>
-          <SplashScreen />
-        </Suspense>
+        
+        {/* ✅ STATIC SPLASH SCREEN FOR INSTANT LOADING */}
+        <div id="static-splash" className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white">
+          <div className="relative flex flex-col items-center justify-center -mt-12">
+            <div className="relative w-36 h-36 mb-8">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Comores Market" className="w-full h-full object-contain" />
+            </div>
+            <div className="text-center space-y-6">
+              <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
+                Comores<span className="text-[#22c55e]">Market</span>
+              </h1>
+              <div className="w-24 h-1 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
+                <div className="absolute inset-0 bg-yellow-500 rounded-full animate-pulse" /> 
+              </div>
+            </div>
+          </div>
+          <div className="absolute bottom-16 left-0 w-full text-center px-8 z-10">
+             <p className="text-[10px] font-bold tracking-[0.3em] text-gray-200 uppercase mb-3">
+                Bienvenue sur
+             </p>
+             <p className="text-sm font-bold text-yellow-500 tracking-wide leading-relaxed font-sans italic">
+                &quot;Le marché comorien en ligne,<br/>pour les Comoriens.&quot;
+             </p>
+          </div>
+        </div>
+
+        {/* ✅ REACT SPLASH SCREEN LOGIC TO HANDLE REMOVAL */}
+        <SplashScreen />
 
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
           <Suspense fallback={null}>
