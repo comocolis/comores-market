@@ -10,8 +10,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         
         // ✅ CORRECTION ICI : On passe à la version 2 pour que Google accepte le fichier
-        versionCode 5
-        versionName "1.0.5" // (Optionnel : j'ai mis à jour le nom aussi)
+        versionCode 6
+        versionName "1.0.6" // (Optionnel : j'ai mis à jour le nom aussi)
         
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
