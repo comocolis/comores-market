@@ -62,41 +62,50 @@ export default function ComptePage() {
   })
 
   const getProfile = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) {
-      router.push('/auth')
-      return 
+    try {
+        const { data, error } = await supabase.auth.getUser()
+        if (error || !data?.user) {
+          router.push('/auth')
+          return 
+        }
+        
+        setUser(data.user) 
+
+        const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*') 
+            .eq('id', data.user.id)
+            .single()
+            
+        if (profileError && profileError.code !== 'PGRST116') {
+             console.error("Erreur profil:", profileError)
+        }
+
+        const { count } = await supabase
+            .from('notifications')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', data.user.id)
+            .eq('is_read', false)
+        
+        if (count) setUnreadCount(count)
+
+        if (profileData) {
+          setProfile(profileData)
+          setFormData({
+              full_name: profileData.full_name || '',
+              city: profileData.city || '',
+              island: profileData.island || 'Ngazidja',
+              phone_number: profileData.phone_number || '',
+              facebook_url: profileData.facebook_url || '',
+              instagram_url: profileData.instagram_url || '',
+              description: profileData.description || '' 
+          })
+        }
+    } catch (e) {
+        console.error("Erreur chargement:", e)
+    } finally {
+        setLoading(false)
     }
-    
-    setUser(user) 
-
-    const { data } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url, city, island, phone_number, facebook_url, instagram_url, description, is_pro, subscription_end_date, email, role') 
-        .eq('id', user.id)
-        .single()
-
-    const { count } = await supabase
-        .from('notifications')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
-    
-    if (count) setUnreadCount(count)
-
-    if (data) {
-      setProfile(data)
-      setFormData({
-          full_name: data.full_name || '',
-          city: data.city || '',
-          island: data.island || 'Ngazidja',
-          phone_number: data.phone_number || '',
-          facebook_url: data.facebook_url || '',
-          instagram_url: data.instagram_url || '',
-          description: data.description || '' 
-      })
-    }
-    setLoading(false)
   }, [router, supabase])
 
   useEffect(() => {
@@ -106,7 +115,7 @@ export default function ComptePage() {
   const handleSignOut = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
-    router.refresh()
+    // router.refresh() supprimé
   }
 
   const confirmDeleteAccount = async () => {

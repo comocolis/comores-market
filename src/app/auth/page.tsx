@@ -153,13 +153,13 @@ export default function AuthPage() {
 
         toast.success("Connexion réussie")
         router.push('/compte')
-        router.refresh()
+        // router.refresh() supprimé pour éviter l'erreur en mode Static Export
       }
 
       else if (view === 'forgot') {
         const origin = window.location.origin
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-            redirectTo: `${origin}/auth/callback?next=/compte/reset`,
+            redirectTo: `${origin}/compte/reset`, // Redirection directe vers la page client
         })
         
         if (error) throw error
@@ -172,7 +172,7 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithOtp({
             email: formData.email,
             options: {
-                emailRedirectTo: `${origin}/auth/callback?next=/compte`,
+                emailRedirectTo: `${origin}/compte`, // Redirection directe vers la page client
             }
         })
         
