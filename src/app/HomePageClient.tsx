@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { 
   MapPin, Search, Loader2, User, SlidersHorizontal,
-  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
