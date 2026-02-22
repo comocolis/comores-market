@@ -26,10 +26,8 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
-  output: 'export',
   // Optimisation des images
   images: {
-    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',
