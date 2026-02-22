@@ -25,10 +25,11 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: auto;
   
-  /* CORRECTION : Ajout de la propriété standard pour calmer l'erreur */
-  -webkit-text-size-adjust: 100%; /* Pour Safari/Chrome anciens */
-  -moz-text-size-adjust: 100%;    /* Pour Firefox anciens */
-  text-size-adjust: 100%;         /* Standard moderne */
+  /* CORRECTION : Utilisation des préfixes vendeurs pour la compatibilité */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* 2. UX NATIVE (Bloquer la sélection) */
@@ -55,15 +56,17 @@ input, textarea {
 }
 
 img {
-  /* CORRECTION : Ajout du préfixe Safari manquant pour img */
+  /* CORRECTION : Prévention complète de la sélection et du drag */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   
-  /* Gestion du Drag (Firefox ignore -webkit-user-drag mais pointer-events le gère) */
+  /* Gestion du Drag */
   -webkit-user-drag: none;
-  pointer-events: none;
+  -moz-user-drag: none; /* Non standard but harmless */
+  user-drag: none;      /* Non standard but harmless */
+  pointer-events: none; /* Ultimate fallback */
 }
 
 /* 3. STYLES SPÉCIFIQUES */
@@ -78,16 +81,15 @@ main {
 }
 
 /* Utilitaires Scrollbar */
-/* Navigateurs WebKit (Chrome, Safari) */
+/* Navigateurs WebKit (Chrome, Safari, Edge, Opera) */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
 
-/* Navigateurs Standards (Firefox) */
+/* Navigateurs Standards & Firefox */
 .scrollbar-hide {
-  -ms-overflow-style: none;
-  /* L'avertissement ici est normal : c'est la seule façon de le faire sur Firefox */
-  scrollbar-width: none; 
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
 }
 
 /* Utilitaires Safe Area (Tailwind v4) */

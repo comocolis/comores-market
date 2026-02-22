@@ -145,7 +145,7 @@ function AnnonceContent() {
     const { data: productData, error } = await supabase
         .from('products')
         .select(`
-          id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, boosted_until, sub_category,
+          id, title, price, description, images, location_island, location_city, created_at, user_id, whatsapp_number, sub_category,
           profiles(full_name, avatar_url, is_pro, subscription_end_date, phone_number)
         `)
         .eq('id', id)
@@ -201,7 +201,7 @@ function AnnonceContent() {
 
       const { data: allProducts } = await supabase
         .from('products')
-        .select('id, title, price, images, location_island, location_city, sub_category, boosted_until, created_at')
+        .select('id, title, price, images, location_island, location_city, sub_category, created_at')
         .neq('id', product.id) 
         .limit(50) 
 

@@ -39,7 +39,8 @@ export default function RecherchePage() {
       
       const { data } = await supabase
         .from('products_with_details') 
-        .select('*')
+        // Sélection explicite pour éviter les erreurs si la vue est cassée
+        .select('id, title, price, images, location_city, location_island, category_id, sub_category, is_pro') 
         .ilike('title', `%${query}%`)
         .order('is_pro', { ascending: false }) 
         .limit(20)
