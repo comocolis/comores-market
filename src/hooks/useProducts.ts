@@ -42,9 +42,9 @@ export function useProducts({
       let query = supabase
         .from('products_with_details')
         .select(
-          'id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category'
+          'id, title, price, images, location_island, location_city, is_pro, created_at, category_id, sub_category'
         )
-        .order('boosted_until', { ascending: false, nullsFirst: false })
+        //.order('boosted_until', { ascending: false, nullsFirst: false })
         .order('is_pro', { ascending: false })
         .order('created_at', { ascending: false })
         .range(start, end)

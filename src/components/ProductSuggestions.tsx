@@ -31,7 +31,7 @@ export default function ProductSuggestions({
       try {
         let query = supabase
           .from('products')
-          .select('id, title, price, images, location_island, location_city, sub_category, boosted_until, created_at, is_pro')
+          .select('id, title, price, images, location_island, location_city, sub_category, created_at, is_pro')
           .limit(50)
 
         // Exclude specific product if provided

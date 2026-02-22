@@ -134,7 +134,7 @@ export default function ProfileClient({ initialData, id }: ProfileClientProps) {
 
     if (profileId) {
         calculateResponseTime(profileId);
-        const { data: pds } = await supabase.from('products').select('*').eq('user_id', profileId).eq('status', 'active').order('created_at', { ascending: false })
+        const { data: pds } = await supabase.from('products').select('id, title, price, images, created_at, location_city, status, user_id').eq('user_id', profileId).eq('status', 'active').order('created_at', { ascending: false })
         setProducts((pds as ProductListing[]) || [])
         
         const { data: rvs } = await supabase.from('reviews').select('*, reviewer:profiles(*)').eq('target_id', profileId).order('created_at', { ascending: false })

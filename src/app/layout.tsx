@@ -66,9 +66,9 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="fr" suppressHydrationWarning>
+    <html lang="fr" suppressHydrationWarning translate="no">
       {/* ✅ APPLICATION DE LA POLICE SUR LE BODY */}
-      <body className={`${inter.className} font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto`}>
+      <body className={`${inter.className} font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto notranslate`}>
         
         {/* ✅ GOOGLE TAGS (ANALYTICS + ADS) COMBINÉS */}
         {/* Chargement de la librairie globale */}

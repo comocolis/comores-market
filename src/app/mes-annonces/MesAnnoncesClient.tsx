@@ -32,7 +32,8 @@ export default function MesAnnoncesClient() {
 
       const { data: productsData } = await supabase
         .from('products')
-        .select('*')
+        // select explicite sans boosted_until
+        .select('id, title, price, images, location_city, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
       

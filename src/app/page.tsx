@@ -135,14 +135,14 @@ export default function HomePage() {
 
     let query = supabase
       .from('products_with_details')
-      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+      .select('id, title, price, images, location_island, location_city, is_pro, created_at, category_id, sub_category')
       // ✅ LOGIQUE DE PRIORITÉ STRICTE
       // 1. Les Boosts actifs (dates futures) passent devant tout le monde.
       // NOTE : Assurez-vous que votre base de données met à NULL les boosts expirés, ou qu'ils sont des dates passées.
-      .order('boosted_until', { ascending: false, nullsFirst: false }) 
+      //.order('boosted_until', { ascending: false, nullsFirst: false }) 
       // 2. Les comptes PROS passent ensuite.
       .order('is_pro', { ascending: false })
-      // 3. Enfin, le tri chronologique classique.
+      // Enfin, le tri chronologique classique.
       .order('created_at', { ascending: false })
       .range(start, end)
       
