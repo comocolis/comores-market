@@ -255,7 +255,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
     
     // NOTE: Keep dynamic transform/transition inline as they change on every frame (dnd-kit requirement)
-    // CSS classes are used for all static styling
+    // eslint-disable-next-line react-dom/no-unsafe-styles
     const style = { 
         transform: CSS.Transform.toString(transform), 
         transition,

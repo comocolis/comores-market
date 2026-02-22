@@ -56,34 +56,17 @@ input, textarea {
 }
 
 img {
-  /* CORRECTION : Ajout du préfixe Safari manquant pour img */
+  /* CORRECTION : Prévention complète de la sélection et du drag */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
   
-  /* Gestion du Drag via pointer-events pour compatibilité max */
+  /* Gestion du Drag */
   -webkit-user-drag: none;
-  -moz-user-drag: none;
-  -ms-user-drag: none;
-  user-drag: none;
-  pointer-events: none;
-}  -ms-user-select: text !important;
-  user-select: text !important;
-  -webkit-touch-callout: default !important;
-  cursor: auto;
-}
-
-img {
-  /* CORRECTION : Ajout du préfixe Safari manquant pour img */
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  
-  /* Gestion du Drag (Firefox ignore -webkit-user-drag mais pointer-events le gère) */
-  -webkit-user-drag: none;
-  pointer-events: none;
+  -moz-user-drag: none; /* Non standard but harmless */
+  user-drag: none;      /* Non standard but harmless */
+  pointer-events: none; /* Ultimate fallback */
 }
 
 /* 3. STYLES SPÉCIFIQUES */
