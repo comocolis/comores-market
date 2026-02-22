@@ -254,7 +254,8 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
     
-    // Only keep dynamic transform/transition in style (required by dnd-kit library)
+    // NOTE: Keep dynamic transform/transition inline as they change on every frame (dnd-kit requirement)
+    // CSS classes are used for all static styling
     const style = { 
         transform: CSS.Transform.toString(transform), 
         transition,
