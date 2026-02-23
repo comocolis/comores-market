@@ -377,14 +377,15 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
         userId={userId} 
       />
 
-      <FilterModal 
-        isOpen={showFilters} 
-        onClose={() => setShowFilters(false)} 
-        onApply={(min, max) => {
-            setPriceMin(min)
-            setPriceMax(max)
-        }}
-      />
+      {showFilters && (
+        <FilterModal 
+          onClose={() => setShowFilters(false)} 
+          priceMin={priceMin}
+          setPriceMin={setPriceMin}
+          priceMax={priceMax}
+          setPriceMax={setPriceMax}
+        />
+      )}
     </div>
   )
 }
