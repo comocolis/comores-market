@@ -11,7 +11,7 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 // AJOUT : Import du tracking
-import { trackBoostPurchase, trackAdsConversion } from '@/lib/analytics'
+import { trackBoostPurchase, trackAdsConversion, setEnhancedConversionData } from '@/lib/analytics'
 
 export default function BoostLandingPage() {
   const supabase = createClient()
@@ -48,6 +48,10 @@ export default function BoostLandingPage() {
   }, [params.id, supabase])
 
   const handleConfirmPayment = () => {
+    // 0. Google Ads Enhanced Conversions
+    // Si on avait l'utilisateur (ex: const { user } = useAuth()), on pourrait faire :
+    // setEnhancedConversionData({ email: user.email });
+
     // 1. GA4 : On enregistre l'achat du boost
     trackBoostPurchase(params.id as string, '24h_visibility', 250);
 

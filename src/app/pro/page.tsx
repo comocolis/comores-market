@@ -8,7 +8,7 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { toast } from 'sonner'
 // AJOUT : Import du tracking
-import { trackProSubscription, trackAdsConversion } from '@/lib/analytics'
+import { trackProSubscription, trackAdsConversion, setEnhancedConversionData } from '@/lib/analytics'
 
 export default function ProPage() {
   const supabase = createClient()
@@ -49,6 +49,15 @@ export default function ProPage() {
   const handlePaymentClick = () => {
       const price = selectedPlan === 'monthly' ? 2500 : 25000;
       const duration = selectedPlan === 'monthly' ? '1 mois' : '1 an';
+
+      // 0. Configuration Google Ads Enhanced Conversion (Données utilisateur)
+      // Si l'utilisateur est connecté, on envoie son email pour améliorer le suivi
+      if (user?.email) {
+          setEnhancedConversionData({
+              email: user.email,
+              phone_number: user.phone // Si disponible dans l'objet user
+          });
+      }
 
       // 1. GA4 : On enregistre l'achat (ou l'intention d'achat forte)
       trackProSubscription(price, duration);

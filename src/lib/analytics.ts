@@ -49,6 +49,33 @@ export function trackAdsConversion(conversionLabel: string, value?: number) {
   }
 }
 
+/**
+ * Configure Enhanced Conversions data (email, phone, address).
+ * Call this BEFORE trackAdsConversion.
+ * Google will automatically normalize and hash this data.
+ */
+export function setEnhancedConversionData(userData: {
+  email?: string;
+  phone_number?: string; 
+  address?: {
+    first_name?: string;
+    last_name?: string;
+    street?: string;
+    city?: string;
+    region?: string;
+    postal_code?: string;
+    country?: string;
+  }
+}) {
+  if (typeof window === 'undefined' || !window.gtag) return;
+
+  window.gtag('set', 'user_data', userData);
+
+  if (process.env.NODE_ENV === 'development') {
+    console.log(`🔒 Enhanced Conversion Data Set`, userData);
+  }
+}
+
 // --- ÉVÉNEMENTS E-COMMERCE & BUSINESS ---
 
 /**
