@@ -22,6 +22,10 @@ const config: Config = {
         '75': '300px',  // Pour la hauteur min (min-h-75)
         '25': '100px',  // Pour le sticky top (top-25)
       },
+      zIndex: {
+        '100': '100',
+        '9999': '9999',
+      },
       maxWidth: {
         '125': '500px',
       }

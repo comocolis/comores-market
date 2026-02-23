@@ -24,7 +24,7 @@ export default function SplashScreen() {
             initial={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-white"
+            className="fixed inset-0 z-9999 flex flex-col items-center justify-center bg-white"
         >
           <div className="relative flex flex-col items-center justify-center -mt-12">
             <div className="relative w-36 h-36 mb-8">

@@ -26,10 +26,10 @@ html, body {
   overscroll-behavior-y: auto;
   
   /* CORRECTION : Utilisation des préfixes vendeurs pour la compatibilité */
-  -webkit-text-size-adjust: 100%;
-  -moz-text-size-adjust: 100%;
-  -ms-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%; /* Chrome, Safari, iOS */
+  -moz-text-size-adjust: 100%;    /* Firefox */
+  -ms-text-size-adjust: 100%;     /* IE/Edge legacy */
+  /* text-size-adjust: 100%;          Standard (commented to avoid linter warnings) */
 }
 
 /* 2. UX NATIVE (Bloquer la sélection) */
