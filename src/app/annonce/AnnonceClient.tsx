@@ -23,8 +23,6 @@ import {
   trackMessageSent, 
   trackEvent 
 } from '@/lib/analytics'
-import supabaseLoader from '@/utils/supabase/image-loader'
-
 // --- DICTIONNAIRE DES ICÔNES ---
 const ICON_MAP: Record<string, any> = {
     'Année': Calendar,
@@ -391,14 +389,12 @@ function AnnonceContent() {
       {/* GALERIE PHOTO */}
       <div className="relative w-full h-[55vh] bg-gray-900 group cursor-pointer shadow-inner" onClick={() => setLightboxIndex(selectedImageIndex)}>
         <Image 
-          loader={images[selectedImageIndex]?.includes('supabase.co') ? supabaseLoader : undefined}
           src={getOptimizedImage(images[selectedImageIndex], 1000)} 
           alt={product.title} 
           fill 
           className="object-cover opacity-90 transition duration-700" 
           priority={true} 
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 800px"
-          quality={80}
         />
         <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent" />
         
@@ -415,14 +411,12 @@ function AnnonceContent() {
                   aria-label={`Voir l'image ${i + 1}`}
                   className={`w-12 h-12 rounded-xl overflow-hidden border-2 shrink-0 transition-all duration-300 ${selectedImageIndex === i ? 'border-brand scale-110 shadow-xl' : 'border-white/40 opacity-50'}`}>
                     <Image 
-                        loader={img.includes('supabase.co') ? supabaseLoader : undefined}
                         src={getOptimizedImage(img, 150)} 
                         alt="" 
                         width={48} 
                         height={48} 
                         className="object-cover w-full h-full"
                         sizes="48px"
-                        quality={60}
                     />
                 </button>
             ))}
