@@ -21,8 +21,6 @@ const config: Config = {
         '17.5': '70px', // Pour les catégories (min-w-17.5)
         '75': '300px',  // Pour la hauteur min (min-h-75)
         '25': '100px',  // Pour le sticky top (top-25)
-        '27': '108px',  // Fix sticky top-27
-        '44.5': '178px', // Fix sticky top-44.5
       },
       zIndex: {
         '100': '100',

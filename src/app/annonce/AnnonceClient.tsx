@@ -612,7 +612,7 @@ function AnnonceContent() {
       <AnimatePresence>
         {lightboxIndex !== null && (
           <div 
-            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-[1000] bg-black animate-in fade-in flex justify-center"
+            className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1000 bg-black animate-in fade-in flex justify-center"
             onTouchStart={onTouchStart} 
             onTouchMove={onTouchMove} 
             onTouchEnd={onTouchEndAction}
@@ -621,7 +621,7 @@ function AnnonceContent() {
                   <button 
                     onClick={() => setLightboxIndex(null)}
                     aria-label="Fermer le mode plein écran"
-                    className="absolute top-8 right-6 z-[1020] p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
+                    className="absolute top-8 right-6 z-1020 p-3 bg-black/50 backdrop-blur-md text-white rounded-full hover:bg-black/70 transition shadow-lg"
                   >
                     <X size={24} />
                   </button>
@@ -631,14 +631,12 @@ function AnnonceContent() {
                         wrapperStyle={{ width: "100%", height: "100%" }} 
                         contentStyle={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}
                     >
-                      <Image 
-                        loader={images[lightboxIndex]?.includes('supabase.co') ? supabaseLoader : undefined}
+                      <img 
                         src={getOptimizedImage(images[lightboxIndex], 1200)} 
                         alt={product?.title || "Product image"} 
-                        fill
-                        className="object-contain" // Use fill + object-contain instead of raw img for optimization
+                        className="max-w-full max-h-full object-contain" 
                         onError={(e) => {
-                          // e.currentTarget.src = '/placeholder.png'; // Image component handles this differently usually
+                          e.currentTarget.src = '/placeholder.png';
                         }}
                       />
                     </TransformComponent>
@@ -649,7 +647,7 @@ function AnnonceContent() {
                           <button 
                             onClick={prevImage}
                             aria-label="Image précédente"
-                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                            className="absolute top-1/2 left-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronLeft size={32} strokeWidth={3} />
                           </button>
@@ -657,7 +655,7 @@ function AnnonceContent() {
                           <button 
                             onClick={nextImage}
                             aria-label="Image suivante"
-                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-[1010] active:scale-75 transition shadow-lg"
+                            className="absolute top-1/2 right-4 -translate-y-1/2 p-3 bg-black/50 text-white rounded-full backdrop-blur-sm hover:bg-black/70 z-1010 active:scale-75 transition shadow-lg"
                           >
                             <ChevronRightIcon size={32} strokeWidth={3} />
                           </button>
@@ -668,7 +666,7 @@ function AnnonceContent() {
         )}
 
         {showReportModal && (
-          <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-[1100] bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
+          <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
               <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
                   <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
                   <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
