@@ -130,7 +130,10 @@ function AnnonceContent() {
     : []
 
   const getData = useCallback(async () => {
-    if (!id) return;
+    if (!id) {
+        setLoading(false)
+        return
+    }
     
     // Auth Check
     const { data: { user } } = await supabase.auth.getUser()
@@ -153,6 +156,9 @@ function AnnonceContent() {
       
     if (productData) {
         setProduct(productData)
+    } else if (!productData && !error) {
+        // ID not found but no error (e.g. invalid status)
+        setProduct(null)
     } else {
         console.error("Product fetch error:", error);
     }

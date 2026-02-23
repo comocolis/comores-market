@@ -25,7 +25,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://comores-market.com'),
-  alternates: { canonical: '/' },
+  alternates: { 
+    canonical: './',
+  },
   title: { default: "Comores Market - Achat et Vente aux Comores", template: "%s | Comores Market" },
   description: "La première marketplace des Comores. Achetez et vendez voitures, immobilier, téléphones et bien plus.",
   keywords: ['Comores', 'Vente', 'Achat', 'Voiture', 'Immobilier', 'Occasion', 'Moroni', 'Mayotte', 'Annonces'],

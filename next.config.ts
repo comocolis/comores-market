@@ -26,6 +26,9 @@ const withPWA = require('next-pwa')({
 });
 
 const nextConfig: NextConfig = {
+  // Optimisation SEO : Uniformisation des URLs
+  trailingSlash: false,
+  
   // Optimisation des images
   images: {
     remotePatterns: [
