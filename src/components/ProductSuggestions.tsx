@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Sparkles, MapPin, Crown } from 'lucide-react'
 import { getFirstProductImage } from '@/utils/parseImages'
+import supabaseLoader from '@/utils/supabase/image-loader'
 
 interface ProductSuggestionsProps {
   userId?: string | null
@@ -163,11 +164,13 @@ export default function ProductSuggestions({
               <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
                 {img && (
                   <Image 
+                    loader={img.includes('supabase.co') ? supabaseLoader : undefined}
                     src={img} 
                     alt={product.title} 
                     fill 
-                    sizes="50vw" 
+                    sizes="(max-width: 640px) 50vw, 33vw" 
                     className="object-cover transition duration-500 group-hover:scale-110"
+                    quality={60}
                   />
                 )}
                 

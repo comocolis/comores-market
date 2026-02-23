@@ -14,6 +14,7 @@ import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analyt
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import ProductSuggestions from '@/components/ProductSuggestions'
+import supabaseLoader from '@/utils/supabase/image-loader'
 import dynamic from 'next/dynamic'
 
 // ✅ Lazy Loading de la modale Filtres
@@ -310,6 +311,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                 >
                   <div className="relative aspect-square bg-gray-100 overflow-hidden">
                     <Image 
+                      loader={img.includes('supabase.co') ? supabaseLoader : undefined}
                       src={img} 
                       alt={product.title} 
                       fill 
@@ -317,6 +319,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                       // Loading priority for top items
                       priority={index < 4}
+                      quality={75}
                     />
                     
                     {/* BADGES */}
