@@ -40,8 +40,13 @@ export default function SplashScreen() {
               <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
                 Comores<span className="text-[#22c55e]">Market</span>
               </h1>
-              <div className="w-24 h-1 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
-                <div className="absolute inset-0 bg-yellow-500 rounded-full w-full animate-pulse" /> 
+              <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
+                <motion.div 
+                  initial={{ width: "0%" }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 2, ease: "easeInOut" }}
+                  className="h-full bg-yellow-500 rounded-full" 
+                />
               </div>
             </div>
           </div>
