@@ -337,7 +337,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                     </div>
                     
                     <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-1 rounded-lg font-bold uppercase flex items-center gap-1">
-                        <MapPin size={10} /> {product.location_city}
+                        {product.location_island}
                     </div>
                   </div>
                   
@@ -345,10 +345,13 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                     <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
                         {product.title}
                     </h3>
-                    <div className="mt-auto flex items-center justify-between">
+                    <div className="mt-auto flex flex-col gap-1">
                         <span className="text-brand font-black text-base tracking-tight">
                             {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
                         </span>
+                        <div className="flex items-center gap-1 text-gray-500 text-[10px] uppercase font-bold tracking-wide">
+                            <MapPin size={10} className="text-gray-400" /> {product.location_city}
+                        </div>
                     </div>
                   </div>
                 </Link>
