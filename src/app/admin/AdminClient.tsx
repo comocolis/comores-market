@@ -100,7 +100,27 @@ const [usersError, setUsersError] = useState('')
                 setProductsError(errProducts.message);
                 toast.error(`Erreur Produits: ${errProducts.message}`)
             }
-            else if (items) setProducts(items)
+            else if (items) {
+                // Client-side sorting: Boosted > PRO > Date
+                const sortedItems = items.sort((a: any, b: any) => {
+                    const now = new Date().getTime()
+                    const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > now
+                    const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > now
+                    
+                    if (aBoost && !bBoost) return -1
+                    if (!aBoost && bBoost) return 1
+                    
+                    if (aBoost && bBoost) {
+                        return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
+                    }
+
+                    if (a.is_pro && !b.is_pro) return -1
+                    if (!a.is_pro && b.is_pro) return 1
+
+                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                })
+                setProducts(sortedItems)
+            }
 
             // OTHERS
             const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
@@ -199,13 +219,49 @@ const [usersError, setUsersError] = useState('')
 
   const toggleBoost = async (productId: string, isCurrentlyBoosted: boolean) => {
     let newDate = null
+    const now = new Date()
+    
     if (!isCurrentlyBoosted) {
-        const expiration = new Date()
-        expiration.setHours(expiration.getHours() + 24)
-        newDate = expiration.toISOString()
+        // Boost for 24h
+        now.setHours(now.getHours() + 24)
+        newDate = now.toISOString()
     }
+
     const { error } = await supabase.from('products').update({ boosted_until: newDate }).eq('id', productId)
-    if (!error) { toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h"); fetchData() }
+    
+    if (!error) { 
+        toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h")
+        // Update local state instead of full fetch for smoothness
+        setProducts(prev => {
+            const updated = prev.map(p => p.id === productId ? { ...p, boosted_until: newDate } : p)
+            // Re-sort
+            return updated.sort((a, b) => {
+                const nowTime = new Date().getTime()
+                const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > nowTime
+                const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > nowTime
+                
+                if (aBoost && !bBoost) return -1
+                if (!aBoost && bBoost) return 1
+                
+                if (aBoost && bBoost) {
+                    return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
+                }
+
+                if (a.is_pro && !b.is_pro) return -1
+                if (!a.is_pro && b.is_pro) return 1
+
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            })
+        })
+        // Update stats
+        setStats(prev => ({
+            ...prev,
+            boosted: isCurrentlyBoosted ? Math.max(0, prev.boosted - 1) : prev.boosted + 1
+        }))
+    } else {
+        toast.error("Erreur mise à jour boost")
+        console.error(error)
+    }
   }
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
