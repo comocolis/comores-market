@@ -81,37 +81,56 @@ function AdminContent() {
     checkAccess()
   }, [router, supabase])
 
-  const fetchData = async () => {
-    const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)')
-        .order('is_pro', { ascending: false })
-        .order('created_at', { ascending: false })
-    const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
-    const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false })
-    const { data: contactsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
+const [usersError, setUsersError] = useState('')
+    const [productsError, setProductsError] = useState('')
 
-    if (profiles && items) {
-        setUsers(profiles)
-        setProducts(items)
-        setReports(reportsData || [])
-        setReviewsList(reviewsData || [])
-        setContactMessages(contactsData || [])
-        
-        const now = new Date()
-        setStats({
-            users: profiles.length,
-            products: items.length,
-            pro: profiles.filter((p: any) => p.is_pro).length,
-            banned: profiles.filter((p: any) => p.is_banned).length,
-            reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
-            reviews: reviewsData?.length || 0,
-            boosted: items.filter((p: any) => p.boosted_until && new Date(p.boosted_until) > now).length,
-            lowQuality: items.filter((p: any) => p.quality_score > 0 && p.quality_score < 5).length,
-            admins: profiles.filter((p: any) => p.role === 'admin').length,
-            messages: contactsData?.length || 0 
-        })
+    const fetchData = async () => {
+        try {
+            // USERS
+            const { data: profiles, error: errProfiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
+            if (errProfiles) { console.error(errProfiles); setUsersError(errProfiles.message) }
+            else if (profiles) setUsers(profiles)
+
+            // PRODUCTS
+            const { data: items, error: errProducts } = await supabase.from('products').select('*, profiles(full_name, email)')
+                .order('created_at', { ascending: false })
+            
+            if (errProducts) { 
+                console.error(errProducts); 
+                setProductsError(errProducts.message);
+                toast.error(`Erreur Produits: ${errProducts.message}`)
+            }
+            else if (items) setProducts(items)
+
+            // OTHERS
+            const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
+            const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false })
+            const { data: contactsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
+            
+            if (reportsData) setReports(reportsData)
+            if (reviewsData) setReviewsList(reviewsData)
+            if (contactsData) setContactMessages(contactsData)
+            
+            // STATS CALCULATION
+            if (profiles && items) {
+                const now = new Date()
+                setStats({
+                    users: profiles.length,
+                    products: items.length,
+                    pro: profiles.filter((p: any) => p.is_pro).length,
+                    banned: profiles.filter((p: any) => p.is_banned).length,
+                    reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
+                    reviews: reviewsData?.length || 0,
+                    boosted: items.filter((p: any) => p.boosted_until && new Date(p.boosted_until) > now).length,
+                    lowQuality: items.filter((p: any) => p.quality_score > 0 && p.quality_score < 5).length,
+                    admins: profiles.filter((p: any) => p.role === 'admin').length,
+                    messages: contactsData?.length || 0
+                })
+            }
+        } catch (e) {
+            console.error("Global fetch error:", e)
+        }
     }
-  }
 
   const askConfirm = (title: string, message: string, action: () => void, isDanger: boolean = true) => {
       setConfirmModal({ isOpen: true, title, message, action, isDanger })
