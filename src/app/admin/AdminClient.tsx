@@ -81,76 +81,66 @@ function AdminContent() {
     checkAccess()
   }, [router, supabase])
 
-const [usersError, setUsersError] = useState('')
-    const [productsError, setProductsError] = useState('')
+  const fetchData = async () => {
+    try {
+        // Parallel fetching
+        const [profilesRes, productsRes, reportsRes, reviewsRes, messagesRes] = await Promise.all([
+            supabase.from('profiles').select('*').order('created_at', { ascending: false }),
+            supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false }),
+            supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false }),
+            supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false }),
+            supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
+        ])
 
-    const fetchData = async () => {
-        try {
-            // USERS
-            const { data: profiles, error: errProfiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-            if (errProfiles) { console.error(errProfiles); setUsersError(errProfiles.message) }
-            else if (profiles) setUsers(profiles)
+        if (profilesRes.data) setUsers(profilesRes.data)
+        else console.error("Users error:", profilesRes.error)
 
-            // PRODUCTS
-            const { data: items, error: errProducts } = await supabase.from('products').select('*, profiles(full_name, email)')
-                .order('created_at', { ascending: false })
-            
-            if (errProducts) { 
-                console.error(errProducts); 
-                setProductsError(errProducts.message);
-                toast.error(`Erreur Produits: ${errProducts.message}`)
-            }
-            else if (items) {
-                // Client-side sorting: Boosted > PRO > Date
-                const sortedItems = items.sort((a: any, b: any) => {
-                    const now = new Date().getTime()
-                    const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > now
-                    const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > now
-                    
-                    if (aBoost && !bBoost) return -1
-                    if (!aBoost && bBoost) return 1
-                    
-                    if (aBoost && bBoost) {
-                        return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
-                    }
+        if (productsRes.data) {
+            // Client-side Sort: Boosted > PRO > Date
+            const sorted = productsRes.data.sort((a: any, b: any) => {
+                const now = new Date().getTime()
+                const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > now
+                const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > now
+                
+                if (aBoost && !bBoost) return -1
+                if (!aBoost && bBoost) return 1
+                if (aBoost && bBoost) return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
 
-                    if (a.is_pro && !b.is_pro) return -1
-                    if (!a.is_pro && b.is_pro) return 1
+                if (a.is_pro && !b.is_pro) return -1
+                if (!a.is_pro && b.is_pro) return 1
 
-                    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-                })
-                setProducts(sortedItems)
-            }
-
-            // OTHERS
-            const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
-            const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false })
-            const { data: contactsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })
-            
-            if (reportsData) setReports(reportsData)
-            if (reviewsData) setReviewsList(reviewsData)
-            if (contactsData) setContactMessages(contactsData)
-            
-            // STATS CALCULATION
-            if (profiles && items) {
-                const now = new Date()
-                setStats({
-                    users: profiles.length,
-                    products: items.length,
-                    pro: profiles.filter((p: any) => p.is_pro).length,
-                    banned: profiles.filter((p: any) => p.is_banned).length,
-                    reports: reportsData?.filter((r: any) => r.status === 'pending').length || 0,
-                    reviews: reviewsData?.length || 0,
-                    boosted: items.filter((p: any) => p.boosted_until && new Date(p.boosted_until) > now).length,
-                    lowQuality: items.filter((p: any) => p.quality_score > 0 && p.quality_score < 5).length,
-                    admins: profiles.filter((p: any) => p.role === 'admin').length,
-                    messages: contactsData?.length || 0
-                })
-            }
-        } catch (e) {
-            console.error("Global fetch error:", e)
+                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            })
+            setProducts(sorted)
+        } else {
+            console.error("Products error:", productsRes.error)
+            toast.error("Erreur chargement produits")
         }
+
+        if (reportsRes.data) setReports(reportsRes.data)
+        if (reviewsRes.data) setReviewsList(reviewsRes.data)
+        if (messagesRes.data) setContactMessages(messagesRes.data)
+
+        // STATS
+        if (profilesRes.data && productsRes.data) {
+             const now = new Date()
+             setStats({
+                users: profilesRes.data.length,
+                products: productsRes.data.length,
+                pro: profilesRes.data.filter((p: any) => p.is_pro).length,
+                banned: profilesRes.data.filter((p: any) => p.is_banned).length,
+                reports: reportsRes.data?.filter((r: any) => r.status === 'pending').length || 0,
+                reviews: reviewsRes.data?.length || 0,
+                boosted: productsRes.data.filter((p: any) => p.boosted_until && new Date(p.boosted_until) > now).length,
+                lowQuality: productsRes.data.filter((p: any) => p.quality_score > 0 && p.quality_score < 5).length,
+                admins: profilesRes.data.filter((p: any) => p.role === 'admin').length,
+                messages: messagesRes.data?.length || 0 
+            })
+        }
+    } catch (e) {
+        console.error("Global fetch error:", e)
     }
+  }
 
   const askConfirm = (title: string, message: string, action: () => void, isDanger: boolean = true) => {
       setConfirmModal({ isOpen: true, title, message, action, isDanger })
@@ -219,49 +209,13 @@ const [usersError, setUsersError] = useState('')
 
   const toggleBoost = async (productId: string, isCurrentlyBoosted: boolean) => {
     let newDate = null
-    const now = new Date()
-    
     if (!isCurrentlyBoosted) {
-        // Boost for 24h
-        now.setHours(now.getHours() + 24)
-        newDate = now.toISOString()
+        const expiration = new Date()
+        expiration.setHours(expiration.getHours() + 24)
+        newDate = expiration.toISOString()
     }
-
     const { error } = await supabase.from('products').update({ boosted_until: newDate }).eq('id', productId)
-    
-    if (!error) { 
-        toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h")
-        // Update local state instead of full fetch for smoothness
-        setProducts(prev => {
-            const updated = prev.map(p => p.id === productId ? { ...p, boosted_until: newDate } : p)
-            // Re-sort
-            return updated.sort((a, b) => {
-                const nowTime = new Date().getTime()
-                const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > nowTime
-                const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > nowTime
-                
-                if (aBoost && !bBoost) return -1
-                if (!aBoost && bBoost) return 1
-                
-                if (aBoost && bBoost) {
-                    return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
-                }
-
-                if (a.is_pro && !b.is_pro) return -1
-                if (!a.is_pro && b.is_pro) return 1
-
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            })
-        })
-        // Update stats
-        setStats(prev => ({
-            ...prev,
-            boosted: isCurrentlyBoosted ? Math.max(0, prev.boosted - 1) : prev.boosted + 1
-        }))
-    } else {
-        toast.error("Erreur mise à jour boost")
-        console.error(error)
-    }
+    if (!error) { toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h"); fetchData() }
   }
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
@@ -495,7 +449,7 @@ const [usersError, setUsersError] = useState('')
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
                                 <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce?id=${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )

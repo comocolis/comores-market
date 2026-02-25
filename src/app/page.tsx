@@ -13,8 +13,8 @@ export default async function HomePage() {
   // Initial fetch on server for SEO & Speed
   const { data: products } = await supabase
     .from('products_with_details')
-    .select('id, title, price, images, location_island, location_city, is_pro, created_at, category_id, sub_category')
-    //.order('boosted_until', { ascending: false, nullsFirst: false }) // TODO: Re-enable when DB fixed
+    .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+    .order('boosted_until', { ascending: false, nullsFirst: false })
     .order('is_pro', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(12) // ITEMS_PER_PAGE
