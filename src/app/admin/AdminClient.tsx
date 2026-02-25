@@ -83,7 +83,10 @@ function AdminContent() {
 
   const fetchData = async () => {
     const { data: profiles } = await supabase.from('profiles').select('*').order('created_at', { ascending: false })
-    const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false })
+    const { data: items } = await supabase.from('products').select('*, profiles(full_name, email)')
+        .order('boosted_until', { ascending: false, nullsFirst: false })
+        .order('is_pro', { ascending: false })
+        .order('created_at', { ascending: false })
     const { data: reportsData } = await supabase.from('reports').select('*, product:products(*), reporter:profiles(*)').order('created_at', { ascending: false })
     const { data: reviewsData } = await supabase.from('reviews').select('*, reviewer:profiles!reviewer_id(full_name, avatar_url), target:profiles!target_id(full_name)').order('created_at', { ascending: false })
     const { data: contactsData } = await supabase.from('contact_messages').select('*').order('created_at', { ascending: false })

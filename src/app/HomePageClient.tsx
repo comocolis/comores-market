@@ -31,7 +31,7 @@ export interface Product {
   location_island: string
   location_city: string
   is_pro: boolean
-  // boosted_until: string | null  <-- REMOVED UNTIL DB FIX
+  boosted_until: string | null
   created_at: string
   category_id: number
   sub_category: string
@@ -147,7 +147,8 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
 
     let query = supabase
       .from('products_with_details')
-      .select('id, title, price, images, location_island, location_city, is_pro, created_at, category_id, sub_category')
+      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+      .order('boosted_until', { ascending: false, nullsFirst: false })
       .order('is_pro', { ascending: false })
       .order('created_at', { ascending: false })
       .range(start, end)
@@ -300,7 +301,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                 img = product.images || '/placeholder.png'
               }
 
-              // const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date(); 
+              const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date(); 
 
               return (
                 <Link 
@@ -322,13 +323,11 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                     
                     {/* BADGES */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-                        {/* 
                         {isBoosted && (
                             <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-widest">
-                                <Sparkles size={10} fill="currentColor" /> Vedette
+                                <Sparkles size={10} fill="currentColor" /> VEDETTE
                             </span>
                         )}
-                        */}
                         {product.is_pro && (
                             <span className="bg-black/80 backdrop-blur-md text-white border border-white/20 text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-widest">
                                 <Crown size={10} className="text-amber-400 fill-amber-400" /> PRO
