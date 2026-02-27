@@ -13,6 +13,24 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
+// Extracted sorting logic for reuse
+const sortProducts = (items: any[]) => {
+  return [...items].sort((a: any, b: any) => {
+    const now = new Date().getTime()
+    const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > now
+    const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > now
+    
+    if (aBoost && !bBoost) return -1
+    if (!aBoost && bBoost) return 1
+    if (aBoost && bBoost) return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
+
+    if (a.is_pro && !b.is_pro) return -1
+    if (!a.is_pro && b.is_pro) return 1
+
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+}
+
 function AdminContent() {
   const supabase = createClient()
   const router = useRouter()
@@ -97,21 +115,7 @@ function AdminContent() {
 
         if (productsRes.data) {
             // Client-side Sort: Boosted > PRO > Date
-            const sorted = productsRes.data.sort((a: any, b: any) => {
-                const now = new Date().getTime()
-                const aBoost = a.boosted_until && new Date(a.boosted_until).getTime() > now
-                const bBoost = b.boosted_until && new Date(b.boosted_until).getTime() > now
-                
-                if (aBoost && !bBoost) return -1
-                if (!aBoost && bBoost) return 1
-                if (aBoost && bBoost) return new Date(b.boosted_until).getTime() - new Date(a.boosted_until).getTime()
-
-                if (a.is_pro && !b.is_pro) return -1
-                if (!a.is_pro && b.is_pro) return 1
-
-                return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-            })
-            setProducts(sorted)
+            setProducts(sortProducts(productsRes.data))
         } else {
             console.error("Products error:", productsRes.error)
             toast.error("Erreur chargement produits")
@@ -209,14 +213,28 @@ function AdminContent() {
 
   const toggleBoost = async (productId: string, isCurrentlyBoosted: boolean) => {
     let newDate = null
+    const now = new Date()
+
     if (!isCurrentlyBoosted) {
-        const expiration = new Date()
-        expiration.setHours(expiration.getHours() + 24)
-        newDate = expiration.toISOString()
+        now.setHours(now.getHours() + 24)
+        newDate = now.toISOString()
     }
+    
+    // OPTIMISTIC UPDATE
+    const tempProducts = products.map(p => p.id === productId ? { ...p, boosted_until: newDate } : p)
+    setProducts(sortProducts(tempProducts))
+    setStats(prev => ({ ...prev, boosted: isCurrentlyBoosted ? Math.max(0, prev.boosted - 1) : prev.boosted + 1 }))
+
     const { error } = await supabase.from('products').update({ boosted_until: newDate }).eq('id', productId)
-    if (!error) { toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h"); fetchData() }
+    if (error) { 
+        toast.error("Erreur serveur, annulation...")
+        fetchData() // Revert on error
+    } else {
+        toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h")
+    }
   }
+
+
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
     const now = new Date()
@@ -449,7 +467,7 @@ function AdminContent() {
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
                                 <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <Link href={`/annonce?id=${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )
