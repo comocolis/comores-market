@@ -4,7 +4,7 @@ import { createStaticClient } from '@/utils/supabase/static'
 
 export const dynamic = 'force-static'
 
-const BASE_URL = 'https://comores-market.com'
+const BASE_URL = 'https://www.comores-market.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 1. Initialisation du client serveur

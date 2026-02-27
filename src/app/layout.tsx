@@ -24,7 +24,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://comores-market.com'),
+  metadataBase: new URL('https://www.comores-market.com'),
   alternates: { 
     canonical: './',
   },
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
-    url: 'https://comores-market.com',
+    url: 'https://www.comores-market.com',
     siteName: 'Comores Market',
     locale: 'fr_KM',
     type: 'website',
