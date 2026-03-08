@@ -189,12 +189,17 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
       const uniqueProducts = Array.from(productMap.values())
 
       // 4. Apply custom sort: Boosted > PRO > Date
+      const now = new Date().getTime()
       uniqueProducts.sort((a, b) => {
-        const now = new Date()
-        const isBoostedA = a.boosted_until && new Date(a.boosted_until) > now
-        const isBoostedB = b.boosted_until && new Date(b.boosted_until) > now
+        // Check if boost is strictly active (future expiration date)
+        // If expired, it falls through to normal sorting (Pro > Date)
+        const boostTimeA = a.boosted_until ? new Date(a.boosted_until).getTime() : 0
+        const boostTimeB = b.boosted_until ? new Date(b.boosted_until).getTime() : 0
+        
+        const isBoostedA = boostTimeA > now
+        const isBoostedB = boostTimeB > now
 
-        // Priority 1: Boosted
+        // Priority 1: Active Boosted Products
         if (isBoostedA && !isBoostedB) return -1
         if (!isBoostedA && isBoostedB) return 1
         
@@ -202,7 +207,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
         if (a.is_pro && !b.is_pro) return -1
         if (!a.is_pro && b.is_pro) return 1
         
-        // Priority 3: Chronological
+        // Priority 3: Chronological (Newest first)
         return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       })
 
