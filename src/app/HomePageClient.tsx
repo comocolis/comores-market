@@ -1,16 +1,17 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
-  MapPin, Search, Loader2, User, SlidersHorizontal,
+  MapPin, Search, User, SlidersHorizontal, Loader2,
   LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { useRouter } from 'next/navigation'
 import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
+import { getOrCreateVisitorId, trackProductClickHistory, trackSearchHistory } from '@/lib/personalization'
+import type { HomepageProduct } from '@/lib/homepage-types'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import ProductSuggestions from '@/components/ProductSuggestions'
@@ -23,27 +24,11 @@ const FilterModal = dynamic(() => import('@/components/FilterModal'), {
 })
 
 // --- TYPE DEFINITIONS ---
-export interface Product {
-  id: string
-  title: string
-  price: number
-  images: string
-  location_island: string
-  location_city: string
-  is_pro: boolean
-  boosted_until: string | null
-  created_at: string
-  category_id: number
-  sub_category: string
-}
+export type Product = HomepageProduct
 
-interface Favorite {
-  product_id: string
-}
+const ITEMS_PER_PAGE = 20
 
 // --- CONSTANTES ---
-const ITEMS_PER_PAGE = 12
-
 const CATEGORIES = [
   { id: 0, label: 'Tout', icon: LayoutGrid }, 
   { id: 1, label: 'Véhicules', icon: Car }, 
@@ -75,19 +60,21 @@ const ISLANDS = ['Tout', 'Ngazidja', 'Ndzouani', 'Mwali', 'Maore']
 
 interface HomePageClientProps {
   initialProducts: Product[]
+  renderedAt: string
+  initialHasMore?: boolean
 }
 
-export default function HomePageClient({ initialProducts }: HomePageClientProps) {
+export default function HomePageClient({ initialProducts, renderedAt, initialHasMore = false }: HomePageClientProps) {
   const supabase = createClient()
-  const router = useRouter()
   
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [loading, setLoading] = useState(false)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
   const [page, setPage] = useState(0)
-  const [hasMore, setHasMore] = useState(true)
+  const [hasMore, setHasMore] = useState(initialHasMore)
   const [userId, setUserId] = useState<string | null>(null)
-  const [favorites, setFavorites] = useState<Set<string>>(new Set())
+  const [visitorId, setVisitorId] = useState<string | null>(null)
+  const [currentTimestamp, setCurrentTimestamp] = useState(() => new Date(renderedAt).getTime())
   
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState(0)
@@ -96,6 +83,11 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
   const [showFilters, setShowFilters] = useState(false)
   const [priceMin, setPriceMin] = useState('')
   const [priceMax, setPriceMax] = useState('')
+  const [authResolved, setAuthResolved] = useState(false)
+  const [visitorReady, setVisitorReady] = useState(false)
+  const headerRef = useRef<HTMLDivElement | null>(null)
+  const categoryBarRef = useRef<HTMLDivElement | null>(null)
+  const subNavRef = useRef<HTMLDivElement | null>(null)
 
   // --- LOGIQUE DE SCROLL INTELLIGENT ---
   const [showSubNav, setShowSubNav] = useState(true)
@@ -120,14 +112,48 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
 
   useEffect(() => { setSelectedSubCategory('Tout') }, [selectedCategory])
 
-  const fetchProducts = useCallback(async (isInitial = true) => {
-    const isDefaultState = !searchTerm && selectedCategory === 0 && selectedIsland === 'Tout' && !priceMin && !priceMax;
-    
-    // Double-check SSR hydration to avoid flicker
-    if (isInitial && isDefaultState && page === 0 && products.length > 0) {
-        return;
+  useEffect(() => {
+    setCurrentTimestamp(Date.now())
+  }, [])
+
+  useLayoutEffect(() => {
+    const updateStickyOffsets = () => {
+      const headerHeight = headerRef.current?.offsetHeight ?? 108
+      const categoryBarHeight = categoryBarRef.current?.offsetHeight ?? 70
+      const stickyOverlap = 1
+
+      categoryBarRef.current?.style.setProperty('top', `${Math.max(headerHeight - stickyOverlap, 0)}px`)
+      subNavRef.current?.style.setProperty('top', `${Math.max(headerHeight + categoryBarHeight - (stickyOverlap * 2), 0)}px`)
     }
 
+    updateStickyOffsets()
+
+    const resizeObserver = typeof ResizeObserver !== 'undefined'
+      ? new ResizeObserver(() => updateStickyOffsets())
+      : null
+
+    if (headerRef.current && resizeObserver) {
+      resizeObserver.observe(headerRef.current)
+    }
+
+    if (categoryBarRef.current && resizeObserver) {
+      resizeObserver.observe(categoryBarRef.current)
+    }
+
+    window.addEventListener('resize', updateStickyOffsets)
+
+    return () => {
+      window.removeEventListener('resize', updateStickyOffsets)
+      resizeObserver?.disconnect()
+    }
+  }, [])
+
+  useEffect(() => {
+    setVisitorId(getOrCreateVisitorId())
+    setVisitorReady(true)
+  }, [])
+
+  const fetchProducts = useCallback(async (isInitial = true, targetPage = 0) => {
     if (isInitial) {
         setLoading(true)
         if (searchTerm.trim().length > 2) trackSearch(searchTerm)
@@ -136,98 +162,49 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
              trackFilterApplied({ island: selectedIsland, category: categoryLabel, sub_category: selectedSubCategory, price_min: priceMin, price_max: priceMax })
         }
     } else {
-        setIsFetchingMore(true)
+      setIsFetchingMore(true)
     }
 
     try {
-      // 1. Priority 1: Boosted Products (Active only)
-      let boostedQuery = supabase
-        .from('products_with_details')
-        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-        .gte('boosted_until', new Date().toISOString())
+      const nextPage = targetPage
+      const searchParams = new URLSearchParams({
+        selectedCategory: selectedCategory.toString(),
+        selectedSubCategory,
+        selectedIsland,
+        limit: ITEMS_PER_PAGE.toString(),
+        offset: (nextPage * ITEMS_PER_PAGE).toString(),
+      })
 
-      // 2. Priority 2: PRO Sellers
-      let proQuery = supabase
-        .from('products_with_details')
-        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-        .eq('is_pro', true)
-        .order('created_at', { ascending: false })
-        .limit(30)
+      if (searchTerm.trim()) searchParams.set('searchTerm', searchTerm.trim())
+      if (priceMin) searchParams.set('priceMin', priceMin)
+      if (priceMax) searchParams.set('priceMax', priceMax)
+      if (visitorId) searchParams.set('visitorId', visitorId)
 
-      // 3. Priority 3: Recent Products
-      let recentQuery = supabase
-        .from('products_with_details')
-        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-        .order('created_at', { ascending: false })
-        .limit(30)
+      const response = await fetch(`/api/home-products?${searchParams.toString()}`, {
+        cache: 'no-store',
+      })
 
-      // Helper to apply current filters to any query
-      const applyFilters = (query: any) => {
-        if (selectedCategory !== 0) { 
-          query = query.eq('category_id', selectedCategory)
-          if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) 
-        }
-        if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
-        if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
-        if (priceMin) query = query.gte('price', parseInt(priceMin))
-        if (priceMax) query = query.lte('price', parseInt(priceMax))
-        return query
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload.error || 'Erreur lors du chargement des produits')
       }
 
-      // Apply filters to all queries
-      boostedQuery = applyFilters(boostedQuery)
-      proQuery = applyFilters(proQuery)
-      recentQuery = applyFilters(recentQuery)
+      const rankedProducts = (payload.products || []) as Product[]
 
-      // Execute in parallel
-      const [boostedRes, proRes, recentRes] = await Promise.all([boostedQuery, proQuery, recentQuery])
+      setProducts(previousProducts => isInitial ? rankedProducts : [...previousProducts, ...rankedProducts])
+      setPage(nextPage)
+      setHasMore(Boolean(payload.hasMore))
 
-      if (boostedRes.error) throw boostedRes.error
-      if (proRes.error) throw proRes.error
-      if (recentRes.error) throw recentRes.error
-
-      const boostedProducts = boostedRes.data || []
-      const proProducts = proRes.data || []
-      const recentProducts = recentRes.data || []
-
-      // 3. Merge results and remove duplicates
-      const productMap = new Map<string, Product>()
-      // Add boosted, then pro, then recent
-      const allFetched = [...boostedProducts, ...proProducts, ...recentProducts]
-      allFetched.forEach(product => {
-        productMap.set(product.id, product)
-      })
-      const uniqueProducts = Array.from(productMap.values())
-
-      // 4. Apply custom sort: Boosted > PRO > Date
-      const now = new Date().getTime()
-      uniqueProducts.sort((a, b) => {
-        // Check if boost is strictly active (future expiration date)
-        // If expired, it falls through to normal sorting (Pro > Date)
-        const boostTimeA = a.boosted_until ? new Date(a.boosted_until).getTime() : 0
-        const boostTimeB = b.boosted_until ? new Date(b.boosted_until).getTime() : 0
-        
-        const isBoostedA = boostTimeA > now
-        const isBoostedB = boostTimeB > now
-
-        // Priority 1: Active Boosted Products
-        if (isBoostedA && !isBoostedB) return -1
-        if (!isBoostedA && isBoostedB) return 1
-        
-        // Priority 2: PRO Sellers
-        if (a.is_pro && !b.is_pro) return -1
-        if (!a.is_pro && b.is_pro) return 1
-        
-        // Priority 3: Chronological (Newest first)
-        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      })
-
-      // 5. Slice to keep top 20 and update state
-      const finalProducts = uniqueProducts.slice(0, 20)
-      
-      setProducts(finalProducts)
-      setPage(0)
-      setHasMore(false) // Disable infinite scroll for this curated view
+      if (searchTerm.trim().length > 1) {
+        trackSearchHistory({
+          query: searchTerm,
+          categoryId: selectedCategory !== 0 ? selectedCategory : undefined,
+          island: selectedIsland !== 'Tout' ? selectedIsland : undefined,
+          resultsCount: rankedProducts.length,
+          visitorId,
+        })
+      }
       
     } catch (error) {
       console.error('Error fetching products:', error)
@@ -236,16 +213,18 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
       setLoading(false)
       setIsFetchingMore(false)
     }
-  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, page, products.length, supabase])
+  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, visitorId])
 
   // DEBOUNCE
   useEffect(() => {
-    // Éviter le double fetch initial si SSR a déjà fait le job
-    if (page === 0 && products.length > 0 && !searchTerm && selectedCategory === 0 && selectedIsland === 'Tout' && !priceMin && !priceMax) return
+    if (!visitorReady || !authResolved) return
 
-    const timer = setTimeout(() => fetchProducts(true), 400)
+    setPage(0)
+    setHasMore(initialHasMore)
+
+    const timer = setTimeout(() => fetchProducts(true, 0), 400)
     return () => clearTimeout(timer)
-  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax]) // fetchProducts dependency removed to avoid loops, explicit deps only
+  }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, visitorReady, authResolved, fetchProducts, initialHasMore])
 
   // Track category changes
   useEffect(() => {
@@ -260,12 +239,11 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
         setUserId(user.id)
-        const { data: favs } = await supabase.from('favorites').select('product_id').eq('user_id', user.id)
-        if (favs) setFavorites(new Set((favs as Favorite[]).map((f) => f.product_id)))
       }
+      setAuthResolved(true)
     }
     loadUser()
-  }, [])
+  }, [supabase])
 
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
@@ -273,7 +251,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* 1. HEADER FIXE */}
-      <div className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-50 shadow-md">
+      <div ref={headerRef} className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-50 shadow-md">
         <div className="flex justify-between items-center mb-4 pt-2">
             <h1 className="font-extrabold text-2xl tracking-tight">
                 <span className="text-white">Comores</span>
@@ -309,7 +287,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
       </div>
 
       {/* 2. BARRE CATEGORIES FIXE */}
-      <div className="bg-white border-b border-gray-100 py-3 sticky top-27 z-40 shadow-sm">
+      <div ref={categoryBarRef} className="bg-white border-b border-gray-100 py-3 sticky z-40 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
                 <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
@@ -321,7 +299,7 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
       </div>
 
       {/* 3. BARRE SOUS-CATEGORIES & ILES (INTELLIGENTE) */}
-      <div className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-30 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'top-44.5 translate-y-0 opacity-100' : 'top-27 -translate-y-full opacity-0 pointer-events-none'}`}>
+      <div ref={subNavRef} className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-30 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
@@ -359,12 +337,13 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
                 img = product.images || '/placeholder.png'
               }
 
-              const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date(); 
+              const isBoosted = product.boosted_until ? new Date(product.boosted_until).getTime() > currentTimestamp : false
 
               return (
                 <Link 
                   key={product.id} 
                   href={`/annonce?id=${product.id}`}
+                  onClick={() => trackProductClickHistory({ productId: product.id, source: 'home_feed', visitorId })}
                   className="group flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all active:scale-[0.98]"
                 >
                   <div className="relative aspect-square bg-gray-100 overflow-hidden">
@@ -417,18 +396,18 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
           </div>
         )}
 
-        {/* Load More Button */}
         {products.length > 0 && hasMore && (
-            <div className="flex justify-center pt-4 pb-8">
-              <button 
-                onClick={() => fetchProducts(false)} 
-                disabled={isFetchingMore || loading}
-                className="bg-white border border-gray-200 text-gray-900 font-bold py-3 px-8 rounded-full shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 text-xs uppercase tracking-widest hover:bg-gray-50"
-              >
-                {isFetchingMore ? <Loader2 className="animate-spin" size={16} /> : "Voir plus d'annonces"}
-              </button>
-            </div>
+          <div className="flex justify-center pt-2 pb-8">
+            <button
+              onClick={() => fetchProducts(false, page + 1)}
+              disabled={loading || isFetchingMore}
+              className="bg-white border border-gray-200 text-gray-900 font-bold py-3 px-8 rounded-full shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 text-xs uppercase tracking-widest hover:bg-gray-50"
+            >
+              {isFetchingMore ? <Loader2 className="animate-spin" size={16} /> : "Voir plus d'annonces"}
+            </button>
+          </div>
         )}
+
       </div>
 
       {/* 4. RECOMMANDATIONS (CLIENT-SIDE) */}

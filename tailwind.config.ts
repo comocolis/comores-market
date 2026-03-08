@@ -19,6 +19,8 @@ const config: Config = {
       spacing: {
         '125': '500px',
         '17.5': '70px', // Pour les catégories (min-w-17.5)
+        '27': '108px',
+        '44.5': '178px',
         '75': '300px',  // Pour la hauteur min (min-h-75)
         '25': '100px',  // Pour le sticky top (top-25)
       },

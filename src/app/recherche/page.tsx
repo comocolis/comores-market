@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { getFirstProductImage } from '@/utils/parseImages'
 // AJOUT : Import du tracking analytics
 import { trackSearch } from '@/lib/analytics'
+import { getOrCreateVisitorId, trackProductClickHistory, trackSearchHistory } from '@/lib/personalization'
 
 // --- INTERFACE AJOUTÉE POUR CORRIGER L'ERREUR DE BUILD ---
 interface SearchResult {
@@ -30,6 +31,11 @@ export default function RecherchePage() {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SearchResult[]>([])
   const [loading, setLoading] = useState(false)
+  const [visitorId, setVisitorId] = useState<string | null>(null)
+
+  useEffect(() => {
+    setVisitorId(getOrCreateVisitorId())
+  }, [])
 
   // Recherche automatique avec un petit délai (debounce)
   useEffect(() => {
@@ -53,11 +59,12 @@ export default function RecherchePage() {
       // 📊 TRACKING : On enregistre la recherche dans GA4
       // Cela vous permettra de voir les mots-clés les plus tapés dans Analytics
       trackSearch(query, searchResults.length)
+      trackSearchHistory({ query, resultsCount: searchResults.length, visitorId })
     }
 
     const timer = setTimeout(search, 500)
     return () => clearTimeout(timer)
-  }, [query, supabase])
+  }, [query, supabase, visitorId])
 
   return (
     // CORRECTION : bg-transparent pour l'uniformité du design
@@ -94,7 +101,8 @@ export default function RecherchePage() {
                 return (
                     <Link 
                         key={product.id} 
-                        href={`/annonce?id=${product.id}`} 
+                      href={`/annonce?id=${product.id}`}
+                      onClick={() => trackProductClickHistory({ productId: product.id, source: 'search_results', visitorId })}
                         className={`p-3 rounded-xl flex gap-4 shadow-sm border active:scale-[0.99] transition ${
                             isPro 
                             ? 'bg-mustard/5 border-mustard ring-1 ring-mustard/20' 

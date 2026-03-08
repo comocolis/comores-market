@@ -61,7 +61,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#F8FAFC",
+  themeColor: "#374151",
   width: "device-width",
   initialScale: 1,
   // ✅ CORRECTION PWA : Empêche le zoom auto sur les inputs
@@ -74,7 +74,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="fr" suppressHydrationWarning translate="no">
       {/* ✅ APPLICATION DE LA POLICE SUR LE BODY */}
-      <body className={`${inter.className} font-sans min-h-dvh bg-gray-200 text-gray-900 antialiased overflow-y-auto notranslate`}>
+      <body className={`${inter.className} font-sans min-h-dvh bg-gray-700 text-gray-900 antialiased overflow-y-auto notranslate`}>
         
         {/* ✅ GOOGLE TAGS (ANALYTICS + ADS) COMBINÉS */}
         {/* Chargement de la librairie globale */}

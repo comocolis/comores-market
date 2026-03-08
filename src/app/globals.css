@@ -15,12 +15,12 @@
 
 /* 1. CONFIGURATION DU FOND ET DU TEXTE */
 :root {
-  background-color: #F8FAFC; 
+  background-color: #374151; 
 }
 
 html, body {
   height: 100%;
-  background-color: #F8FAFC;
+  background-color: #374151;
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: auto;

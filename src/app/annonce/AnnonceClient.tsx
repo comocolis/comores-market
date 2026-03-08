@@ -23,6 +23,7 @@ import {
   trackMessageSent, 
   trackEvent 
 } from '@/lib/analytics'
+import { getOrCreateVisitorId, trackProductClickHistory } from '@/lib/personalization'
 // --- DICTIONNAIRE DES ICÔNES ---
 const ICON_MAP: Record<string, any> = {
     'Année': Calendar,
@@ -182,10 +183,12 @@ function AnnonceContent() {
     const logView = async () => {
         if (viewLogged.current || !product) return
         viewLogged.current = true
+      const visitorId = getOrCreateVisitorId()
         
         // 1. Tracking Supabase (Interne)
         if (currentUser?.id !== product.user_id) {
             await supabase.from('product_views').insert({ product_id: product.id, viewer_id: currentUser?.id || null })
+        trackProductClickHistory({ productId: product.id, source: 'product_page_view', visitorId })
         }
 
         // 2. Tracking Google Analytics (GA4)
