@@ -121,13 +121,10 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
   useEffect(() => { setSelectedSubCategory('Tout') }, [selectedCategory])
 
   const fetchProducts = useCallback(async (isInitial = true) => {
-    const currentPage = isInitial ? 0 : page + 1
-    
-    // Si on a déjà les produits initiaux via SSR et qu'on ne filtre pas, on ne fait rien
-    // SAUF si c'est pour charger la page suivante ou appliquer un filtre
     const isDefaultState = !searchTerm && selectedCategory === 0 && selectedIsland === 'Tout' && !priceMin && !priceMax;
+    
+    // Double-check SSR hydration to avoid flicker
     if (isInitial && isDefaultState && page === 0 && products.length > 0) {
-        // Déjà chargé par SSR
         return;
     }
 
@@ -142,42 +139,87 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
         setIsFetchingMore(true)
     }
 
-    const start = currentPage * ITEMS_PER_PAGE
-    const end = start + ITEMS_PER_PAGE - 1
+    try {
+      // 1. Priority 1: Boosted Products (Active only)
+      let boostedQuery = supabase
+        .from('products_with_details')
+        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+        .gte('boosted_until', new Date().toISOString())
 
-    let query = supabase
-      .from('products_with_details')
-      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-      .order('boosted_until', { ascending: false, nullsFirst: false })
-      .order('is_pro', { ascending: false })
-      .order('created_at', { ascending: false })
-      .range(start, end)
+      // 2. Priority 2 & 3: Recent Products (Fetch 30 deepest to ensure we have enough after merging)
+      let recentQuery = supabase
+        .from('products_with_details')
+        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      // Helper to apply current filters to any query
+      const applyFilters = (query: any) => {
+        if (selectedCategory !== 0) { 
+          query = query.eq('category_id', selectedCategory)
+          if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) 
+        }
+        if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
+        if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
+        if (priceMin) query = query.gte('price', parseInt(priceMin))
+        if (priceMax) query = query.lte('price', parseInt(priceMax))
+        return query
+      }
+
+      // Apply filters to both queries
+      boostedQuery = applyFilters(boostedQuery)
+      recentQuery = applyFilters(recentQuery)
+
+      // Execute in parallel
+      const [boostedRes, recentRes] = await Promise.all([boostedQuery, recentQuery])
+
+      if (boostedRes.error) throw boostedRes.error
+      if (recentRes.error) throw recentRes.error
+
+      const boostedProducts = boostedRes.data || []
+      const recentProducts = recentRes.data || []
+
+      // 3. Merge results and remove duplicates
+      const productMap = new Map<string, Product>()
+      // Add boosted first, then recent (order in Map iteration usually follows insertion, but we sort later)
+      const allFetched = [...boostedProducts, ...recentProducts]
+      allFetched.forEach(product => {
+        productMap.set(product.id, product)
+      })
+      const uniqueProducts = Array.from(productMap.values())
+
+      // 4. Apply custom sort: Boosted > PRO > Date
+      uniqueProducts.sort((a, b) => {
+        const now = new Date()
+        const isBoostedA = a.boosted_until && new Date(a.boosted_until) > now
+        const isBoostedB = b.boosted_until && new Date(b.boosted_until) > now
+
+        // Priority 1: Boosted
+        if (isBoostedA && !isBoostedB) return -1
+        if (!isBoostedA && isBoostedB) return 1
+        
+        // Priority 2: PRO Sellers
+        if (a.is_pro && !b.is_pro) return -1
+        if (!a.is_pro && b.is_pro) return 1
+        
+        // Priority 3: Chronological
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      })
+
+      // 5. Slice to keep top 20 and update state
+      const finalProducts = uniqueProducts.slice(0, 20)
       
-    if (selectedCategory !== 0) { 
-      query = query.eq('category_id', selectedCategory)
-      if (selectedSubCategory !== 'Tout') query = query.eq('sub_category', selectedSubCategory) 
-    }
-    if (selectedIsland !== 'Tout') query = query.eq('location_island', selectedIsland)
-    if (searchTerm.trim()) query = query.ilike('title', `%${searchTerm}%`)
-    if (priceMin) query = query.gte('price', parseInt(priceMin))
-    if (priceMax) query = query.lte('price', parseInt(priceMax))
-
-    const { data, error } = await query
-    
-    if (error) {
+      setProducts(finalProducts)
+      setPage(0)
+      setHasMore(false) // Disable infinite scroll for this curated view
+      
+    } catch (error) {
+      console.error('Error fetching products:', error)
       toast.error('Erreur lors du chargement des produits')
+    } finally {
       setLoading(false)
       setIsFetchingMore(false)
-      return
     }
-
-    if (data) {
-      setProducts(prev => isInitial ? data : [...prev, ...data])
-      setPage(currentPage)
-      setHasMore(data.length === ITEMS_PER_PAGE)
-    }
-    setLoading(false)
-    setIsFetchingMore(false)
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, page, products.length, supabase])
 
   // DEBOUNCE
