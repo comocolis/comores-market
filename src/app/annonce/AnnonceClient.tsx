@@ -130,8 +130,8 @@ function AnnonceContent() {
 
   const getData = useCallback(async () => {
     if (!id) {
-        setLoading(false)
-        return
+      router.replace('/recherche')
+      return
     }
     
     // Auth Check
@@ -162,7 +162,7 @@ function AnnonceContent() {
         console.error("Product fetch error:", error);
     }
     setLoading(false)
-  }, [supabase, id])
+  }, [supabase, id, router])
 
   useEffect(() => { getData() }, [getData])
 
