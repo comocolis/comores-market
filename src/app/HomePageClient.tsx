@@ -146,7 +146,15 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
         .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
         .gte('boosted_until', new Date().toISOString())
 
-      // 2. Priority 2 & 3: Recent Products (Fetch 30 deepest to ensure we have enough after merging)
+      // 2. Priority 2: PRO Sellers
+      let proQuery = supabase
+        .from('products_with_details')
+        .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+        .eq('is_pro', true)
+        .order('created_at', { ascending: false })
+        .limit(30)
+
+      // 3. Priority 3: Recent Products
       let recentQuery = supabase
         .from('products_with_details')
         .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
@@ -166,23 +174,26 @@ export default function HomePageClient({ initialProducts }: HomePageClientProps)
         return query
       }
 
-      // Apply filters to both queries
+      // Apply filters to all queries
       boostedQuery = applyFilters(boostedQuery)
+      proQuery = applyFilters(proQuery)
       recentQuery = applyFilters(recentQuery)
 
       // Execute in parallel
-      const [boostedRes, recentRes] = await Promise.all([boostedQuery, recentQuery])
+      const [boostedRes, proRes, recentRes] = await Promise.all([boostedQuery, proQuery, recentQuery])
 
       if (boostedRes.error) throw boostedRes.error
+      if (proRes.error) throw proRes.error
       if (recentRes.error) throw recentRes.error
 
       const boostedProducts = boostedRes.data || []
+      const proProducts = proRes.data || []
       const recentProducts = recentRes.data || []
 
       // 3. Merge results and remove duplicates
       const productMap = new Map<string, Product>()
-      // Add boosted first, then recent (order in Map iteration usually follows insertion, but we sort later)
-      const allFetched = [...boostedProducts, ...recentProducts]
+      // Add boosted, then pro, then recent
+      const allFetched = [...boostedProducts, ...proProducts, ...recentProducts]
       allFetched.forEach(product => {
         productMap.set(product.id, product)
       })
