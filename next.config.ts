@@ -45,6 +45,22 @@ const nextConfig: NextConfig = {
     contentDispositionType: 'attachment',
   },
   reactStrictMode: true,
+
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [
+          {
+            type: 'host',
+            value: 'comores-market.com',
+          },
+        ],
+        destination: 'https://www.comores-market.com/:path*',
+        permanent: true,
+      },
+    ]
+  },
   
   // Performance optimizations
   compress: true,
