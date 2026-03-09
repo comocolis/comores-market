@@ -56,7 +56,7 @@ export async function POST(req: Request) {
     });
 
     const newText = completion.choices[0]?.message?.content || text;
-    return NextResponse.json({ text: newText });
+    return NextResponse.json({ text: newText, rephrased: newText });
 
   } catch (error: any) {
     console.error("ERREUR REPHRASE:", error);

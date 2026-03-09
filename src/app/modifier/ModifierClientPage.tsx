@@ -506,17 +506,23 @@ export default function ModifierPage() {
     setIsRephrasing(true)
     try {
       const data = await rephraseText(formData.description);
+            const rewrittenText = data?.rephrased || data?.text
       
-      if (data.rephrased) {
-        let clean = data.rephrased;
+            if (rewrittenText) {
+                let clean = rewrittenText;
         clean = clean.split('**').join('');
         clean = clean.split('#').join('');
         clean = clean.normalize("NFC");
 
         setFormData(prev => ({ ...prev, description: clean }))
         toast.success("Texte sublimé !")
+            } else {
+                toast.error("Aucune reformulation reçue.")
       }
-    } catch { toast.error("Erreur reformulation.") } finally { setIsRephrasing(false) }
+        } catch (err) {
+            console.error('Rephrase error:', err)
+            toast.error("Erreur reformulation.")
+        } finally { setIsRephrasing(false) }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {

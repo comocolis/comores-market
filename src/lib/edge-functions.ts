@@ -13,12 +13,24 @@ export async function chatWithAI(message: string, history: any[], systemContext?
 }
 
 export async function rephraseText(text: string) {
-  const { data, error } = await supabase.functions.invoke('rephrase', {
-    body: { text },
-  });
+  const response = await fetch('/api/rephrase', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text }),
+  })
 
-  if (error) throw error;
-  return data;
+  const data = await response.json()
+
+  if (!response.ok) {
+    throw new Error(data?.error || 'Erreur de reformulation')
+  }
+
+  return {
+    ...data,
+    rephrased: data?.rephrased || data?.text || text,
+  }
 }
 
 export async function moderateContent(title: string, description: string, price: string) {

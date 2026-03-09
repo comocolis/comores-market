@@ -448,18 +448,24 @@ export default function PublierClient() {
     setIsRephrasing(true)
     try {
       const data = await rephraseText(formData.description);
+            const rewrittenText = data?.rephrased || data?.text
       
-      if (data.rephrased) {
+            if (rewrittenText) {
         // CORRECTION: Avoid regex literal issues in build
-        let clean = data.rephrased;
+                let clean = rewrittenText;
         clean = clean.split('**').join('');
         clean = clean.split('#').join('');
         clean = clean.normalize("NFC");
         
         setFormData(prev => ({ ...prev, description: clean }))
         toast.success("Texte sublimé !")
+            } else {
+                toast.error("Aucune reformulation reçue.")
       }
-    } catch (err) { toast.error("Erreur reformulation.") } finally { setIsRephrasing(false) }
+        } catch (err) {
+            console.error('Rephrase error:', err)
+            toast.error("Erreur reformulation.")
+        } finally { setIsRephrasing(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
