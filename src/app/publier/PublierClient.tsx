@@ -253,18 +253,23 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
 
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-    
-    // NOTE: Keep dynamic transform/transition inline as they change on every frame (dnd-kit requirement)
-    // eslint-disable-next-line react-dom/no-unsafe-styles
-    const style = { 
-        transform: CSS.Transform.toString(transform), 
-        transition,
+    const itemRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        if (!itemRef.current) return
+
+        itemRef.current.style.transform = CSS.Transform.toString(transform)
+        itemRef.current.style.transition = transition || ''
+    }, [transform, transition])
+
+    const handleSetNodeRef = (node: HTMLDivElement | null) => {
+        itemRef.current = node
+        setNodeRef(node)
     }
   
     return (
       <div 
-        ref={setNodeRef} 
-        style={style} 
+        ref={handleSetNodeRef} 
         {...attributes} 
         {...listeners} 
         className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}

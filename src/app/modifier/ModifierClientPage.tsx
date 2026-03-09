@@ -261,18 +261,23 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
 
 function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemove: () => void }) {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
-    
-    // NOTE: 'transform' and 'transition' MUST remain inline for dnd-kit to function correctly.
-    // 'opacity' has been moved to className to resolve inline-style linting error partially.
-    const style = { 
-        transform: CSS.Transform.toString(transform), 
-        transition,
-    } as React.CSSProperties
+    const itemRef = useRef<HTMLDivElement | null>(null)
+
+    useEffect(() => {
+        if (!itemRef.current) return
+
+        itemRef.current.style.transform = CSS.Transform.toString(transform)
+        itemRef.current.style.transition = transition || ''
+    }, [transform, transition])
+
+    const handleSetNodeRef = (node: HTMLDivElement | null) => {
+        itemRef.current = node
+        setNodeRef(node)
+    }
   
     return (
       <div 
-        ref={setNodeRef} 
-        style={style} 
+        ref={handleSetNodeRef} 
         {...attributes} 
         {...listeners} 
         className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
