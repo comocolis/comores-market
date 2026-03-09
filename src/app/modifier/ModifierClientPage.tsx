@@ -266,7 +266,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
     useEffect(() => {
         if (!itemRef.current) return
 
-        itemRef.current.style.transform = CSS.Transform.toString(transform)
+        itemRef.current.style.transform = CSS.Transform.toString(transform) || ''
         itemRef.current.style.transition = transition || ''
     }, [transform, transition])
 
