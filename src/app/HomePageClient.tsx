@@ -245,6 +245,15 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     loadUser()
   }, [supabase])
 
+  const handleViewAllListings = () => {
+    setSearchTerm('')
+    setSelectedCategory(0)
+    setSelectedSubCategory('Tout')
+    setSelectedIsland('Tout')
+    setPriceMin('')
+    setPriceMax('')
+  }
+
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
@@ -325,7 +334,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
         {loading ? (
           <SkeletonProductGrid count={12} />
         ) : products.length === 0 ? (
-           <EmptyStateSearchResults />
+            <EmptyStateSearchResults onViewAll={handleViewAllListings} />
         ) : (
           <div className="grid grid-cols-2 gap-3 pb-8">
             {products.map((product, index) => {

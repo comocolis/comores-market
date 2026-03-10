@@ -79,7 +79,7 @@ export function EmptyStateFavorites() {
   )
 }
 
-export function EmptyStateSearchResults() {
+export function EmptyStateSearchResults({ onViewAll }: { onViewAll?: () => void } = {}) {
   return (
     <EmptyState
       icon={Search}
@@ -87,7 +87,7 @@ export function EmptyStateSearchResults() {
       description="Essayez de modifier vos critères de recherche ou explorez d'autres catégories"
       secondaryAction={{
         label: "Voir toutes les annonces",
-        href: "/"
+        ...(onViewAll ? { onClick: onViewAll } : { href: "/" })
       }}
     />
   )
