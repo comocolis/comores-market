@@ -323,7 +323,12 @@ function AnnonceContent() {
   }
 
   const handleWhatsAppClick = () => {
-    if (!product.whatsapp_number) return;
+    const contactPhone = product.whatsapp_number || seller?.phone_number;
+
+    if (!contactPhone) {
+      toast.error("Numéro WhatsApp indisponible")
+      return
+    }
     
     // ✅ TRACKING CONVERSION GOOGLE ADS
     if (typeof window !== 'undefined' && window.gtag_report_conversion) {
@@ -337,7 +342,7 @@ function AnnonceContent() {
         seller_id: product.user_id
     });
 
-    const phone = product.whatsapp_number.replace(/\D/g, '')
+    const phone = contactPhone.replace(/\D/g, '')
     const currentUrl = window.location.href;
     const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price);
     
@@ -355,6 +360,7 @@ function AnnonceContent() {
   const isOwner = currentUser?.id === product.user_id
   const isFav = favorites.has(product.id)
   const seller = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
+  const contactPhone = (product.whatsapp_number || seller?.phone_number || '').trim()
   
   const daysRemaining = seller?.subscription_end_date 
     ? Math.ceil((new Date(seller.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
@@ -526,7 +532,7 @@ function AnnonceContent() {
             {!isOwner && (
                 <div className="space-y-4 pb-20">
                     {/* BOUTON WHATSAPP OFFICIEL SÉCURISÉ */}
-                    {isProActive && (
+                {isProActive && contactPhone && (
                         <button 
                             onClick={handleWhatsAppClick} 
                             className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 px-6 rounded-full shadow-lg shadow-green-500/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
