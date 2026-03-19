@@ -10,7 +10,6 @@ import { Inter } from "next/font/google"; // Removed duplicate imports to combin
 import SplashScreen from '@/components/SplashScreen'; // Direct import for faster loading
 
 // Lazy load heavy components
-const InstallBanner = lazy(() => import('@/components/InstallBanner'));
 const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
 // Removed lazy SplashScreen
 const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
@@ -107,9 +106,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
 
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
-          <Suspense fallback={null}>
-            <InstallBanner />
-          </Suspense>
           <ToastProvider />
           
           <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
