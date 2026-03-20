@@ -25,7 +25,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.comores-market.com'),
   alternates: { 
-    canonical: './',
+    canonical: '/',
   },
   title: { default: "Comores Market - Achat et Vente aux Comores", template: "%s | Comores Market" },
   description: "La première marketplace des Comores. Achetez et vendez voitures, immobilier, téléphones et bien plus.",
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Comores Market",
     description: "Les meilleures affaires des îles sont ici.",
-    url: 'https://www.comores-market.com',
+    url: 'https://www.comores-market.com/',
     siteName: 'Comores Market',
     locale: 'fr_KM',
     type: 'website',

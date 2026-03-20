@@ -123,20 +123,25 @@ export default function BottomNav() {
 
   if (!mounted || isChatOpen || isAuthPage) return null
 
+  const favoritesHref = userId ? '/favoris' : '/auth'
+  const publishHref = userId ? '/publier' : '/auth'
+  const messagesHref = userId ? '/messages' : '/auth'
+  const accountHref = userId ? '/compte' : '/auth'
+
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative text-gray-900">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
-        <NavBtn href="/favoris" icon={Heart} label="Favoris" active={pathname === '/favoris'} />
+        <NavBtn href={favoritesHref} icon={Heart} label="Favoris" active={pathname === '/favoris'} />
         
         <div className="flex justify-center relative -top-5">
-          <Link href="/publier" aria-label="Publier une annonce" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
+          <Link href={publishHref} aria-label="Publier une annonce" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
             <Plus strokeWidth={3} size={28} />
           </Link>
         </div>
 
         {/* MESSAGES */}
-        <Link href="/messages" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
+        <Link href={messagesHref} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
                 {unreadCount > 0 && (
@@ -149,7 +154,7 @@ export default function BottomNav() {
         </Link>
 
         {/* COMPTE */}
-        <Link href="/compte" className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
+    <Link href={accountHref} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />
                 {unreadNotifCount > 0 && (
