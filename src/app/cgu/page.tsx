@@ -55,13 +55,13 @@ export default function CGUPage() {
         <section className="pt-4 border-t border-gray-100 mt-4">
             <h2 className="text-gray-900 font-bold mb-3">5. Contact & Support</h2>
             <p className="mb-3">Pour toute question, signalement ou demande de suppression de compte, contactez-nous :</p>
-            <a 
-                href={`mailto:${CONTACT_EMAIL}`}
+            <Link 
+              href="/contact"
                 onClick={handleContactClick}
                 className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center"
             >
                 <Mail size={18} /> {CONTACT_EMAIL}
-            </a>
+            </Link>
         </section>
 
         <div className="pt-8 text-xs text-center text-gray-500">

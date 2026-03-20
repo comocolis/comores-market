@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronDown, ChevronUp, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -62,8 +63,6 @@ const faqData = [
 export default function FaqClient() {
   const router = useRouter()
   const [openIndex, setOpenIndex] = useState<number | null>(0)
-  const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
-
   // Fonction pour gérer l'ouverture et le tracking
   const handleToggle = (index: number) => {
     if (openIndex === index) {
@@ -78,7 +77,7 @@ export default function FaqClient() {
     }
   }
 
-  const handleContactClick = () => {
+    const handleContactClick = () => {
       // 📊 TRACKING : Savoir que quelqu'un cherche de l'aide
       trackEvent('contact_support_click', {
           source: 'faq_page'
@@ -92,6 +91,7 @@ export default function FaqClient() {
       <div className="flex items-center gap-4 mb-8 pt-safe">
         <button 
           onClick={() => router.back()} 
+          aria-label="Retour"
           className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
         >
             <ArrowLeft size={20} className="text-gray-700" />
@@ -134,13 +134,13 @@ export default function FaqClient() {
         <section className="bg-white p-6 rounded-2xl shadow-sm mt-8 border border-gray-100 text-center">
             <h2 className="text-gray-900 font-bold mb-2">Une autre question ?</h2>
             <p className="text-sm text-gray-500 mb-4">Notre équipe est là pour vous aider.</p>
-            <a 
-                href={`mailto:${CONTACT_EMAIL}`}
+            <Link 
+              href="/contact"
                 onClick={handleContactClick}
                 className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center text-sm"
             >
                 <Mail size={18} /> Contacter le support
-            </a>
+            </Link>
         </section>
 
         <div className="pt-8 text-xs text-center text-gray-500">
