@@ -1,54 +1,46 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X, Download, Share, PlusSquare, MoreVertical, Sparkles } from 'lucide-react'
+import { X, Download, Share, PlusSquare, MoreVertical } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
+
+// URL officielle de votre application sur le Google Play Store
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.comoresmarket.app'
 
 export default function InstallBanner() {
   const [isVisible, setIsVisible] = useState(false)
-  const [deferredPrompt, setDeferredPrompt] = useState<any>(null)
   const [isIOS, setIsIOS] = useState(false)
   const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
+    // Si l'utilisateur est déjà dans l'application installée (standalone), on ne montre rien
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
     if (isStandalone) return;
 
+    // Si l'utilisateur a déjà masqué la bannière durant cette session, on l'ignore
     if (sessionStorage.getItem('installBannerDismissed')) return;
 
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
-    const fallbackTimer = setTimeout(() => {
-        if (!isVisible) setIsVisible(true);
+    // Affichage progressif après 3 secondes pour ne pas surcharger visuellement au chargement initial
+    const timer = setTimeout(() => {
+      setIsVisible(true);
     }, 3000);
 
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      clearTimeout(fallbackTimer);
-      setDeferredPrompt(e);
-      setIsVisible(true);
-    };
+    return () => clearTimeout(timer);
+  }, []);
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      clearTimeout(fallbackTimer);
-    };
-  }, [isVisible]);
-
-  const handleInstallClick = async () => {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setIsVisible(false);
-        }
-        setDeferredPrompt(null);
+  const handleInstallClick = () => {
+    if (isIOS) {
+      // Pour iOS, on affiche la boîte d'instructions PWA manuelle qui est très claire
+      setShowInstructions(true);
     } else {
-        setShowInstructions(true);
+      // Pour Android (et les autres supports), on redirige directement vers la fiche Play Store
+      window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
+      // On masque la bannière après le clic de redirection
+      handleDismiss();
     }
   };
 
@@ -66,10 +58,6 @@ export default function InstallBanner() {
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: -100, opacity: 0 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            // DESIGN "COMPACT PILL" :
-            // - p-2 : Padding fin pour éviter l'espace vide
-            // - gap-3 : Espace réduit entre les éléments
-            // - bg-[#0F172A]/95 : Fond très sombre et quasi opaque pour la lisibilité
             className="fixed top-4 pt-safe left-1/2 -translate-x-1/2 z-50 w-[92%] max-w-100 bg-[#0F172A]/95 backdrop-blur-md text-white p-2 pr-3 rounded-full shadow-2xl shadow-black/30 flex items-center justify-between border border-white/10 ring-1 ring-black/5"
         >
           {/* GAUCHE : Icône + Texte */}
@@ -105,7 +93,7 @@ export default function InstallBanner() {
         </motion.div>
       )}
 
-      {/* MODALE D'INSTRUCTIONS (Reste identique pour la clarté) */}
+      {/* MODALE D'INSTRUCTIONS (Pour iOS et fallback) */}
       {showInstructions && (
           <motion.div 
             initial={{ opacity: 0 }} 
