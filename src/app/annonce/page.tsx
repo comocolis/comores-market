@@ -6,14 +6,19 @@ import { Suspense, ComponentType } from 'react'
 // On type explicitement le composant client pour indiquer à TypeScript qu'il accepte la prop initialProduct
 const SafeAnnonceClient = AnnonceClient as unknown as ComponentType<{ initialProduct: any }>
 
-// Définition des types pour les paramètres de la page Next.js
+// Définition rigoureuse des types pour Next.js 15+ (asynchrones par défaut)
 interface PageProps {
-  searchParams: { id?: string }
+  params: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 // 🌐 1. GÉNÉRATION DES MÉTADONNÉES DYNAMIQUES (SEO & Réseaux Sociaux)
 export async function generateMetadata({ searchParams }: PageProps): Promise<Metadata> {
-  const id = searchParams.id
+  // On résout la promesse asynchrone searchParams requise par Next.js 15/16
+  const resolvedSearchParams = await searchParams
+  const rawId = resolvedSearchParams.id
+  const id = typeof rawId === 'string' ? rawId : undefined
+
   if (!id) {
     return {
       title: 'Annonce introuvable | Comores Market',
@@ -86,7 +91,10 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
 // 🎴 2. RENDU DE LA PAGE EN SSR (Serveur)
 export default async function Page({ searchParams }: PageProps) {
-  const id = searchParams.id
+  // On résout la promesse asynchrone searchParams requise par Next.js 15/16
+  const resolvedSearchParams = await searchParams
+  const rawId = resolvedSearchParams.id
+  const id = typeof rawId === 'string' ? rawId : undefined
   let initialProduct = null
 
   if (id) {
