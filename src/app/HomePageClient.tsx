@@ -1,7 +1,7 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useEffect, useState, useCallback, useRef, useLayoutEffect } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { 
@@ -85,6 +85,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   const [priceMax, setPriceMax] = useState('')
   const [authResolved, setAuthResolved] = useState(false)
   const [visitorReady, setVisitorReady] = useState(false)
+  
   const headerRef = useRef<HTMLDivElement | null>(null)
   const categoryBarRef = useRef<HTMLDivElement | null>(null)
   const subNavRef = useRef<HTMLDivElement | null>(null)
@@ -107,16 +108,18 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     if (typeof window !== 'undefined') {
         window.addEventListener('scroll', handleScroll, { passive: true })
     }
-    return () => window.removeEventListener('scroll', handleScroll)
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('scroll', handleScroll)
+      }
+    }
   }, [lastScrollY])
-
-  useEffect(() => { setSelectedSubCategory('Tout') }, [selectedCategory])
 
   useEffect(() => {
     setCurrentTimestamp(Date.now())
   }, [])
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const updateStickyOffsets = () => {
       const headerHeight = headerRef.current?.offsetHeight ?? 108
       const categoryBarHeight = categoryBarRef.current?.offsetHeight ?? 70
@@ -209,13 +212,12 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     } catch (error) {
       console.error('Error fetching products:', error)
       toast.error('Erreur lors du chargement des produits')
-    } finally {
+    } finally { // ✅ Correction apportée ici !
       setLoading(false)
       setIsFetchingMore(false)
     }
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, visitorId])
 
-  // DEBOUNCE
   useEffect(() => {
     if (!visitorReady || !authResolved) return
 
@@ -244,6 +246,11 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     }
     loadUser()
   }, [supabase])
+
+  const handleCategorySelect = (catId: number) => {
+    setSelectedCategory(catId)
+    setSelectedSubCategory('Tout')
+  }
 
   const handleViewAllListings = () => {
     setSearchTerm('')
@@ -299,7 +306,11 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       <div ref={categoryBarRef} className="bg-white border-b border-gray-100 py-3 sticky z-40 shadow-sm">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
-                <button key={cat.id} onClick={() => setSelectedCategory(cat.id)} className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}>
+                <button 
+                  key={cat.id} 
+                  onClick={() => handleCategorySelect(cat.id)} 
+                  className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}
+                >
                     <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
@@ -362,7 +373,6 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                       fill 
                       sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
-                      // Loading priority for top items
                       priority={index < 4}
                       quality={75}
                     />

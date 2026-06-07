@@ -72,6 +72,26 @@ export default function AuthPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
+  // ✅ CONNEXION / INSCRIPTION AVEC GOOGLE
+  const handleGoogleLogin = async () => {
+    setLoading(true)
+    try {
+      const origin = window.location.origin
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${origin}/auth/callback`,
+        },
+      })
+      if (error) throw error
+      trackEvent('login', { method: 'google' })
+    } catch (error: any) {
+      toast.error(error.message || "Erreur lors de la connexion avec Google")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -153,13 +173,12 @@ export default function AuthPage() {
 
         toast.success("Connexion réussie")
         router.push('/compte')
-        // router.refresh() supprimé pour éviter l'erreur en mode Static Export
       }
 
       else if (view === 'forgot') {
         const origin = window.location.origin
         const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
-            redirectTo: `${origin}/compte/reset`, // Redirection directe vers la page client
+            redirectTo: `${origin}/compte/reset`,
         })
         
         if (error) throw error
@@ -172,7 +191,7 @@ export default function AuthPage() {
         const { error } = await supabase.auth.signInWithOtp({
             email: formData.email,
             options: {
-                emailRedirectTo: `${origin}/compte`, // Redirection directe vers la page client
+                emailRedirectTo: `${origin}/compte`,
             }
         })
         
@@ -230,7 +249,6 @@ export default function AuthPage() {
                 {view === 'register' && (
                     <div className="space-y-4 animate-in fade-in">
                         <div className="flex justify-center mb-6 relative">
-                            {/* CORRECTION ACCESSIBILITÉ: Bouton avatar */}
                             <div className="relative">
                                 <button 
                                   type="button" 
@@ -240,7 +258,6 @@ export default function AuthPage() {
                                 >
                                     {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-500 group-hover:text-mustard transition" size={32} />}
                                 </button>
-                                {/* CORRECTION ACCESSIBILITÉ: Bouton supprimer */}
                                 {avatarPreview && (
                                   <button 
                                     type="button" 
@@ -252,7 +269,6 @@ export default function AuthPage() {
                                   </button>
                                 )}
                             </div>
-                            {/* CORRECTION ACCESSIBILITÉ: Input file caché */}
                             <input 
                               type="file" 
                               aria-label="Choisir une image"
@@ -265,7 +281,6 @@ export default function AuthPage() {
 
                         <div className="relative group">
                             <User className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                            {/* CORRECTION ACCESSIBILITÉ: Input Name */}
                             <input 
                               type="text" 
                               aria-label="Nom complet"
@@ -279,7 +294,6 @@ export default function AuthPage() {
 
                         <div className="flex gap-2">
                             <div className="w-1/3 relative">
-                                {/* CORRECTION ACCESSIBILITÉ: Select Country */}
                                 <select 
                                   aria-label="Indicatif pays"
                                   className="w-full h-full bg-gray-50 border border-gray-200 rounded-xl px-2 text-sm font-bold outline-none appearance-none text-center cursor-pointer focus:border-mustard transition" 
@@ -291,7 +305,6 @@ export default function AuthPage() {
                             </div>
                             <div className="relative group flex-1">
                                 <Phone className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                {/* CORRECTION ACCESSIBILITÉ: Input Phone */}
                                 <input 
                                   type="tel" 
                                   aria-label="Numéro de téléphone"
@@ -306,7 +319,6 @@ export default function AuthPage() {
 
                         <div className="flex gap-2">
                             <div className="w-1/2 relative group">
-                                {/* CORRECTION ACCESSIBILITÉ: Select Island */}
                                 <select 
                                   aria-label="Choisir l'île"
                                   className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 text-sm font-medium outline-none focus:border-mustard appearance-none cursor-pointer transition" 
@@ -323,7 +335,6 @@ export default function AuthPage() {
                             </div>
                             <div className="w-1/2 relative group">
                                 <MapPin className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                {/* CORRECTION ACCESSIBILITÉ: Input City */}
                                 <input 
                                   type="text" 
                                   aria-label="Ville"
@@ -340,7 +351,6 @@ export default function AuthPage() {
 
                 <div className="relative group">
                     <Mail className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                    {/* CORRECTION ACCESSIBILITÉ: Input Email */}
                     <input 
                       type="email" 
                       aria-label="Adresse email"
@@ -355,7 +365,6 @@ export default function AuthPage() {
                 {(view === 'login' || view === 'register') && (
                     <div className="relative group">
                         <Lock className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                        {/* CORRECTION ACCESSIBILITÉ: Input Password */}
                         <input 
                           type={showPassword ? "text" : "password"} 
                           aria-label="Mot de passe"
@@ -365,7 +374,6 @@ export default function AuthPage() {
                           onChange={e => setFormData({...formData, password: e.target.value})} 
                           required 
                         />
-                        {/* CORRECTION ACCESSIBILITÉ: Bouton Eye */}
                         <button 
                           type="button" 
                           aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
@@ -377,7 +385,7 @@ export default function AuthPage() {
                     </div>
                 )}
 
-                <button type="submit" disabled={loading} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2">
+                <button type="submit" disabled={loading} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
                     {loading ? <Loader2 className="animate-spin" /> : 
                         (view === 'login' ? 'Se connecter' : 
                          view === 'register' ? 'Créer mon compte' : 
@@ -386,6 +394,45 @@ export default function AuthPage() {
                     }
                 </button>
             </form>
+
+            {/* --- BOUTON D'AUTHENTIFICATION GOOGLE --- */}
+            {['login', 'register'].includes(view) && (
+              <>
+                <div className="relative my-5 flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-200"></div>
+                  </div>
+                  <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-gray-400 font-semibold">ou</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={loading}
+                  className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 font-bold py-3.5 rounded-xl shadow-sm hover:bg-gray-50 transition transform active:scale-95 disabled:opacity-50"
+                >
+                  <svg className="w-5 h-5 min-w-5" viewBox="0 0 24 24">
+                    <path
+                      fill="#4285F4"
+                      d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v3.92h6.61a5.66 5.66 0 0 1-2.45 3.71v3.08h3.95a12 12 0 0 0 3.63-8.64z"
+                    />
+                    <path
+                      fill="#34A853"
+                      d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.95-3.08c-1.1.74-2.51 1.18-3.98 1.18-3.07 0-5.67-2.08-6.6-4.88H1.31v3.18A12 12 0 0 0 12 24z"
+                    />
+                    <path
+                      fill="#FBBC05"
+                      d="M5.4 14.31A7.17 7.17 0 0 1 5 12c0-.8.14-1.57.4-2.31V6.51H1.31A11.94 11.94 0 0 0 0 12c0 2.05.52 4 1.31 5.49l4.09-3.18z"
+                    />
+                    <path
+                      fill="#EA4335"
+                      d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0A12 12 0 0 0 1.31 6.51l4.09 3.18c.93-2.8 3.53-4.88 6.6-4.88z"
+                    />
+                  </svg>
+                  Continuer avec Google
+                </button>
+              </>
+            )}
 
             <div className="mt-6 flex flex-col gap-3 text-center">
                 {view === 'login' && (

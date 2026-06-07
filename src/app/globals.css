@@ -25,11 +25,9 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: auto;
   
-  /* CORRECTION : Utilisation des préfixes vendeurs pour la compatibilité */
-  -webkit-text-size-adjust: 100%; /* Chrome, Safari, iOS */
-  -moz-text-size-adjust: 100%;    /* Firefox */
-  -ms-text-size-adjust: 100%;     /* IE/Edge legacy */
-  /* text-size-adjust: 100%;          Standard (commented to avoid linter warnings) */
+  /* Standard property + vendor prefix for maximum browser support */
+  -webkit-text-size-adjust: 100%; /* Safari, iOS Safari, Firefox Android */
+  text-size-adjust: 100%;          /* Standard for Chrome 54+, Edge 79+ */
 }
 
 /* 2. UX NATIVE (Bloquer la sélection) */
@@ -62,11 +60,10 @@ img {
   -ms-user-select: none;
   user-select: none;
   
-  /* Gestion du Drag */
+  /* Prevent image dragging */
   -webkit-user-drag: none;
-  -moz-user-drag: none; /* Non standard but harmless */
-  user-drag: none;      /* Non standard but harmless */
-  pointer-events: none; /* Ultimate fallback */
+  -moz-user-drag: none;
+  pointer-events: none;
 }
 
 /* 3. STYLES SPÉCIFIQUES */

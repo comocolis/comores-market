@@ -5,17 +5,13 @@ import BottomNav from '@/components/BottomNav';
 import OfflineScreen from '@/components/OfflineScreen';
 import { Suspense, lazy } from "react"; 
 import Script from 'next/script';
-// ✅ OPTIMISATION 1 : Import de la police optimisée
-import { Inter } from "next/font/google"; // Removed duplicate imports to combine them
-import SplashScreen from '@/components/SplashScreen'; // Direct import for faster loading
+import { Inter } from "next/font/google";
+import SplashScreen from '@/components/SplashScreen';
 
-// Lazy load heavy components
 const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
-// Removed lazy SplashScreen
 const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
 const CookieBanner = lazy(() => import('@/components/CookieBanner'));
 
-// ✅ CONFIGURATION POLICE
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
@@ -27,6 +23,7 @@ export const metadata: Metadata = {
   alternates: { 
     canonical: '/',
   },
+  // ✅ TEMPLATE DE TITRE : Parfait pour le SEO des pages enfants
   title: { default: "Comores Market - Achat et Vente aux Comores", template: "%s | Comores Market" },
   description: "La première marketplace des Comores. Achetez et vendez voitures, immobilier, téléphones et bien plus.",
   keywords: ['Comores', 'Vente', 'Achat', 'Voiture', 'Immobilier', 'Occasion', 'Moroni', 'Mayotte', 'Annonces'],
@@ -37,11 +34,19 @@ export const metadata: Metadata = {
     siteName: 'Comores Market',
     locale: 'fr_KM',
     type: 'website',
-    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'Comores Market' }],
+    // ✅ OPTIMISATION OG:IMAGE : Format paysage 1200x630 recommandé pour WhatsApp/Facebook
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Comores Market' }], 
   },
   robots: {
-    index: true, follow: true,
-    googleBot: { index: true, follow: true, 'max-video-preview': -1, 'max-image-preview': 'large', 'max-snippet': -1 },
+    index: true, 
+    follow: true,
+    googleBot: { 
+      index: true, 
+      follow: true, 
+      'max-video-preview': -1, 
+      'max-image-preview': 'large', 
+      'max-snippet': -1 
+    },
   },
   other: {
     'google': 'notranslate',
@@ -63,36 +68,28 @@ export const viewport: Viewport = {
   themeColor: "#374151",
   width: "device-width",
   initialScale: 1,
-  // ✅ CORRECTION PWA : Empêche le zoom auto sur les inputs
-  maximumScale: 1,
-  userScalable: false,
+  // ✅ CORRECTION SEO & ACCESSIBILITÉ : On supprime userScalable=false pour éviter les pénalités Google.
+  // (Pense à mettre la classe 'text-base' (16px) sur tes inputs pour bloquer le zoom iOS naturellement).
   viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" suppressHydrationWarning translate="no">
-      {/* ✅ APPLICATION DE LA POLICE SUR LE BODY */}
       <body className={`${inter.className} font-sans min-h-dvh bg-gray-700 text-gray-900 antialiased overflow-y-auto notranslate`}>
         
-        {/* ✅ GOOGLE TAGS (ANALYTICS + ADS) COMBINÉS */}
-        {/* Chargement de la librairie globale */}
+        {/* GOOGLE TAGS */}
         <Script 
           src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" 
           strategy="afterInteractive" 
         />
         
-        {/* Configuration des identifiants */}
         <Script id="google-tags-config" strategy="afterInteractive">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-
-            // Configuration Google Analytics
             gtag('config', 'G-MRDLKB8904');
-
-            // Configuration Google Ads (Conversion Linker)
             gtag('config', 'AW-16447515729');
           `}
         </Script>

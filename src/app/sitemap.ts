@@ -1,17 +1,17 @@
 import { MetadataRoute } from 'next'
 import { createStaticClient } from '@/utils/supabase/static'
-// import { createClient } from '@/utils/supabase/server' // <--- CORRECTION MAJEURE ICI
 
-export const dynamic = 'force-static'
+// ✅ REVALIDATION AUTOMATIQUE TOUTES LES HEURES (ISR)
+// Au lieu de figer le sitemap au build, Next.js le reconstruira en arrière-plan toutes les 1h max.
+export const revalidate = 3600 
 
 const BASE_URL = 'https://www.comores-market.com'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  // 1. Initialisation du client serveur
+  // 1. Initialisation du client
   const supabase = createStaticClient()
   
-  // 2. Récupération optimisée
-  // On ne récupère QUE les colonnes nécessaires (id, updated_at) pour ne pas saturer la mémoire
+  // 2. Récupération optimisée (Limitation temporaire à 5000, extensible à 45000 plus tard)
   const { data: products } = await supabase
     .from('products')
     .select('id, updated_at')
@@ -22,7 +22,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 3. Génération des URLs dynamiques (Produits)
   const productUrls: MetadataRoute.Sitemap = (products || []).map((product) => ({
     url: `${BASE_URL}/annonce?id=${product.id}`,
-    // Si updated_at est null, on utilise la date actuelle pour ne pas casser le format
     lastModified: new Date(product.updated_at || new Date()),
     changeFrequency: 'weekly',
     priority: 0.8,
@@ -33,8 +32,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     {
       url: BASE_URL,
       lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
+      changeFrequency: 'always', // La home change constamment sur une marketplace
+      priority: 1.0,
     },
     {
       url: `${BASE_URL}/recherche`,

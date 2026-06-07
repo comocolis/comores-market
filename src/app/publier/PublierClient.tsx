@@ -23,6 +23,7 @@ import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
 // IMPORT DU TRACKING ANALYTICS
 import { trackListingCreated, trackAdsConversion } from '@/lib/analytics'
+import { rephraseText, moderateContent } from '@/lib/edge-functions'
 
 // --- CONSTANTES GLOBALES ---
 const FREE_ADS_LIMIT = 3
@@ -32,7 +33,8 @@ const PRO_PHOTOS_LIMIT = 10
 const CATEGORIES_LIST = [
   { id: 1, label: 'Véhicules' }, { id: 2, label: 'Immobilier' }, { id: 3, label: 'Mode' },
   { id: 4, label: 'Tech' }, { id: 5, label: 'Maison' }, { id: 6, label: 'Loisirs' },
-  { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, { id: 10, label: 'Emploi' },
+  { id: 7, label: 'Alimentation' }, { id: 8, label: 'Services' }, { id: 9, label: 'Beauté' }, 
+  { id: 10, label: 'Emploi' },
 ]
 
 // --- LISTE COMPLÈTE ÉLARGIE ---
@@ -293,8 +295,6 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
     )
 }
 
-import { rephraseText, moderateContent } from '@/lib/edge-functions'
-
 export default function PublierClient() {
   const supabase = createClient()
   const router = useRouter()
@@ -302,9 +302,7 @@ export default function PublierClient() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [isRephrasing, setIsRephrasing] = useState(false) 
-  
   const [images, setImages] = useState<{ id: string, url: string }[]>([])
-  
   const [isPro, setIsPro] = useState(false)
   const [isBanned, setIsBanned] = useState(false)
   const [adsCount, setAdsCount] = useState(0)
@@ -316,9 +314,7 @@ export default function PublierClient() {
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
   
-  // STATE POUR LA SOUS-CATÉGORIE PERSONNALISÉE
   const [customSubCat, setCustomSubCat] = useState('')
-
   const [specs, setSpecs] = useState<Record<string, string>>({})
 
   useEffect(() => {
@@ -364,7 +360,6 @@ export default function PublierClient() {
               const ctx = canvas.getContext('2d');
               canvas.width = img.width;
               canvas.height = img.height;
-              
               if (ctx) {
                   ctx.drawImage(img, 0, 0);
                   const text = "ComoresMarket";
@@ -383,7 +378,7 @@ export default function PublierClient() {
               canvas.toBlob((blob) => {
                   if (blob) resolve(blob);
                   else resolve(file);
-              }, 'image/webp', 0.85); 
+              }, 'image/webp', 0.85);
           };
       });
   };
@@ -453,24 +448,23 @@ export default function PublierClient() {
     setIsRephrasing(true)
     try {
       const data = await rephraseText(formData.description);
-            const rewrittenText = data?.rephrased || data?.text
+      const rewrittenText = data?.rephrased || data?.text
       
-            if (rewrittenText) {
-        // CORRECTION: Avoid regex literal issues in build
-                let clean = rewrittenText;
-        clean = clean.split('**').join('');
-        clean = clean.split('#').join('');
-        clean = clean.normalize("NFC");
-        
-        setFormData(prev => ({ ...prev, description: clean }))
-        toast.success("Texte sublimé !")
-            } else {
-                toast.error("Aucune reformulation reçue.")
+      if (rewrittenText) {
+          let clean = rewrittenText;
+          clean = clean.split('**').join('');
+          clean = clean.split('#').join('');
+          clean = clean.normalize("NFC");
+          
+          setFormData(prev => ({ ...prev, description: clean }))
+          toast.success("Texte sublimé !")
+      } else {
+          toast.error("Aucune reformulation reçue.")
       }
-        } catch (err) {
-            console.error('Rephrase error:', err)
-            toast.error("Erreur reformulation.")
-        } finally { setIsRephrasing(false) }
+    } catch (err) {
+        console.error('Rephrase error:', err)
+        toast.error("Erreur reformulation.")
+    } finally { setIsRephrasing(false) }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -481,7 +475,6 @@ export default function PublierClient() {
         return
     }
 
-    // --- GESTION SOUS-CATÉGORIE PERSO ---
     let finalSubCategory = formData.sub_category;
     if (finalSubCategory === 'Autre') {
         if (!customSubCat.trim()) {
@@ -511,7 +504,6 @@ export default function PublierClient() {
       }
 
       let finalDescription = formData.description;
-      
       if (Object.keys(specs).length > 0) {
           let specsText = "\n\n--- ✨ CARACTÉRISTIQUES ---\n";
           currentSpecFields.forEach((field: any) => {
@@ -523,7 +515,6 @@ export default function PublierClient() {
       }
 
       const check = await moderateContent(formData.title, finalDescription, formData.price);
-
       if (!check.is_safe) {
         toast.error(`Refusé : ${check.reason}`)
         setLoading(false)
@@ -540,9 +531,6 @@ export default function PublierClient() {
       })
 
       if (!productError) {
-          // --- SUCCÈS : ENVOI DES ÉVÉNEMENTS DE TRACKING ---
-          
-          // 1. GA4 : Suivi de l'événement (pour vos stats internes)
           trackListingCreated(
              'new_listing', 
              formData.title,
@@ -550,12 +538,9 @@ export default function PublierClient() {
              parseInt(formData.price)
           )
 
-          // ✅ 2. GOOGLE ADS : Conversion Publicitaire (Appel automatique)
-          // On appelle la fonction de tracking Ads (définie dans le script Gtag)
-          // Remarque : Si vous configurez l'import automatique depuis GA4, cette ligne est redondante mais inoffensive.
           if (typeof window !== 'undefined' && window.gtag) {
              window.gtag('event', 'conversion', {
-                 'send_to': 'AW-16447515729/VOTRE_LABEL_ICI', // Remplacez par le label si vous l'avez
+                 'send_to': 'AW-16447515729/VOTRE_LABEL_ICI',
                  'value': 1.0,
                  'currency': 'EUR'
              });
@@ -574,7 +559,11 @@ export default function PublierClient() {
           throw productError
       }
       
-    } catch (err: any) { toast.error("Erreur lors de la publication.") } finally { setLoading(false) }
+    } catch (err: any) { 
+        toast.error("Erreur lors de la publication.") 
+    } finally { 
+        setLoading(false) 
+    }
   }
 
   if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand" /></div>
@@ -596,7 +585,10 @@ export default function PublierClient() {
       <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
         <button onClick={() => router.back()} aria-label="Go back" className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
         <h1 className="font-extrabold text-xl text-gray-900">Publier</h1>
-        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">{isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}{adsCount} / {isPro ? '∞' : FREE_ADS_LIMIT}</div>
+        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+          {isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}
+          {adsCount} / {isPro ? '∞' : FREE_ADS_LIMIT}
+        </div>
       </div>
 
       {adsLimitReached ? (
@@ -671,7 +663,7 @@ export default function PublierClient() {
                             value={formData.category_id} 
                             onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
                         >
-                            {CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id}>{cat.label}</option>))}
+                            {CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id.toString()}>{cat.label}</option>))}
                         </select>
                     </div>
                     <div>
@@ -757,10 +749,10 @@ export default function PublierClient() {
                             value={formData.location_island} 
                             onChange={e => setFormData({...formData, location_island: e.target.value})}
                         >
-                            <option>Ngazidja</option>
-                            <option>Ndzouani</option>
-                            <option>Mwali</option>
-                            <option>Maore</option>
+                            <option value="Ngazidja">Ngazidja</option>
+                            <option value="Ndzouani">Ndzouani</option>
+                            <option value="Mwali">Mwali</option>
+                            <option value="Maore">Maore</option>
                         </select>
                     </div>
                     <div>
@@ -796,10 +788,10 @@ export default function PublierClient() {
                 <div className="flex justify-between items-center mb-1 px-1">
                     <label className="text-xs font-bold text-gray-700 uppercase">Description Prestige</label>
                     <div className="flex gap-2">
-                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Enhance description with AI" className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
-                        {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
-                        Sublimer
-                    </button>
+                        <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Enhance description with AI" className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
+                            {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                            Sublimer
+                        </button>
                     </div>
                 </div>
                 <textarea 
@@ -812,15 +804,15 @@ export default function PublierClient() {
             </div>
 
             <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
-            <ShieldCheck className="text-amber-600 mt-0.5" size={20} />
-            <div>
-                <p className="text-amber-900 text-[10px] font-black uppercase tracking-tight">Audit Sentinelle Actif</p>
-                <p className="text-amber-700/80 text-[10px] font-medium leading-tight mt-0.5">La conformité et le prestige de votre annonce sont vérifiés en temps réel.</p>
-            </div>
+                <ShieldCheck className="text-amber-600 mt-0.5" size={20} />
+                <div>
+                    <p className="text-amber-900 text-[10px] font-black uppercase tracking-tight">Audit Sentinelle Actif</p>
+                    <p className="text-amber-700/80 text-[10px] font-medium leading-tight mt-0.5">La conformité et le prestige de votre annonce sont vérifiés en temps réel.</p>
+                </div>
             </div>
 
             <button type="submit" disabled={loading || isRephrasing} className="w-full bg-brand text-white font-bold py-5 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
-            {loading ? <Loader2 className="animate-spin" /> : "Publier l'annonce"}
+                {loading ? <Loader2 className="animate-spin" /> : "Publier l'annonce"}
             </button>
         </form>
       )}
