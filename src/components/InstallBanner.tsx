@@ -13,20 +13,29 @@ export default function InstallBanner() {
   const [showInstructions, setShowInstructions] = useState(false)
 
   useEffect(() => {
-    // Si l'utilisateur est déjà dans l'application installée (standalone), on ne montre rien
+    // 1. Si l'utilisateur est déjà dans l'application installée (standalone), on ne montre rien
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
-    if (isStandalone) return;
+    if (isStandalone) {
+      console.log('📱 Comores Market : Application déjà lancée en mode autonome (PWA installée).');
+      return;
+    }
 
-    // Si l'utilisateur a déjà masqué la bannière durant cette session, on l'ignore
-    if (sessionStorage.getItem('installBannerDismissed')) return;
+    // 2. Si l'utilisateur a déjà masqué la bannière durant cette session, on l'ignore
+    if (sessionStorage.getItem('installBannerDismissed')) {
+      console.log('📱 Comores Market : Bannière d\'installation masquée pour cette session.');
+      return;
+    }
 
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIosDevice = /iphone|ipad|ipod/.test(userAgent);
     setIsIOS(isIosDevice);
 
+    console.log(`📱 Comores Market : Appareil détecté - ${isIosDevice ? 'iOS (iPhone/iPad)' : 'Android/Autre'}. Préparation de la bannière...`);
+
     // Affichage progressif après 3 secondes pour ne pas surcharger visuellement au chargement initial
     const timer = setTimeout(() => {
       setIsVisible(true);
+      console.log('📱 Comores Market : Affichage de la bannière d\'installation.');
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -38,6 +47,7 @@ export default function InstallBanner() {
       setShowInstructions(true);
     } else {
       // Pour Android (et les autres supports), on redirige directement vers la fiche Play Store
+      console.log('🚀 Redirection vers le Google Play Store :', PLAY_STORE_URL);
       window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
       // On masque la bannière après le clic de redirection
       handleDismiss();

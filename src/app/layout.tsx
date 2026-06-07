@@ -7,6 +7,7 @@ import { Suspense, lazy } from "react";
 import Script from 'next/script';
 import { Inter } from "next/font/google";
 import SplashScreen from '@/components/SplashScreen';
+import InstallBanner from '@/components/InstallBanner';
 
 const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
 const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
@@ -78,6 +79,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="fr" suppressHydrationWarning translate="no">
       <body className={`${inter.className} font-sans min-h-dvh bg-gray-700 text-gray-900 antialiased overflow-y-auto notranslate`}>
         
+        {/* ✅ RENDU DE LA BANNIÈRE D'INSTALLATION DEPUIS LE CANVAS */}
+        <InstallBanner />
+
         {/* GOOGLE TAGS */}
         <Script 
           src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" 
