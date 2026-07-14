@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import PriceTag from '@/components/PriceTag';
 import { 
   MapPin, Search, User, SlidersHorizontal, Loader2,
   LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Crown
@@ -401,9 +402,10 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                         {product.title}
                     </h3>
                     <div className="mt-auto flex flex-col gap-1">
-                        <span className="text-brand font-black text-base tracking-tight">
-                            {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
-                        </span>
+                        <PriceTag 
+                        price={product.price} 
+                        className="text-brand font-black text-base tracking-tight" 
+                        />
                         <div className="flex items-center gap-1 text-gray-500 text-[10px] uppercase font-bold tracking-wide">
                             <MapPin size={10} className="text-gray-400" /> {product.location_city}
                         </div>

@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import PriceTag from '@/components/PriceTag';
 import { 
   Trash2, MapPin, Loader2, Plus, ArrowLeft, Pencil, 
   BarChart3, AlertTriangle, ChevronRight, Sparkles, ShoppingBag,
@@ -161,7 +162,10 @@ export default function MesAnnoncesClient() {
                                 <Link href={`/annonce?id=${product.id}`}>
                                   <h3 className="font-black text-gray-900 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
                                 </Link>
-                                <p className="text-brand font-black text-lg mt-0.5">{new Intl.NumberFormat('fr-KM').format(product.price)} KMF</p>
+                                <PriceTag 
+                                price={product.price} 
+                                className="text-brand font-black text-lg" 
+                                />
                                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-auto uppercase font-black tracking-widest">
                                     <MapPin size={12} className="text-brand/40" /> {product.location_city}
                                 </div>

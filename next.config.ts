@@ -7,6 +7,12 @@ const withPWA = require('next-pwa')({
   register: true,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
+  
+  // ✅ CORRECTION : Ajout du fallback pour l'écran hors connexion
+  fallbacks: {
+    document: '/offline',
+  },
+
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/.*\.supabase\.co\/storage\/v1\/object\/public\/.*$/,
@@ -96,7 +102,7 @@ const nextConfig: NextConfig = {
     return config;
   },
   
-  // Security Headers (VERSION CORRIGÉE ET ASSOUPLIE)
+  // Security Headers
   async headers() {
     return [
       {
@@ -118,19 +124,14 @@ const nextConfig: NextConfig = {
             key: 'Referrer-Policy',
             value: 'origin-when-cross-origin'
           },
-          // ⚠️ CORRECTION MAJEURE : On autorise la caméra et le micro !
           {
             key: 'Permissions-Policy',
             value: 'camera=*, microphone=*, geolocation=(self), payment=()'
           },
-          // ⚠️ CORRECTION MAJEURE : On empêche le blocage de l'iframe/webview
           {
             key: 'X-Frame-Options',
             value: 'SAMEORIGIN' 
           }
-          // NOTE : J'ai temporairement retiré la "Content-Security-Policy" (CSP).
-          // Elle est souvent source de bugs majeurs (écran blanc) si mal configurée.
-          // Mieux vaut un site qui marche sans CSP qu'un site sécurisé qui ne s'affiche pas.
         ],
       },
     ]

@@ -41,11 +41,16 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
       }
     }
 
-    // Extraction propre de la description (on coupe avant la fiche technique si elle existe)
+    // Extraction propre de la description
     const mainDescription = product.description?.split('--- ✨ CARACTÉRISTIQUES ---')[0]?.trim() || ''
-    const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price)
     
-    // Détermination de l'image de partage (première image du produit)
+    // Calcul de la conversion pour le titre SEO
+    const priceInEuro = Math.round(product.price / 500);
+    const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price);
+    const formattedEuro = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(priceInEuro);
+    const pageTitle = `${product.title} - ${formattedPrice} KMF (${formattedEuro})`;
+    
+    // Détermination de l'image de partage
     let imageUrl = 'https://www.comores-market.com/og-image.png'
     try {
       const imgs = JSON.parse(product.images)
@@ -59,13 +64,13 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
     }
 
     return {
-      title: `${product.title} - ${formattedPrice} KMF`,
+      title: pageTitle,
       description: mainDescription.slice(0, 150) || `Découvrez l'annonce ${product.title} sur Comores Market.`,
       alternates: {
         canonical: `/annonce?id=${id}`,
       },
       openGraph: {
-        title: `${product.title} - ${formattedPrice} KMF | Comores Market`,
+        title: pageTitle,
         description: mainDescription.slice(0, 150) || `Achetez ou vendez sur la première marketplace des Comores.`,
         url: `https://www.comores-market.com/annonce?id=${id}`,
         siteName: 'Comores Market',
@@ -91,7 +96,6 @@ export async function generateMetadata({ searchParams }: PageProps): Promise<Met
 
 // 🎴 2. RENDU DE LA PAGE EN SSR (Serveur)
 export default async function Page({ searchParams }: PageProps) {
-  // On résout la promesse asynchrone searchParams requise par Next.js 15/16
   const resolvedSearchParams = await searchParams
   const rawId = resolvedSearchParams.id
   const id = typeof rawId === 'string' ? rawId : undefined
@@ -125,7 +129,6 @@ export default async function Page({ searchParams }: PageProps) {
         </div>
       }
     >
-      {/* Passage du produit pré-chargé via le composant typé de manière sécurisée */}
       <SafeAnnonceClient initialProduct={initialProduct} />
     </Suspense>
   )

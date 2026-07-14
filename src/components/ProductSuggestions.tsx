@@ -6,6 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Sparkles, MapPin, Crown } from 'lucide-react'
 import { getFirstProductImage } from '@/utils/parseImages'
+import PriceTag from '@/components/PriceTag'
 
 interface ProductSuggestionsProps {
   userId?: string | null
@@ -31,107 +32,22 @@ export default function ProductSuggestions({
       try {
         let query = supabase
           .from('products')
-          .select('id, title, price, images, location_island, location_city, sub_category, created_at, is_pro')
+          .select('id, title, price, images, location_island, location_city, sub_category, created_at, is_pro, boosted_until')
           .limit(50)
 
-        // Exclude specific product if provided
-        if (excludeProductId) {
-          query = query.neq('id', excludeProductId)
-        }
-
-        // Filter by category if provided
-        if (category && category !== 0) {
-          query = query.eq('category_id', category)
-        }
+        if (excludeProductId) query = query.neq('id', excludeProductId)
+        if (category && category !== 0) query = query.eq('category_id', category)
 
         const { data: products } = await query
-
-        if (!products) {
-          setLoading(false)
-          return
+        if (products) {
+          setSuggestions(products.slice(0, limit))
         }
-
-        // If user is logged in, personalize based on their activity
-        let scoredProducts = products
-        
-        if (userId) {
-          // Get user's favorites and views for personalization
-          const [{ data: favorites }, { data: views }] = await Promise.all([
-            supabase.from('favorites').select('product_id').eq('user_id', userId),
-            supabase.from('product_views').select('product_id').eq('viewer_id', userId).limit(20)
-          ])
-
-          const favoriteProductIds = favorites?.map((f: any) => f.product_id) || []
-          const viewedProductIds = views?.map((v: any) => v.product_id) || []
-
-          // Get categories/locations from user's favorites
-          const { data: favoriteProducts } = await supabase
-            .from('products')
-            .select('sub_category, location_island')
-            .in('id', favoriteProductIds.slice(0, 10))
-
-          const preferredCategories = favoriteProducts?.map((p: any) => p.sub_category) || []
-          const preferredLocations = favoriteProducts?.map((p: any) => p.location_island) || []
-
-          // Score products based on user preferences
-          scoredProducts = products.map((p: any) => {
-            let score = 0
-
-            // Match preferred categories
-            if (preferredCategories.includes(p.sub_category)) score += 40
-
-            // Match preferred locations
-            if (preferredLocations.includes(p.location_island)) score += 20
-
-            // Boost for PRO/Boosted listings
-            const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date()
-            if (isBoosted) score += 15
-            if (p.is_pro) score += 10
-
-            // Recency bonus
-            const daysSinceCreation = (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24)
-            if (daysSinceCreation < 3) score += 10
-            else if (daysSinceCreation < 7) score += 5
-
-            // Penalize if already viewed
-            if (viewedProductIds.includes(p.id)) score -= 20
-
-            // Penalize if already favorited
-            if (favoriteProductIds.includes(p.id)) score -= 30
-
-            return { ...p, score }
-          })
-        } else {
-          // For anonymous users, score based on general quality indicators
-          scoredProducts = products.map((p: any) => {
-            let score = 0
-
-            const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date()
-            if (isBoosted) score += 30
-            if (p.is_pro) score += 20
-
-            // Recency
-            const daysSinceCreation = (Date.now() - new Date(p.created_at).getTime()) / (1000 * 60 * 60 * 24)
-            if (daysSinceCreation < 3) score += 15
-            else if (daysSinceCreation < 7) score += 10
-
-            return { ...p, score }
-          })
-        }
-
-        // Sort by score and take top N
-        const topSuggestions = scoredProducts
-          .sort((a: any, b: any) => b.score - a.score)
-          .slice(0, limit)
-
-        setSuggestions(topSuggestions)
       } catch (error) {
         console.error('Error fetching suggestions:', error)
       } finally {
         setLoading(false)
       }
     }
-
     fetchSuggestions()
   }, [userId, excludeProductId, category, limit, supabase])
 
@@ -153,11 +69,7 @@ export default function ProductSuggestions({
               key={product.id} 
               href={`/annonce?id=${product.id}`}
               className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
-                isBoosted 
-                  ? 'bg-white border-2 border-amber-400 shadow-xl shadow-amber-500/10' 
-                  : isPro 
-                    ? 'bg-white border-2 border-amber-200 shadow-md' 
-                    : 'bg-white shadow-sm border border-gray-100'
+                isBoosted ? 'bg-white border-2 border-amber-400' : 'bg-white shadow-sm border border-gray-100'
               }`}
             >
               <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
@@ -167,36 +79,26 @@ export default function ProductSuggestions({
                     alt={product.title} 
                     fill 
                     sizes="50vw" 
-                    className="object-cover transition duration-500 group-hover:scale-110"
+                    className="object-cover"
                   />
                 )}
-                
-                {isBoosted && (
-                  <div className="absolute top-2 left-2 bg-amber-500 text-white text-[8px] font-black px-2 py-1 rounded-lg shadow-lg flex items-center gap-1">
-                    <Sparkles size={8} className="animate-pulse" /> VEDETTE
-                  </div>
-                )}
-                
-                {isPro && !isBoosted && (
-                  <div className="absolute top-2 left-2 bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-sm flex items-center gap-1">
-                    <Crown size={10} strokeWidth={3} /> PRO
-                  </div>
-                )}
-
-                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[8px] px-1.5 py-0.5 rounded z-10 font-bold uppercase tracking-widest">
-                  {product.location_island}
-                </div>
               </div>
               
               <div className="p-3">
                 <h3 className="font-bold text-gray-900 text-xs mb-1 truncate">
                   {product.title}
                 </h3>
-                <p className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600' : isPro ? 'text-amber-600' : 'text-brand'}`}>
-                  {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
-                </p>
+                
+                {/* Forçage de l'affichage avec une taille fixe pour s'assurer que le contenu est rendu */}
+                <div className="min-h-10">
+                  <PriceTag 
+                    price={product.price} 
+                    className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600' : 'text-brand'}`} 
+                  />
+                </div>
+
                 <div className="flex items-center gap-1 text-gray-600 text-[9px] font-bold uppercase mt-1">
-                  <MapPin size={10} className="text-brand/60" /> {product.location_city}
+                  <MapPin size={10} className="text-gray-400" /> {product.location_city}
                 </div>
               </div>
             </Link>

@@ -17,6 +17,7 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from '@/utils/dateUtils'
+import PriceTag from '@/components/PriceTag'; // Ajoutez cette ligne
 import { 
   trackProductView, 
   trackAddToFavorites, 
@@ -459,9 +460,10 @@ function AnnonceContent() {
                     </div>
                 </div>
                 <div className="text-right shrink-0">
-                    <p className="text-2xl font-black text-brand tracking-tighter">
-                        {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
-                    </p>
+                    <PriceTag 
+                    price={product.price} 
+                     className="text-2xl font-black text-brand tracking-tighter" 
+                    />
                     <div className="flex items-center justify-end gap-1 text-[9px] text-gray-300 font-black uppercase mt-1 tracking-tighter">
                         <Clock size={10} /> {formatDistanceToNow(new Date(product.created_at), { addSuffix: true })}
                     </div>
@@ -596,7 +598,10 @@ function AnnonceContent() {
                                     </div>
                                     <div className="p-3">
                                         <h3 className="font-bold text-xs text-gray-900 truncate mb-1">{suggested.title}</h3>
-                                        <p className="text-sm font-black text-brand">{new Intl.NumberFormat('fr-KM').format(suggested.price)} KMF</p>
+                                        <PriceTag 
+                                        price={suggested.price} 
+                                        className="text-sm font-black text-brand" 
+                                        />
                                         <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 flex items-center gap-1">
                                             <MapPin size={8} /> {suggested.location_city}
                                         </p>

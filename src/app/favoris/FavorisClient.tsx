@@ -14,6 +14,7 @@ import { getFirstProductImage } from '@/utils/parseImages'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateFavorites } from '@/components/EmptyState'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
+import PriceTag from '@/components/PriceTag' // ✅ Import ajouté
 
 export default function FavorisClient() {
   const supabase = createClient()
@@ -48,7 +49,7 @@ export default function FavorisClient() {
                 <button 
                   onClick={() => router.back()} 
                   className="p-2 -ml-2 text-white active:scale-90 transition"
-                  aria-label="Retour" // ♿ Accessibilité
+                  aria-label="Retour"
                 >
                     <ArrowLeft size={24} />
                 </button>
@@ -70,7 +71,7 @@ export default function FavorisClient() {
         ) : (
             <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence>
-                    {favorites.map((product, index) => { // 🚀 Ajout de l'index
+                    {favorites.map((product, index) => {
                         const img = getFirstProductImage(product.images)
                         const isPro = product.profiles?.is_pro 
 
@@ -94,11 +95,11 @@ export default function FavorisClient() {
                                                 src={img} 
                                                 alt={product.title} 
                                                 fill 
-                                                sizes="50vw" // 🚀 Optimisation taille
+                                                sizes="50vw"
                                                 className="object-cover transition-transform duration-500 group-hover:scale-110"
                                                 placeholder="blur"
                                                 blurDataURL={BLUR_PLACEHOLDERS.product}
-                                                priority={index < 4} // 🚀 Optimisation LCP
+                                                priority={index < 4}
                                             />
                                         ) : (
                                             <div className="flex items-center justify-center h-full text-gray-200">
@@ -122,9 +123,12 @@ export default function FavorisClient() {
                                             {product.title}
                                             {isPro && <ShieldCheck size={12} className="text-mustard shrink-0" />}
                                         </h3>
-                                        <p className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`}>
-                                            {new Intl.NumberFormat('fr-KM').format(product.price)} KMF
-                                        </p>
+                                        
+                                        {/* ✅ Remplacement du formatage manuel par le composant PriceTag */}
+                                        <PriceTag 
+                                            price={product.price} 
+                                            className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`} 
+                                        />
                                     </div>
                                 </Link>
                             </motion.div>
