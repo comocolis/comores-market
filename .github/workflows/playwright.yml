@@ -16,14 +16,25 @@ jobs:
     - name: Install dependencies
       run: npm ci
     
-    # ✅ AJOUT : Build de l'application nécessaire pour 'npm run start'
+    # Build de l'application
     - name: Build
       run: npm run build
+      env:
+        NODE_ENV: production
+        # Ajoutez ici vos variables d'environnement nécessaires au build si besoin
+        # NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        # NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
+      
+    # Ajout d'une étape pour lister le contenu afin de vérifier si le build a bien généré le dossier .next
+    - name: List files
+      run: ls -R .next || echo ".next directory not found"
+
     - name: Run Playwright tests
       run: npx playwright test
+      
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
