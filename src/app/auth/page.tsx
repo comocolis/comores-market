@@ -2,7 +2,7 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
-import { useState, useRef, ChangeEvent } from 'react'
+import { useState, useRef, ChangeEvent, useEffect } from 'react'
 import Image from 'next/image'
 import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -52,6 +52,20 @@ export default function AuthPage() {
   
   const [selectedCountry, setSelectedCountry] = useState(ALLOWED_COUNTRIES[0])
 
+  // ✅ Désactivation définitive de la bannière d'installation PWA à l'initialisation
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      // Empêche l'affichage automatique et enregistre le blocage
+      localStorage.setItem('pwa_banner_disabled', 'true');
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
   const handleAvatarChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -72,7 +86,7 @@ export default function AuthPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // ✅ CONNEXION / INSCRIPTION AVEC GOOGLE
+  // ✅ CONNEXION / INSCRIPTION AVEC GOOGLE (Avec prompt de sélection de compte)
   const handleGoogleLogin = async () => {
     setLoading(true)
     try {
@@ -81,6 +95,9 @@ export default function AuthPage() {
         provider: 'google',
         options: {
           redirectTo: `${origin}/auth/callback`,
+          queryParams: {
+            prompt: 'select_account', // Force l'affichage du choix des comptes Google connectés
+          },
         },
       })
       if (error) throw error
@@ -449,7 +466,7 @@ export default function AuthPage() {
             </div>
         </div>
 
-        {/* --- NOUVEAU MENU PUBLIC EN BAS --- */}
+        {/* --- MENU PUBLIC EN BAS --- */}
         <div className="mt-8 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
             <Link href="/" className="text-gray-500 text-sm hover:text-gray-900 font-bold transition">
                 Continuer sans compte
