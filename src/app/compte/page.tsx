@@ -134,7 +134,14 @@ export default function ComptePage() {
           setDeleting(false)
       } else {
           toast.success("Votre compte a été supprimé.")
-          await handleSignOut()
+          try {
+            const { error: signOutError } = await supabase.auth.signOut()
+            if (signOutError) console.error("Erreur déconnexion après suppression", signOutError)
+          } catch (signOutError) {
+            console.error("Erreur déconnexion après suppression", signOutError)
+          }
+
+          window.location.replace('/auth')
       }
   }
 
