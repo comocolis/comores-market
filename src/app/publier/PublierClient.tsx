@@ -394,6 +394,9 @@ export default function PublierClient() {
     
     setUploading(true)
     try {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error("Session expirée")
+
       const newImages: { id: string, url: string }[] = []
       
       for (const file of Array.from(e.target.files)) {
@@ -401,7 +404,7 @@ export default function PublierClient() {
               const compressedFile = await compressImage(file);
               const watermarkedBlob = await addWatermark(compressedFile);
               
-              const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
+              const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.webp`;
               
               const { error } = await supabase.storage
                   .from('products')
