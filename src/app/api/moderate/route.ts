@@ -76,8 +76,8 @@ export async function POST(req: Request) {
           content: prompt
         }
       ],
-      // Utilisation de Llama 3.3 70B qui est excellent pour suivre les instructions JSON
-      model: "llama-3.3-70b-versatile", 
+      // Modèle GPT-OSS (inclus dans l'offre gratuite Groq), bon suivi des instructions JSON
+      model: "openai/gpt-oss-120b",
       temperature: 0, // Zéro créativité, on veut de l'analyse pure
       response_format: { type: "json_object" } // Force la réponse JSON
     });

@@ -50,7 +50,7 @@ export async function POST(req: Request) {
           content: text
         }
       ],
-      model: "llama-3.3-70b-versatile", // Modèle texte très puissant et gratuit
+      model: "openai/gpt-oss-120b", // Modèle texte inclus dans l'offre gratuite Groq
       temperature: 0.7,
       max_tokens: 1024,
     });

@@ -128,12 +128,23 @@ export default function ComptePage() {
           return
       }
       setDeleting(true)
-      const { error } = await supabase.rpc('delete_own_account')
-      if (error) {
-          toast.error("Erreur : " + error.message)
-          setDeleting(false)
-      } else {
-          toast.success("Votre compte a été supprimé.")
+
+      try {
+          // Purge des fichiers + suppression du compte : fait cote serveur.
+          const response = await fetch('/api/account/delete', { method: 'POST' })
+          const data = await response.json().catch(() => ({}))
+
+          if (!response.ok) {
+              toast.error(data?.error ? "Erreur : " + data.error : "La suppression a échoué.")
+              setDeleting(false)
+              return
+          }
+
+          if (data?.purgeWarning) {
+              console.warn("Purge des fichiers partielle :", data.purgeWarning)
+          }
+
+          toast.success("Votre compte et vos fichiers ont été supprimés.")
           try {
             const { error: signOutError } = await supabase.auth.signOut()
             if (signOutError) console.error("Erreur déconnexion après suppression", signOutError)
@@ -142,6 +153,10 @@ export default function ComptePage() {
           }
 
           window.location.replace('/auth')
+      } catch (error) {
+          console.error("Erreur suppression du compte", error)
+          toast.error("Erreur réseau, réessaie.")
+          setDeleting(false)
       }
   }
 

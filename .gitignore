@@ -47,6 +47,12 @@ next-env.d.ts
 # Sentry Config File
 .env.sentry-build-plugin
 
+# Logs de build / dev locaux
+*.log
+
+# Scripts auxiliaires locaux
+_*.cmd
+
 # Playwright
 node_modules/
 /test-results/

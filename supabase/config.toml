@@ -1,11 +1,5 @@
+project_id = "mufahwakfztinqukkess"
 
-[functions.delete-user-data]
-enabled = true
-verify_jwt = true
-import_map = "./functions/delete-user-data/deno.json"
-# Uncomment to specify a custom file path to the entrypoint.
-# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
-entrypoint = "./functions/delete-user-data/index.ts"
-# Specifies static files to be bundled with the function. Supports glob patterns.
-# For example, if you want to serve static HTML pages in your function:
-# static_files = [ "./functions/delete-user-data/*.html" ]
+# Aucune Edge Function n'est deployee sur ce projet.
+# Toute l'IA passe par les routes Next.js (src/app/api/*) et les emails
+# par /api/emails/alert-signup. Voir DEVELOPER_GUIDE.md section 5.

@@ -35,9 +35,8 @@ export async function POST(req: Request) {
           ],
         },
       ],
-      // REMPLACEMENT OFFICIEL : Llama 4 Scout (17B)
-      // C'est le nouveau modèle multimodal qui remplace Llama 3.2 Vision
-      model: "meta-llama/llama-4-scout-17b-16e-instruct", 
+      // Modèle multimodal inclus dans l'offre gratuite Groq
+      model: "qwen/qwen3.8-27b",
       temperature: 0.5,
       max_tokens: 300,
     });
