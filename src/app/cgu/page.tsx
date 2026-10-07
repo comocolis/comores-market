@@ -1,13 +1,11 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Mail } from 'lucide-react'
 // AJOUT : Import du tracking pour suivre les demandes de contact
 import { trackEvent } from '@/lib/analytics'
 
 export default function CGUPage() {
-  const router = useRouter()
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
 
   const handleContactClick = () => {
@@ -20,13 +18,13 @@ export default function CGUPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
       <div className="flex items-center gap-4 mb-8 pt-safe">
-        <button 
-          onClick={() => router.back()} 
-          aria-label="Retour" 
+        <Link 
+          href="/compte"
+          aria-label="Retour au compte" 
           className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
         >
             <ArrowLeft size={20} className="text-gray-700" />
-        </button>
+        </Link>
         <h1 className="text-xl font-bold text-gray-900">Mentions Légales</h1>
       </div>
 

@@ -1,7 +1,6 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Check, Crown, ShieldCheck, Zap, Smartphone, MessageCircle, ArrowLeft, CreditCard, LayoutGrid, Instagram, Image as ImageIcon, LogIn, Loader2, Lock } from 'lucide-react'
 import { motion } from 'framer-motion'
@@ -12,7 +11,6 @@ import { trackProSubscription, trackAdsConversion, setEnhancedConversionData } f
 
 export default function ProPage() {
   const supabase = createClient()
-  const router = useRouter()
 
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly')
   const [paymentMethod, setPaymentMethod] = useState<'mvola' | 'card'>('mvola')
@@ -85,13 +83,13 @@ export default function ProPage() {
       
       {/* HEADER HERO */}
       <div className="bg-gray-900 text-white pt-8 pb-20 px-6 rounded-b-[2.5rem] relative overflow-hidden">
-        <button 
-          onClick={() => router.back()} 
-          aria-label="Retour" 
+        <Link 
+          href="/compte"
+          aria-label="Retour au compte" 
           className="absolute top-8 left-6 bg-white/10 p-2 rounded-full hover:bg-white/20 transition z-20"
         >
             <ArrowLeft size={20} />
-        </button>
+        </Link>
         
         <div className="absolute top-0 right-0 w-64 h-64 bg-brand/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
         
