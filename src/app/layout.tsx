@@ -5,7 +5,7 @@ import BottomNav from '@/components/BottomNav';
 import OfflineScreen from '@/components/OfflineScreen';
 import { Suspense, lazy } from "react"; 
 import Script from 'next/script';
-import { Inter } from "next/font/google";
+import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import SplashScreen from '@/components/SplashScreen';
 import InstallBanner from '@/components/InstallBanner';
 
@@ -17,6 +17,14 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+});
+
+// Calque 0 — police display chargee mais NON appliquee (aucun changement visuel).
+// Sera utilisee via la classe `font-display` a partir du Calque 2.
+const displayFont = Plus_Jakarta_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-display",
 });
 
 // IDs Google lus dans l'environnement (plus aucune valeur codee en dur).
@@ -83,7 +91,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" suppressHydrationWarning translate="no">
-      <body className={`${inter.className} font-sans min-h-dvh bg-gray-700 text-gray-900 antialiased overflow-y-auto notranslate`}>
+      <body className={`${inter.className} ${displayFont.variable} font-sans min-h-dvh bg-gray-700 text-gray-900 antialiased overflow-y-auto notranslate`}>
         
         {/* ✅ RENDU DE LA BANNIÈRE D'INSTALLATION DEPUIS LE CANVAS */}
         <InstallBanner />

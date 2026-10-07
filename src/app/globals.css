@@ -6,16 +6,66 @@
 */
 
 @theme {
-  --color-brand: #16a34a; 
+  --color-brand: #16a34a;
   --color-brand-dark: #15803d;
-  --color-mustard: #fbbf24; 
+  --color-mustard: #fbbf24;
   --color-mustard-dark: #d97706;
+
+  /* Calque 0 — echelle brand derivee (valeurs existantes inchangees) */
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+  --color-brand-800: #166534;
+  --color-brand-900: #14532d;
+
+  /* Calque 0 — encre / surfaces / lignes */
+  --color-ink: #101828;
+  --color-ink-soft: #475467;
+  --color-ink-faint: #98a2b3;
+  --color-surface: #ffffff;
+  --color-surface-soft: #f8fafc;
+  --color-line: #eaecf0;
+
+  /* Calque 0 — rayons */
+  --radius-card: 1.25rem;
+  --radius-pill: 9999px;
+
+  /* Calque 0 — ombres */
+  --shadow-card: 0 1px 2px rgb(16 24 40 / 0.06), 0 1px 3px rgb(16 24 40 / 0.1);
+  --shadow-pop: 0 12px 32px -12px rgb(16 24 40 / 0.25);
+
+  /* Calque 0 — durees d'animation */
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --duration-slow: 350ms;
+
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  /* --font-display est fourni via next/font (variable --font-display) dans layout.tsx */
+}
+
+/* Calque 0 — utilitaire font-display branche sur la variable next/font.
+   @theme inline : aucune valeur statique emise, la variable est
+   resolue a l'usage depuis le <body> (classe --font-display). */
+@theme inline {
+  --font-display: var(--font-display);
 }
 
 /* 1. CONFIGURATION DU FOND ET DU TEXTE */
 :root {
-  background-color: #374151; 
+  background-color: #374151;
+  color-scheme: light;
+}
+
+/* Calque 0 — focus visible accessible et coherent avec la marque */
+:focus-visible {
+  outline: 2px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 html, body {
