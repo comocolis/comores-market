@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Sparkles, MapPin, Crown } from 'lucide-react'
+import { MapPin } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { getFirstProductImage } from '@/utils/parseImages'
 import PriceTag from '@/components/PriceTag'
 
@@ -14,6 +15,7 @@ interface ProductSuggestionsProps {
   category?: number
   limit?: number
   title?: string
+  icon?: LucideIcon
 }
 
 export default function ProductSuggestions({ 
@@ -21,7 +23,8 @@ export default function ProductSuggestions({
   excludeProductId, 
   category,
   limit = 6,
-  title = "Recommandé pour vous"
+  title = "Recommandé pour vous",
+  icon: TitleIcon,
 }: ProductSuggestionsProps) {
   const supabase = createClient()
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -55,8 +58,8 @@ export default function ProductSuggestions({
 
   return (
     <div className="mt-8 mb-6">
-      <h2 className="font-black text-xs uppercase tracking-widest text-gray-700 mb-4 flex items-center gap-2 px-4">
-        <Sparkles size={14} className="text-brand" /> {title}
+      <h2 className="font-display font-black text-xs uppercase tracking-widest text-gray-700 mb-4 flex items-center gap-2 px-4">
+        {TitleIcon ? <TitleIcon size={14} className="text-brand" aria-hidden="true" /> : null} {title}
       </h2>
       <div className="px-4 grid grid-cols-2 gap-3">
         {suggestions.map((product: any) => {

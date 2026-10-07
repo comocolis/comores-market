@@ -17,6 +17,7 @@ import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
 import ProductSuggestions from '@/components/ProductSuggestions'
 import dynamic from 'next/dynamic'
+import { UiChip } from '@/components/ui'
 
 // ✅ Lazy Loading de la modale Filtres
 const FilterModal = dynamic(() => import('@/components/FilterModal'), {
@@ -268,9 +269,11 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     <div className="min-h-screen bg-gray-50 pb-24 font-sans">
       
       {/* 1. HEADER FIXE */}
-      <div ref={headerRef} className="bg-brand pt-safe px-4 pb-4 sticky top-0 z-50 shadow-md">
-        <div className="flex justify-between items-center mb-4 pt-2">
-            <h1 className="font-extrabold text-2xl tracking-tight">
+      <div ref={headerRef} className="relative bg-brand pt-safe px-4 pb-5 sticky top-0 z-50 shadow-md overflow-hidden">
+        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+        <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-10 h-48 w-48 rounded-full bg-mustard/20 blur-3xl" />
+        <div className="relative flex justify-between items-center mb-4 pt-2">
+            <h1 className="font-display text-2xl font-black tracking-tight">
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
             </h1>
@@ -282,7 +285,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                 <User size={18} className="text-white" />
             </Link>
         </div>
-        <div className="flex gap-2">
+        <div className="relative flex gap-2 rounded-3xl bg-white/10 p-2 shadow-pop backdrop-blur-md border border-white/20">
             <div className="relative flex-1">
                 <input 
                     type="text" 
@@ -324,17 +327,17 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
-              <button key={ile} onClick={() => setSelectedIsland(ile)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedIsland === ile ? 'bg-gray-900 text-white border-gray-900 shadow-md' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}>
+              <UiChip key={ile} active={selectedIsland === ile} tone="neutral" onClick={() => setSelectedIsland(ile)}>
                 {ile}
-              </button>
+              </UiChip>
             ))}
           </div>
           
           {currentSubCats.length > 0 && (
             <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 pt-3">
-               <button onClick={() => setSelectedSubCategory('Tout')} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === 'Tout' ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>Tout</button>
+               <UiChip active={selectedSubCategory === 'Tout'} onClick={() => setSelectedSubCategory('Tout')}>Tout</UiChip>
                {currentSubCats.map(sub => (
-                 <button key={sub} onClick={() => setSelectedSubCategory(sub)} className={`px-4 py-1.5 rounded-full text-xs font-bold border transition whitespace-nowrap hover:shadow-sm ${selectedSubCategory === sub ? 'bg-brand text-white border-brand shadow-md' : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'}`}>{sub}</button>
+                 <UiChip key={sub} active={selectedSubCategory === sub} onClick={() => setSelectedSubCategory(sub)}>{sub}</UiChip>
                ))}
             </div>
           )}
@@ -365,7 +368,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                   key={product.id} 
                   href={`/annonce?id=${product.id}`}
                   onClick={() => trackProductClickHistory({ productId: product.id, source: 'home_feed', visitorId })}
-                  className="group flex flex-col bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all active:scale-[0.98]"
+                  className="group flex flex-col bg-white rounded-card shadow-card border border-gray-100 overflow-hidden transition-all duration-base hover:-translate-y-0.5 hover:shadow-pop active:scale-[0.98]"
                 >
                   <div className="relative aspect-square bg-gray-100 overflow-hidden">
                     <Image 
@@ -398,7 +401,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                   </div>
                   
                   <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-bold text-gray-900 text-sm line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
+                    <h3 className="font-display text-gray-900 text-sm font-bold line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
                         {product.title}
                     </h3>
                     <div className="mt-auto flex flex-col gap-1">
@@ -433,7 +436,8 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
 
       {/* 4. RECOMMANDATIONS (CLIENT-SIDE) */}
       <ProductSuggestions 
-        title="✨ Pour vous" 
+        title="Pour vous" 
+        icon={Sparkles}
         limit={6} 
         userId={userId} 
       />
