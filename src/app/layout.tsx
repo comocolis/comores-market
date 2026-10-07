@@ -19,6 +19,12 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+// IDs Google lus dans l'environnement (plus aucune valeur codee en dur).
+// Le fallback correspond a l'ID utilise en production pour ne jamais perdre
+// de donnees si la variable n'est pas definie.
+const GA_ID = process.env.NEXT_PUBLIC_GA_ID || 'G-MRDLKB8904';
+const GOOGLE_ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-16447515729';
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.comores-market.com'),
   alternates: { 
@@ -82,9 +88,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* ✅ RENDU DE LA BANNIÈRE D'INSTALLATION DEPUIS LE CANVAS */}
         <InstallBanner />
 
-        {/* GOOGLE TAGS */}
+        {/* GOOGLE TAGS (IDs lus via NEXT_PUBLIC_GA_ID / NEXT_PUBLIC_GOOGLE_ADS_ID) */}
         <Script 
-          src="https://www.googletagmanager.com/gtag/js?id=AW-16447515729" 
+          src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`} 
           strategy="afterInteractive" 
         />
         
@@ -93,8 +99,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
-            gtag('config', 'G-MRDLKB8904');
-            gtag('config', 'AW-16447515729');
+            gtag('config', '${GA_ID}');
+            gtag('config', '${GOOGLE_ADS_ID}');
           `}
         </Script>
 

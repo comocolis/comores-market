@@ -12,7 +12,7 @@ Your app is now fully integrated with Google Analytics 4 (GA4).
 2. Add the following line:
 
 ```env
-NEXT_PUBLIC_GA_ID=G-4BK10CRPPP
+NEXT_PUBLIC_GA_ID=G-MRDLKB8904
 ```
 
 3. Save the file
@@ -29,7 +29,7 @@ npm run dev
 2. Open DevTools (F12) → Network tab
 3. Filter by "gtag" or "googletagmanager"
 4. You should see requests to `www.googletagmanager.com`
-5. Look for the Measurement ID `G-4BK10CRPPP` in the requests
+5. Look for the Measurement ID `G-MRDLKB8904` in the requests
 
 #### Step 4: Check GA4 Real-Time Report
 
@@ -68,7 +68,7 @@ npm run dev
 Your `.env.example` file already contains the template:
 
 ```env
-NEXT_PUBLIC_GA_ID=G-4BK10CRPPP
+NEXT_PUBLIC_GA_ID=G-MRDLKB8904
 NEXT_PUBLIC_GOOGLE_ADS_ID=AW-16447515729
 ```
 
@@ -125,7 +125,7 @@ NEXT_PUBLIC_GOOGLE_ADS_ID=AW-16447515729
 **Solution:**
 1. Verify file is named `.env.local` (not `.env`)
 2. Restart dev server
-3. Check syntax: `NEXT_PUBLIC_GA_ID=G-4BK10CRPPP` (no quotes)
+3. Check syntax: `NEXT_PUBLIC_GA_ID=G-MRDLKB8904` (no quotes)
 
 ---
 
@@ -139,7 +139,7 @@ When deploying to production:
    - **Other**: Add to your deployment configuration
 
 ```
-NEXT_PUBLIC_GA_ID=G-4BK10CRPPP
+NEXT_PUBLIC_GA_ID=G-MRDLKB8904
 ```
 
 2. GA4 will automatically switch to production data

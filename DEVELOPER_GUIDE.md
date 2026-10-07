@@ -138,9 +138,12 @@ sont des secrets. Si elles ont pu fuiter (partage de fichier, capture, commit),
 **les révoquer/régénérer**. En production, elles doivent être définies côté hébergeur
 (Vercel/Netlify) et jamais committées.
 
-⚠️ **Incohérence GA** : `.env.example`/`ANALYTICS_SETUP.md` mentionnent
-`NEXT_PUBLIC_GA_ID=G-4BK10CRPPP`, mais `layout.tsx` **code en dur** `G-MRDLKB8904`
-et `AW-16447515729`. À harmoniser (voir §12).
+✅ **Google Analytics harmonisé le 04/10/2026** : `layout.tsx` et `analytics.ts` lisent
+désormais `NEXT_PUBLIC_GA_ID` (= `G-MRDLKB8904`, l'ID qui mesurait réellement les
+données) et `NEXT_PUBLIC_GOOGLE_ADS_ID` (= `AW-16447515729`) — plus aucune valeur en
+dur. Le composant `GoogleAnalytics.tsx` (jamais importé) a été supprimé, ainsi qu'un
+label de conversion placeholder `VOTRE_LABEL_ICI` dans `PublierClient.tsx`.
+⚠️ **Netlify doit bien utiliser `G-MRDLKB8904`** (sinon les données partent ailleurs).
 
 ---
 
@@ -388,8 +391,10 @@ npx.cmd playwright test   # tests E2E
 2. **Dossier `android/` résiduel** dans le repo web : seulement `.idea/` et
    `app/comores-release.keystore` (clé de signature). Le vrai projet est `G:\From Scratch`.
    → À supprimer du repo (keystore déjà ignoré par `*.keystore`).
-3. **GA incohérent** : `layout.tsx` code en dur `G-MRDLKB8904` / `AW-16447515729`,
-   alors que `.env.example`/docs utilisent `NEXT_PUBLIC_GA_ID=G-4BK10CRPPP`.
+3. ✅ **GA harmonisé** : les IDs sont lus via `NEXT_PUBLIC_GA_ID` /
+   `NEXT_PUBLIC_GOOGLE_ADS_ID` (valeurs `G-MRDLKB8904` / `AW-16447515729`).
+   Vérifier que **Netlify** n'a pas `G-4BK10CRPPP` (sinon les données partent
+   dans un property vide).
 4. **P0 — Modèles IA obsolètes** (voir l'encadré en haut) : toute l'IA est cassée,
    modération désactivée. Doublon de logique routes API ↔ Edge Functions à unifier au passage.
 5. Résidus : `middleware.ts.bak`, `src/hooks/` vide.

@@ -541,14 +541,6 @@ export default function PublierClient() {
              parseInt(formData.price)
           )
 
-          if (typeof window !== 'undefined' && window.gtag) {
-             window.gtag('event', 'conversion', {
-                 'send_to': 'AW-16447515729/VOTRE_LABEL_ICI',
-                 'value': 1.0,
-                 'currency': 'EUR'
-             });
-          }
-
           await supabase.from('notifications').insert({
             user_id: user.id,
             title: "Annonce en ligne",

@@ -35,8 +35,8 @@ export function trackEvent(
 export function trackAdsConversion(conversionLabel: string, value?: number) {
   if (typeof window === 'undefined' || !window.gtag) return;
 
-  // L'ID doit correspondre à celui dans layout.tsx
-  const ADS_ID = 'AW-16447515729'; 
+  // L'ID doit correspondre a celui utilise dans layout.tsx
+  const ADS_ID = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID || 'AW-16447515729';
 
   window.gtag('event', 'conversion', {
       send_to: `${ADS_ID}/${conversionLabel}`,
