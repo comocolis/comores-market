@@ -4,11 +4,12 @@ import { createClient } from '@/utils/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useRef, ChangeEvent, useEffect } from 'react'
 import Image from 'next/image'
-import { Loader2, Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
+import { Mail, Lock, User, Phone, MapPin, Camera, Eye, EyeOff, X, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
 import { trackEvent } from '@/lib/analytics'
 import { sendAdminAlert } from '@/lib/edge-functions'
+import { UiButton, UiInput, UiSelect } from '@/components/ui'
 
 // ✅ FONCTION DE CONVERSION GOOGLE ADS
 const triggerRegistrationConversion = () => {
@@ -296,120 +297,114 @@ export default function AuthPage() {
                             />
                         </div>
 
-                        <div className="relative group">
-                            <User className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                            <input 
-                              type="text" 
-                              aria-label="Nom complet"
-                              placeholder="Nom complet" 
-                              className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" 
-                              value={formData.fullName} 
-                              onChange={e => setFormData({...formData, fullName: e.target.value})} 
-                              required 
+                        <UiInput
+                          id="auth-fullname"
+                          type="text"
+                          aria-label="Nom complet"
+                          autoComplete="name"
+                          placeholder="Nom complet"
+                          startAdornment={<User size={20} aria-hidden="true" />}
+                          value={formData.fullName}
+                          onChange={e => setFormData({...formData, fullName: e.target.value})}
+                          required
+                        />
+
+                        <div className="flex gap-2">
+                            <UiSelect
+                              id="auth-country"
+                              aria-label="Indicatif pays"
+                              wrapperClassName="w-32! shrink-0"
+                              value={selectedCountry.code}
+                              onChange={e => setSelectedCountry(ALLOWED_COUNTRIES.find(c => c.code === e.target.value) || ALLOWED_COUNTRIES[0])}
+                            >
+                                {ALLOWED_COUNTRIES.map((c, i) => (<option key={i} value={c.code}>{c.label.split(' ')[0]} {c.code}</option>))}
+                            </UiSelect>
+                            <UiInput
+                              id="auth-phone"
+                              type="tel"
+                              aria-label="Numéro de téléphone"
+                              autoComplete="tel-national"
+                              placeholder={selectedCountry.placeholder}
+                              wrapperClassName="w-auto! min-w-0 flex-1"
+                              startAdornment={<Phone size={18} aria-hidden="true" />}
+                              value={formData.phoneBody}
+                              onChange={e => setFormData({...formData, phoneBody: e.target.value})}
+                              required
                             />
                         </div>
 
                         <div className="flex gap-2">
-                            <div className="w-1/3 relative">
-                                <select 
-                                  aria-label="Indicatif pays"
-                                  className="w-full h-full bg-gray-50 border border-gray-200 rounded-xl px-2 text-sm font-bold outline-none appearance-none text-center cursor-pointer focus:border-mustard transition" 
-                                  value={selectedCountry.code} 
-                                  onChange={e => setSelectedCountry(ALLOWED_COUNTRIES.find(c => c.code === e.target.value) || ALLOWED_COUNTRIES[0])}
-                                >
-                                    {ALLOWED_COUNTRIES.map((c, i) => (<option key={i} value={c.code}>{c.label.split(' ')[0]} {c.code}</option>))}
-                                </select>
-                            </div>
-                            <div className="relative group flex-1">
-                                <Phone className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                <input 
-                                  type="tel" 
-                                  aria-label="Numéro de téléphone"
-                                  placeholder={selectedCountry.placeholder} 
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-10 pr-4 outline-none focus:border-mustard font-medium transition" 
-                                  value={formData.phoneBody} 
-                                  onChange={e => setFormData({...formData, phoneBody: e.target.value})} 
-                                  required 
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2">
-                            <div className="w-1/2 relative group">
-                                <select 
-                                  aria-label="Choisir l'île"
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-3 text-sm font-medium outline-none focus:border-mustard appearance-none cursor-pointer transition" 
-                                  value={formData.island} 
-                                  onChange={e => setFormData({...formData, island: e.target.value})}
-                                >
-                                    <option>Ngazidja</option>
-                                    <option>Ndzouani</option>
-                                    <option>Mwali</option>
-                                    <option>Maore</option>
-                                    <option>La Réunion</option>
-                                </select>
-                                <div className="absolute right-3 top-3.5 pointer-events-none text-gray-500">▼</div>
-                            </div>
-                            <div className="w-1/2 relative group">
-                                <MapPin className="absolute left-3 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={18} />
-                                <input 
-                                  type="text" 
-                                  aria-label="Ville"
-                                  placeholder="Ville" 
-                                  className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-9 pr-2 outline-none focus:border-mustard text-sm font-medium transition" 
-                                  value={formData.city} 
-                                  onChange={e => setFormData({...formData, city: e.target.value})} 
-                                  required 
-                                />
-                            </div>
+                            <UiSelect
+                              id="auth-island"
+                              aria-label="Choisir l'île"
+                              wrapperClassName="w-auto! min-w-0 flex-1"
+                              value={formData.island}
+                              onChange={e => setFormData({...formData, island: e.target.value})}
+                            >
+                                <option>Ngazidja</option>
+                                <option>Ndzouani</option>
+                                <option>Mwali</option>
+                                <option>Maore</option>
+                                <option>La Réunion</option>
+                            </UiSelect>
+                            <UiInput
+                              id="auth-city"
+                              type="text"
+                              aria-label="Ville"
+                              autoComplete="address-level2"
+                              placeholder="Ville"
+                              wrapperClassName="w-auto! min-w-0 flex-1"
+                              startAdornment={<MapPin size={18} aria-hidden="true" />}
+                              value={formData.city}
+                              onChange={e => setFormData({...formData, city: e.target.value})}
+                              required
+                            />
                         </div>
                     </div>
                 )}
 
-                <div className="relative group">
-                    <Mail className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                    <input 
-                      type="email" 
-                      aria-label="Adresse email"
-                      placeholder="Adresse email" 
-                      className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-4 outline-none focus:border-mustard font-medium transition" 
-                      value={formData.email} 
-                      onChange={e => setFormData({...formData, email: e.target.value})} 
-                      required 
-                    />
-                </div>
+                <UiInput
+                  id="auth-email"
+                  type="email"
+                  aria-label="Adresse email"
+                  autoComplete="email"
+                  placeholder="Adresse email"
+                  startAdornment={<Mail size={20} aria-hidden="true" />}
+                  value={formData.email}
+                  onChange={e => setFormData({...formData, email: e.target.value})}
+                  required
+                />
 
                 {(view === 'login' || view === 'register') && (
-                    <div className="relative group">
-                        <Lock className="absolute left-4 top-3.5 text-gray-500 group-focus-within:text-mustard transition" size={20} />
-                        <input 
-                          type={showPassword ? "text" : "password"} 
-                          aria-label="Mot de passe"
-                          placeholder="Mot de passe" 
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 pl-12 pr-12 outline-none focus:border-mustard font-medium transition" 
-                          value={formData.password} 
-                          onChange={e => setFormData({...formData, password: e.target.value})} 
-                          required 
-                        />
-                        <button 
-                          type="button" 
+                    <UiInput
+                      id="auth-password"
+                      type={showPassword ? "text" : "password"}
+                      aria-label="Mot de passe"
+                      autoComplete={view === 'login' ? 'current-password' : 'new-password'}
+                      placeholder="Mot de passe"
+                      startAdornment={<Lock size={20} aria-hidden="true" />}
+                      endAdornment={
+                        <button
+                          type="button"
                           aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-                          onClick={() => setShowPassword(!showPassword)} 
-                          className="absolute right-4 top-3.5 text-gray-500 hover:text-gray-600 transition focus:outline-none"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="rounded-md p-1 text-gray-500 transition hover:text-gray-700"
                         >
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
-                    </div>
+                      }
+                      value={formData.password}
+                      onChange={e => setFormData({...formData, password: e.target.value})}
+                      required
+                    />
                 )}
 
-                <button type="submit" disabled={loading} className="w-full bg-brand text-white font-bold py-3.5 rounded-xl shadow-lg hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50">
-                    {loading ? <Loader2 className="animate-spin" /> : 
-                        (view === 'login' ? 'Se connecter' : 
-                         view === 'register' ? 'Créer mon compte' : 
-                         view === 'magic_link' ? 'Envoyer le lien magique' : 
-                         'Envoyer le lien de réinitialisation')
-                    }
-                </button>
+                <UiButton type="submit" size="lg" loading={loading} className="w-full">
+                    {view === 'login' ? 'Se connecter' :
+                     view === 'register' ? 'Créer mon compte' :
+                     view === 'magic_link' ? 'Envoyer le lien magique' :
+                     'Envoyer le lien de réinitialisation'}
+                </UiButton>
             </form>
 
             {/* --- BOUTON D'AUTHENTIFICATION GOOGLE --- */}
@@ -419,7 +414,7 @@ export default function AuthPage() {
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-gray-200"></div>
                   </div>
-                  <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-gray-400 font-semibold">ou</span>
+                  <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-gray-500 font-semibold">ou</span>
                 </div>
 
                 <button
@@ -459,9 +454,9 @@ export default function AuthPage() {
                 )}
 
                 {view === 'login' ? (
-                    <button onClick={() => setView('forgot')} className="text-xs text-gray-500 underline">Mot de passe oublié ?</button>
+                    <button onClick={() => setView('forgot')} className="text-sm text-gray-600 underline">Mot de passe oublié ?</button>
                 ) : (view === 'forgot' || view === 'magic_link') && (
-                    <button onClick={() => setView('login')} className="text-xs text-gray-500 underline">Retour connexion</button>
+                    <button onClick={() => setView('login')} className="text-sm text-gray-600 underline">Retour connexion</button>
                 )}
             </div>
         </div>
@@ -472,7 +467,7 @@ export default function AuthPage() {
                 Continuer sans compte
             </Link>
 
-            <div className="flex items-center gap-4 text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-[11px] font-bold text-gray-600 uppercase tracking-widest">
                 <Link href="/pro" className="hover:text-brand transition">Vendeur Pro</Link>
                 <span>•</span>
                 <Link href="/faq" className="hover:text-brand transition">Aide</Link>

@@ -55,17 +55,33 @@
   --font-display: var(--font-display);
 }
 
+/* Tailwind v4 : `border` sans couleur utilise `currentColor` (bordures noires).
+   On restaure la couleur neutre de Tailwind v3 pour tout le site. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-line);
+  }
+}
+
 /* 1. CONFIGURATION DU FOND ET DU TEXTE */
 :root {
   background-color: #374151;
   color-scheme: light;
 }
 
-/* Calque 0 — focus visible accessible et coherent avec la marque */
-:focus-visible {
-  outline: 2px solid var(--color-brand-600);
-  outline-offset: 2px;
-  border-radius: 4px;
+/* Calque 0 — focus visible accessible et coherent avec la marque.
+   Dans @layer base : les utilitaires Tailwind (outline-none, ring-*) peuvent le surcharger
+   (une regle hors layer l'emportait et doublait l'anneau de focus des champs).
+   Pas de border-radius force : il deformait les elements arrondis au focus. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand-600);
+    outline-offset: 2px;
+  }
 }
 
 html, body {
@@ -137,6 +153,20 @@ main {
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+}
+
+/* Barre de progression du splash (CSS pur) */
+@keyframes cm-splash-fill {
+  from { width: 0%; }
+  to { width: 100%; }
+}
+.cm-splash-bar {
+  animation: cm-splash-fill 900ms ease-in-out forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cm-splash-bar { animation-duration: 1ms; }
+  html, body { scroll-behavior: auto; }
 }
 
 /* Utilitaires Safe Area (Tailwind v4) */

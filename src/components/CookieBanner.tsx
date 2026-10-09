@@ -22,7 +22,8 @@ export default function CookieBanner() {
 
   const checkCountryAndDecide = async () => {
     try {
-      const res = await fetch('https://ipapi.co/json/')
+      // Delai maximal : une API de geolocalisation lente ne doit pas retarder la decision.
+      const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(2500) })
       const data = await res.json()
       
       if (data.country_code === 'KM') {

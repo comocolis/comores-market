@@ -12,6 +12,7 @@ import {
   LayoutDashboard, HelpCircle, FileText, ShieldCheck, Sparkles
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { UiButton, UiInput, UiSelect, UiTextarea } from '@/components/ui'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 import { containsContactInfo } from '@/utils/contentSafety'
@@ -23,6 +24,15 @@ const getOptimizedAvatar = (url: string | null, size = 200) => {
   }
   return url;
 };
+
+function ReadField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
+      <p className="rounded-2xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 wrap-break-word">{children}</p>
+    </div>
+  )
+}
 
 export default function ComptePage() {
   const supabase = createClient()
@@ -313,10 +323,10 @@ export default function ComptePage() {
                   <div className="bg-red-50 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-600"><AlertTriangle size={28} /></div>
                   <h3 className="font-black text-xl mb-1">Clôturer le compte ?</h3>
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-5 leading-relaxed">Tapez <span className="text-red-600 font-black">SUPPRIMER</span> pour confirmer</p>
-                  <input type="text" aria-label="Confirmation de suppression" className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm font-black text-center outline-none focus:ring-4 focus:ring-red-50 focus:border-red-200 uppercase mb-5" placeholder="Validation" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
+                  <UiInput aria-label="Confirmation de suppression" wrapperClassName="mb-5" className="text-center font-black uppercase" placeholder="Validation" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
                   <div className="flex flex-col gap-2.5">
-                      <button onClick={confirmDeleteAccount} disabled={deleting || deleteConfirmation !== 'SUPPRIMER'} className="w-full py-4 rounded-xl font-black text-white bg-red-600 shadow-lg shadow-red-500/10 active:scale-98 text-[10px] uppercase tracking-widest disabled:opacity-20 transition">Confirmer la suppression</button>
-                      <button onClick={() => setShowDeleteModal(false)} className="w-full py-4 rounded-xl font-black text-gray-500 bg-gray-50 active:scale-98 text-[10px] uppercase tracking-widest transition">Annuler</button>
+                      <UiButton variant="danger" onClick={confirmDeleteAccount} loading={deleting} disabled={deleteConfirmation !== 'SUPPRIMER'} className="w-full uppercase tracking-widest text-xs">Confirmer la suppression</UiButton>
+                      <UiButton variant="secondary" onClick={() => setShowDeleteModal(false)} className="w-full uppercase tracking-widest text-xs">Annuler</UiButton>
                   </div>
               </motion.div>
           </div>
@@ -369,21 +379,21 @@ export default function ComptePage() {
             
             <div className="flex-1 min-w-0">
                 <h2 className="font-black text-lg truncate tracking-tight leading-none mb-1.5">{profile?.full_name || "Nom du Showroom"}</h2>
-                <p className="text-[9px] text-gray-400 font-bold truncate tracking-wider mb-2.5">{user?.email}</p>
+                <p className="text-[11px] text-gray-500 font-bold truncate tracking-wider mb-2.5">{user?.email}</p>
                 {isProActive ? (
                     <div className="flex flex-col items-start gap-1.5">
                         <div className="inline-flex flex-col items-start bg-linear-to-r from-amber-500 to-orange-500 text-white px-3.5 py-1 rounded-xl shadow-md shadow-amber-500/10">
-                            <span className="flex items-center gap-1 text-[8px] font-black uppercase tracking-widest"><Crown size={9} fill="currentColor" /> Expert Pro</span>
+                            <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest"><Crown size={9} fill="currentColor" /> Expert Pro</span>
                         </div>
                         <button 
                             onClick={downloadMyInvoice}
-                            className="flex items-center gap-1 text-[8px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50/60 px-2.5 py-1 rounded-lg border border-emerald-100 transition active:scale-95"
+                            className="flex items-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50/60 px-2.5 py-1 rounded-lg border border-emerald-100 transition active:scale-95"
                         >
                             <FileText size={10} /> Ma Facture
                         </button>
                     </div>
                 ) : (
-                    <Link href="/pro" className="group inline-flex items-center gap-1.5 bg-gray-900 text-white text-[9px] font-black px-4 py-2.5 rounded-xl shadow-md shadow-gray-900/10 active:scale-95 transition-all hover:bg-black border border-gray-800">
+                    <Link href="/pro" className="group inline-flex items-center gap-1.5 bg-gray-900 text-white text-[11px] font-black px-4 py-2.5 rounded-xl shadow-md shadow-gray-900/10 active:scale-95 transition-all hover:bg-black border border-gray-800">
                         Devenir Pro 
                         <Sparkles size={10} className="text-amber-400 group-hover:animate-pulse" />
                     </Link>
@@ -399,7 +409,7 @@ export default function ComptePage() {
                <Link href="/admin" className="w-full bg-gray-900 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg border border-white/5 active:scale-98 transition">
                   <div className="flex items-center gap-3">
                       <div className="bg-brand/10 p-2.5 rounded-xl text-brand"><LayoutDashboard size={20} /></div>
-                      <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Panneau Admin</p><p className="text-[8px] font-bold text-gray-500 uppercase tracking-widest">Gestion Plateforme</p></div>
+                      <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Panneau Admin</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gestion Plateforme</p></div>
                   </div>
                   <ChevronRight size={18} className="text-gray-600" />
                </Link>
@@ -410,12 +420,12 @@ export default function ComptePage() {
                   <div className="bg-amber-50 p-2.5 rounded-xl text-amber-500 relative">
                       <Bell size={20} />
                       {unreadCount > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[8px] font-black text-white shadow-sm">
+                          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black text-white shadow-sm">
                               {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                       )}
                   </div>
-                  <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Notifications</p><p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">Alertes & Messages</p></div>
+                  <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Notifications</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Alertes & Messages</p></div>
               </div>
               <ChevronRight size={18} className="text-gray-300" />
           </Link>
@@ -424,99 +434,85 @@ export default function ComptePage() {
         <div className="grid grid-cols-2 gap-3">
             <Link href="/mes-annonces" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
                 <div className="bg-blue-50 text-blue-500 p-2.5 rounded-xl w-fit"><Package size={18} /></div>
-                <span className="font-black text-[9px] uppercase tracking-wider text-gray-400">Annonces</span>
+                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500">Annonces</span>
             </Link>
             <Link href="/favoris" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
                 <div className="bg-pink-50 text-pink-500 p-2.5 rounded-xl w-fit"><Heart size={18} /></div>
-                <span className="font-black text-[9px] uppercase tracking-wider text-gray-400">Coups de cœur</span>
+                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500">Coups de cœur</span>
             </Link>
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-50 pb-4">
-                <h3 className="font-black text-[9px] uppercase tracking-[0.15em] text-gray-400">Mon Showroom</h3>
+            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500">Mon Showroom</h3>
                 {!isEditingInfo && (
-                  <button onClick={() => setIsEditingInfo(true)} className="text-[8px] font-black text-brand bg-brand/5 px-3 py-1.5 rounded-xl uppercase tracking-widest active:scale-90 transition">Modifier</button>
+                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingInfo(true)} className="text-brand-700! bg-brand/5! px-3! py-1.5!">Modifier</UiButton>
                 )}
             </div>
             
             <div className="space-y-4">
-                <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider ml-0.5">Nom public</label>
-                    {isEditingInfo ? (
-                      <input type="text" aria-label="Nom public" className="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-black outline-none border border-gray-200 focus:border-brand focus:ring-4 focus:ring-brand/5 transition text-gray-900" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
-                    ) : (
-                      <p className="p-4 bg-gray-50/50 rounded-xl font-black text-xs tracking-tight text-gray-700">{profile?.full_name}</p>
-                    )}
-                </div>
+                {isEditingInfo ? (
+                  <UiInput label="Nom public" type="text" value={formData.full_name} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+                ) : (
+                  <ReadField label="Nom public">{profile?.full_name}</ReadField>
+                )}
 
-                <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider ml-0.5">Bio / Slogan</label>
-                    {isEditingInfo ? (
-                        <textarea aria-label="Biographie" className="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-bold outline-none border border-gray-200 focus:border-brand focus:ring-4 focus:ring-brand/5 min-h-20 resize-none text-gray-900" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-                    ) : (
-                        <p className="p-4 bg-gray-50/50 rounded-xl text-xs font-medium text-gray-600 leading-relaxed italic">"{profile?.description || "Aucune bio..."}"</p>
-                    )}
-                </div>
+                {isEditingInfo ? (
+                  <UiTextarea label="Bio / Slogan" className="min-h-24!" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
+                ) : (
+                  <ReadField label="Bio / Slogan"><span className="font-medium text-gray-600 italic">{profile?.description ? `"${profile.description}"` : "Aucune bio..."}</span></ReadField>
+                )}
 
                 <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Île</label>
-                        {isEditingInfo ? (
-                            <select aria-label="Île" className="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-black border border-gray-200 outline-none focus:border-brand text-gray-900" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
-                                <option value="">Sélectionnez votre île</option>
-                                {['Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'].map(i => <option key={i}>{i}</option>)}
-                            </select>
-                        ) : ( 
-                          <p className="p-3.5 bg-gray-50/50 rounded-xl font-black text-[10px] text-gray-700">
-                            {profile?.island || "Non renseignée"}
-                          </p> 
-                        )}
-                    </div>
-                    <div className="space-y-1.5">
-                        <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider">Ville</label>
-                        {isEditingInfo ? <input type="text" aria-label="Ville" className="w-full bg-gray-50 p-3.5 rounded-xl text-xs font-black border border-gray-200 focus:border-brand text-gray-900" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} /> : <p className="p-3.5 bg-gray-50/50 rounded-xl font-black text-[10px] text-gray-700">{profile?.city || "Non renseignée"}</p>}
-                    </div>
+                    {isEditingInfo ? (
+                      <UiSelect label="Île" value={formData.island} onChange={e => setFormData({...formData, island: e.target.value})}>
+                          <option value="">Sélectionnez votre île</option>
+                          {['Ngazidja', 'Ndzouani', 'Mwali', 'Maore', 'La Réunion'].map(i => <option key={i}>{i}</option>)}
+                      </UiSelect>
+                    ) : (
+                      <ReadField label="Île">{profile?.island || "Non renseignée"}</ReadField>
+                    )}
+                    {isEditingInfo ? (
+                      <UiInput label="Ville" type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} />
+                    ) : (
+                      <ReadField label="Ville">{profile?.city || "Non renseignée"}</ReadField>
+                    )}
                 </div>
 
                 {isProActive && (
-                  <div className="grid grid-cols-2 gap-3 pt-3 border-t border-gray-100">
-                    <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider ml-0.5">Lien Facebook</label>
-                      {isEditingInfo ? <input type="text" aria-label="Lien Facebook" className="w-full bg-gray-50 p-3.5 rounded-xl text-[10px] font-bold border border-gray-200 focus:border-brand text-gray-900" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} /> : 
-                      <p className="p-3.5 bg-blue-50/30 rounded-xl font-bold text-[9px] text-blue-600 truncate">{profile?.facebook_url || "Non lié"}</p>}
-                    </div>
-                    <div className="space-y-1.5">
-                      <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider ml-0.5">Lien Instagram</label>
-                      {isEditingInfo ? <input type="text" aria-label="Lien Instagram" className="w-full bg-gray-50 p-3.5 rounded-xl text-[10px] font-bold border border-gray-200 focus:border-brand text-gray-900" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} /> : 
-                      <p className="p-3.5 bg-pink-50/30 rounded-xl font-bold text-[9px] text-pink-600 truncate">{profile?.instagram_url || "Non lié"}</p>}
-                    </div>
+                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+                    {isEditingInfo ? (
+                      <UiInput label="Lien Facebook" type="text" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} />
+                    ) : (
+                      <ReadField label="Lien Facebook"><span className="block truncate text-blue-700">{profile?.facebook_url || "Non lié"}</span></ReadField>
+                    )}
+                    {isEditingInfo ? (
+                      <UiInput label="Lien Instagram" type="text" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} />
+                    ) : (
+                      <ReadField label="Lien Instagram"><span className="block truncate text-pink-700">{profile?.instagram_url || "Non lié"}</span></ReadField>
+                    )}
                   </div>
                 )}
 
-                <div className="space-y-1.5">
-                    <label className="text-[8px] font-black text-gray-400 uppercase tracking-wider ml-0.5">WhatsApp</label>
-                    {isEditingInfo ? (
-                        <div className="relative">
-                          <Smartphone className="absolute left-3.5 top-3.5 text-gray-400" size={14} />
-                          <input type="tel" aria-label="Numéro WhatsApp" className="w-full bg-gray-50 p-3.5 pl-10 rounded-xl text-xs font-black border border-gray-200 focus:border-brand text-gray-900" value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
-                        </div>
-                    ) : ( <p className="p-4 bg-gray-50/50 rounded-xl font-black text-xs tracking-wider text-gray-700">{profile?.phone_number || "Non renseigné"}</p> )}
-                </div>
+                {isEditingInfo ? (
+                  <UiInput label="WhatsApp" type="tel" inputMode="tel" startAdornment={<Smartphone size={16} aria-hidden="true" />} value={formData.phone_number} onChange={e => setFormData({...formData, phone_number: e.target.value})} />
+                ) : (
+                  <ReadField label="WhatsApp">{profile?.phone_number || "Non renseigné"}</ReadField>
+                )}
             </div>
 
             {isEditingInfo && (
                 <div className="flex gap-2.5 pt-2">
-                    <button onClick={cancelEditInfo} className="flex-1 bg-gray-100 text-gray-500 font-black py-3.5 rounded-xl text-[9px] uppercase tracking-widest transition active:scale-98">Annuler</button>
-                    <button onClick={handleUpdateProfile} disabled={saving} className="flex-1 bg-brand text-white font-black py-3.5 rounded-xl text-[9px] uppercase tracking-widest shadow-md shadow-brand/10 flex items-center justify-center gap-1.5 transition active:scale-98">
-                        {saving ? <Loader2 className="animate-spin" size={12} /> : <><Save size={12} /> Sauvegarder</>}
-                    </button>
+                    <UiButton variant="secondary" onClick={cancelEditInfo} className="flex-1 uppercase tracking-widest text-xs">Annuler</UiButton>
+                    <UiButton onClick={handleUpdateProfile} loading={saving} className="flex-1 uppercase tracking-widest text-xs">
+                        <Save size={14} aria-hidden="true" /> Sauvegarder
+                    </UiButton>
                 </div>
             )}
         </div>
 
         <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-3">
-            <h3 className="font-black text-[9px] uppercase tracking-[0.15em] text-gray-400 flex items-center gap-1.5"><FileText size={14} /> Informations</h3>
+            <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 flex items-center gap-1.5"><FileText size={14} /> Informations</h3>
             
             <Link href="/faq" className="flex items-center justify-between p-3.5 bg-gray-50/60 rounded-xl active:scale-98 transition hover:bg-gray-50">
                 <div className="flex items-center gap-2.5">
@@ -525,7 +521,7 @@ export default function ComptePage() {
                     </div>
                     <span className="text-xs font-black text-gray-700">Aide & FAQ</span>
                 </div>
-                <ChevronRight size={14} className="text-gray-400" />
+                <ChevronRight size={14} className="text-gray-500" />
             </Link>
 
             <Link href="/cgu" className="flex items-center justify-between p-3.5 bg-gray-50/60 rounded-xl active:scale-98 transition hover:bg-gray-50">
@@ -535,36 +531,45 @@ export default function ComptePage() {
                     </div>
                     <span className="text-xs font-black text-gray-700">Conditions Générales</span>
                 </div>
-                <ChevronRight size={14} className="text-gray-400" />
+                <ChevronRight size={14} className="text-gray-500" />
             </Link>
         </div>
 
         {!isGoogleUser && (
           <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-4">
-              <h3 className="font-black text-[9px] uppercase tracking-[0.15em] text-gray-400 flex items-center gap-1.5"><Lock size={14} /> Sécurité</h3>
+              <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 flex items-center gap-1.5"><Lock size={14} /> Sécurité</h3>
               {isEditingPassword ? (
                   <form onSubmit={handleUpdatePassword} className="space-y-3">
-                      <div className="relative">
-                          <input type={showPassword ? "text" : "password"} placeholder="Nouveau code secret" className="w-full bg-gray-50 p-4 rounded-xl text-xs font-black border border-gray-200 outline-none focus:border-brand text-gray-900" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                          <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-4 text-gray-400">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
-                      </div>
+                      <UiInput
+                          aria-label="Nouveau mot de passe"
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder="Nouveau code secret"
+                          value={newPassword}
+                          onChange={e => setNewPassword(e.target.value)}
+                          endAdornment={
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="p-1 text-gray-500 hover:text-gray-700">
+                              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                            </button>
+                          }
+                      />
                       <div className="flex gap-2">
-                          <button type="button" onClick={() => setIsEditingPassword(false)} className="flex-1 bg-gray-50 text-gray-500 font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition active:scale-98">Annuler</button>
-                          <button type="submit" disabled={passwordLoading} className="flex-1 bg-gray-900 text-white font-black py-3 rounded-xl text-[9px] uppercase tracking-wider transition active:scale-98">Mettre à jour</button>
+                          <UiButton type="button" variant="secondary" onClick={() => setIsEditingPassword(false)} className="flex-1 uppercase tracking-wider text-xs">Annuler</UiButton>
+                          <UiButton type="submit" loading={passwordLoading} className="flex-1 uppercase tracking-wider text-xs bg-gray-900! hover:bg-black!">Mettre à jour</UiButton>
                       </div>
                   </form>
               ) : ( 
                 <div className="flex justify-between items-center bg-gray-50/50 p-4 rounded-xl border border-transparent">
                   <p className="text-gray-300 tracking-[0.6em] font-black text-xs">••••••••</p>
-                  <button onClick={() => setIsEditingPassword(true)} className="text-[8px] font-black text-brand uppercase tracking-widest bg-brand/5 px-2.5 py-1.5 rounded-lg active:scale-90 transition">Changer</button>
+                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingPassword(true)} className="text-brand-700! bg-brand/5! px-3! py-1.5!">Changer</UiButton>
                 </div>
               )}
           </div>
         )}
 
         <div className="bg-red-50/50 p-6 rounded-3xl shadow-sm border border-red-100/40 space-y-4">
-            <h3 className="font-black text-[9px] text-red-600 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle size={14} /> Zone Critique</h3>
-            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-100 text-red-600 font-black py-4 rounded-2xl text-[9px] uppercase tracking-widest active:scale-98 transition shadow-sm hover:bg-red-50 flex items-center justify-center gap-1.5">
+            <h3 className="font-black text-[11px] text-red-600 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle size={14} /> Zone Critique</h3>
+            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-100 text-red-600 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest active:scale-98 transition shadow-sm hover:bg-red-50 flex items-center justify-center gap-1.5">
               <Trash2 size={12} /> Supprimer mon espace
             </button>
         </div>

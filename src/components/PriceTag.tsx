@@ -25,7 +25,7 @@ export default function PriceTag({ price, className = "" }: { price: number; cla
       <span className={className}>
         {formattedFc}
       </span>
-      <span className="text-[10px] font-medium text-gray-400 leading-none mt-0.5">
+      <span className="text-[10px] font-medium text-gray-500 leading-none mt-0.5">
         ({formattedEuro})
       </span>
     </div>

@@ -2,6 +2,7 @@ import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { isRateLimited } from "@/lib/rate-limit";
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
@@ -32,10 +33,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Non authentifié" }, { status: 401 });
     }
 
+    if (isRateLimited(`rephrase:${user.id}`, 15, 10 * 60 * 1000)) {
+      return NextResponse.json({ error: "Trop de demandes" }, { status: 429 });
+    }
+
     const { text } = await req.json();
     
     // Validate input
-    if (!text || typeof text !== 'string' || !text.trim()) {
+    if (!text || typeof text !== 'string' || !text.trim() || text.length > 5000) {
       return NextResponse.json({ error: "Texte invalide" }, { status: 400 });
     }
 

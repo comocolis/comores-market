@@ -1,17 +1,15 @@
 'use client'
 
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase, hasSessionCookie } from '@/utils/supabase/lazy'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
-import PriceTag from '@/components/PriceTag';
+import ProductCard from '@/components/ProductCard'
 import { 
-  MapPin, Search, User, SlidersHorizontal, Loader2,
-  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase, Crown
+  Search, User, SlidersHorizontal, Loader2,
+  LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase
 } from 'lucide-react'
-import { toast } from 'sonner'
 import { trackSearch, trackCategoryView, trackFilterApplied } from '@/lib/analytics'
-import { getOrCreateVisitorId, trackProductClickHistory, trackSearchHistory } from '@/lib/personalization'
+import { getOrCreateVisitorId, isReturningVisitor, trackProductClickHistory, trackSearchHistory } from '@/lib/personalization'
 import type { HomepageProduct } from '@/lib/homepage-types'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateSearchResults } from '@/components/EmptyState'
@@ -67,8 +65,6 @@ interface HomePageClientProps {
 }
 
 export default function HomePageClient({ initialProducts, renderedAt, initialHasMore = false }: HomePageClientProps) {
-  const supabase = createClient()
-  
   const [products, setProducts] = useState<Product[]>(initialProducts)
   const [loading, setLoading] = useState(false)
   const [isFetchingMore, setIsFetchingMore] = useState(false)
@@ -88,34 +84,29 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   const [authResolved, setAuthResolved] = useState(false)
   const [visitorReady, setVisitorReady] = useState(false)
   
+  const initialFetchDoneRef = useRef(false)
+  const canPersonalizeRef = useRef(false)
   const headerRef = useRef<HTMLDivElement | null>(null)
   const categoryBarRef = useRef<HTMLDivElement | null>(null)
   const subNavRef = useRef<HTMLDivElement | null>(null)
 
   // --- LOGIQUE DE SCROLL INTELLIGENT ---
   const [showSubNav, setShowSubNav] = useState(true)
-  const [lastScrollY, setLastScrollY] = useState(0)
+  const lastScrollYRef = useRef(0)
 
   useEffect(() => {
+    // lastScrollY en ref : aucun re-rendu ni re-abonnement a chaque evenement scroll,
+    // le state ne change que lorsque la visibilite de la sous-navigation bascule.
     const handleScroll = () => {
       const currentScrollY = window.scrollY
-      if (currentScrollY > lastScrollY && currentScrollY > 200) {
-        setShowSubNav(false)
-      } else {
-        setShowSubNav(true)
-      }
-      setLastScrollY(currentScrollY)
+      const shouldShow = !(currentScrollY > lastScrollYRef.current && currentScrollY > 200)
+      lastScrollYRef.current = currentScrollY
+      setShowSubNav(previous => (previous === shouldShow ? previous : shouldShow))
     }
 
-    if (typeof window !== 'undefined') {
-        window.addEventListener('scroll', handleScroll, { passive: true })
-    }
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('scroll', handleScroll)
-      }
-    }
-  }, [lastScrollY])
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     setCurrentTimestamp(Date.now())
@@ -154,13 +145,16 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   }, [])
 
   useEffect(() => {
+    // Nouveau visiteur anonyme : aucun historique, la liste du serveur est deja la bonne (pas de second chargement).
+    canPersonalizeRef.current = isReturningVisitor() || hasSessionCookie()
     setVisitorId(getOrCreateVisitorId())
     setVisitorReady(true)
   }, [])
 
-  const fetchProducts = useCallback(async (isInitial = true, targetPage = 0) => {
+  const fetchProducts = useCallback(async (isInitial = true, targetPage = 0, silent = false) => {
     if (isInitial) {
-        setLoading(true)
+        // silent : rafraichissement personnalise du premier rendu, sans masquer la liste deja affichee par le SSR
+        if (!silent) setLoading(true)
         if (searchTerm.trim().length > 2) trackSearch(searchTerm)
         if (selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout' || priceMin || priceMax) {
              const categoryLabel = CATEGORIES.find(c => c.id === selectedCategory)?.label || 'Tout';
@@ -213,7 +207,8 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       
     } catch (error) {
       console.error('Error fetching products:', error)
-      toast.error('Erreur lors du chargement des produits')
+      // sonner est charge a la demande (hors du bundle initial)
+      import('sonner').then(({ toast }) => toast.error('Erreur lors du chargement des produits'))
     } finally { // ✅ Correction apportée ici !
       setLoading(false)
       setIsFetchingMore(false)
@@ -225,6 +220,12 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
 
     setPage(0)
     setHasMore(initialHasMore)
+
+    if (!initialFetchDoneRef.current) {
+      initialFetchDoneRef.current = true
+      if (canPersonalizeRef.current) fetchProducts(true, 0, true)
+      return
+    }
 
     const timer = setTimeout(() => fetchProducts(true, 0), 400)
     return () => clearTimeout(timer)
@@ -239,15 +240,23 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   }, [selectedCategory])
 
   useEffect(() => {
-    const loadUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        setUserId(user.id)
-      }
+    // Visiteur anonyme : aucun besoin de charger la librairie Supabase (~170 Ko) sur l'accueil.
+    if (!hasSessionCookie()) {
       setAuthResolved(true)
+      return
+    }
+
+    const loadUser = async () => {
+      try {
+        const supabase = await getSupabase()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) setUserId(user.id)
+      } finally {
+        setAuthResolved(true)
+      }
     }
     loadUser()
-  }, [supabase])
+  }, [])
 
   const handleCategorySelect = (catId: number) => {
     setSelectedCategory(catId)
@@ -270,8 +279,8 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       
       {/* 1. HEADER FIXE */}
       <div ref={headerRef} className="relative bg-brand pt-safe px-4 pb-5 sticky top-0 z-50 shadow-md overflow-hidden">
-        <div aria-hidden="true" className="pointer-events-none absolute -right-16 -top-24 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div aria-hidden="true" className="pointer-events-none absolute -left-20 top-10 h-48 w-48 rounded-full bg-mustard/20 blur-3xl" />
+        {/* Halos en degrades radiaux : meme rendu que blur-3xl, sans filtre GPU couteux sur mobiles modestes */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_-10%,rgb(255_255_255/0.14),transparent_45%),radial-gradient(circle_at_-5%_70%,rgb(251_191_36/0.22),transparent_40%)]" />
         <div className="relative flex justify-between items-center mb-4 pt-2">
             <h1 className="font-display text-2xl font-black tracking-tight">
                 <span className="text-white">Comores</span>
@@ -279,6 +288,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
             </h1>
             <Link 
               href={userId ? `/profil?id=${userId}` : "/auth"} 
+              prefetch={userId ? undefined : false}
               className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/30 transition"
               aria-label="Mon Profil"
             >
@@ -313,7 +323,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
                 <button 
                   key={cat.id} 
                   onClick={() => handleCategorySelect(cat.id)} 
-                  className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand border border-brand/20' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand-700 border border-brand/20' : 'text-gray-500'}`}
                 >
                     <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
@@ -353,68 +363,17 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
         ) : (
           <div className="grid grid-cols-2 gap-3 pb-8">
             {products.map((product, index) => {
-              let img = '/placeholder.png'
-              try {
-                const parsed = JSON.parse(product.images)
-                img = Array.isArray(parsed) ? parsed[0] : parsed ? parsed : '/placeholder.png'
-              } catch (e) {
-                img = product.images || '/placeholder.png'
-              }
-
               const isBoosted = product.boosted_until ? new Date(product.boosted_until).getTime() > currentTimestamp : false
 
               return (
-                <Link 
-                  key={product.id} 
-                  href={`/annonce?id=${product.id}`}
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={index}
+                  isPro={product.is_pro}
+                  isBoosted={isBoosted}
                   onClick={() => trackProductClickHistory({ productId: product.id, source: 'home_feed', visitorId })}
-                  className="group flex flex-col bg-white rounded-card shadow-card border border-gray-100 overflow-hidden transition-all duration-base hover:-translate-y-0.5 hover:shadow-pop active:scale-[0.98]"
-                >
-                  <div className="relative aspect-square bg-gray-100 overflow-hidden">
-                    <Image 
-                      src={img} 
-                      alt={product.title} 
-                      fill 
-                      sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-                      className="object-cover transition-transform duration-500 group-hover:scale-110"
-                      priority={index < 4}
-                      quality={75}
-                    />
-                    
-                    {/* BADGES */}
-                    <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-                        {isBoosted && (
-                            <span className="bg-amber-500 text-white text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-widest">
-                                <Sparkles size={10} fill="currentColor" /> VEDETTE
-                            </span>
-                        )}
-                        {product.is_pro && (
-                            <span className="bg-black/80 backdrop-blur-md text-white border border-white/20 text-[9px] font-black px-2 py-0.5 rounded-full shadow-lg flex items-center gap-1 uppercase tracking-widest">
-                                <Crown size={10} className="text-amber-400 fill-amber-400" /> PRO
-                            </span>
-                        )}
-                    </div>
-                    
-                    <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-[9px] px-2 py-1 rounded-lg font-bold uppercase flex items-center gap-1">
-                        {product.location_island}
-                    </div>
-                  </div>
-                  
-                  <div className="p-3 flex flex-col flex-1">
-                    <h3 className="font-display text-gray-900 text-sm font-bold line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
-                        {product.title}
-                    </h3>
-                    <div className="mt-auto flex flex-col gap-1">
-                        <PriceTag 
-                        price={product.price} 
-                        className="text-brand font-black text-base tracking-tight" 
-                        />
-                        <div className="flex items-center gap-1 text-gray-500 text-[10px] uppercase font-bold tracking-wide">
-                            <MapPin size={10} className="text-gray-400" /> {product.location_city}
-                        </div>
-                    </div>
-                  </div>
-                </Link>
+                />
               )
             })}
           </div>

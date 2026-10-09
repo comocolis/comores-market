@@ -1,4 +1,3 @@
-import { jsPDF } from 'jspdf';
 import { toast } from 'sonner';
 
 interface ReceiptData {
@@ -9,8 +8,10 @@ interface ReceiptData {
   customEndDate?: string; // Date de fin réelle
 }
 
-export const generatePROReceipt = (userData: ReceiptData) => {
+// jspdf (~350 Ko) est charge a la demande, uniquement au clic sur « Facture ».
+export const generatePROReceipt = async (userData: ReceiptData) => {
   try {
+    const { jsPDF } = await import('jspdf');
     const doc = new jsPDF();
     const transactionId = `TX-${Math.random().toString(36).substring(2, 11).toUpperCase()}`;
     const activationDate = new Date(userData.date);
@@ -19,7 +20,7 @@ export const generatePROReceipt = (userData: ReceiptData) => {
     const isAnnual = (userData.description || "").toLowerCase().includes("annuel");
     
     const offerTitle = isAnnual ? "ABONNEMENT ANNUEL PRO" : "ABONNEMENT MENSUEL PRO";
-    const offerPrice = isAnnual ? "25 000 KMF" : "2 500 KMF";
+    const offerPrice = isAnnual ? "25 000 FC" : "2 500 FC";
     const durationText = isAnnual ? "12 Mois (1 an)" : "30 Jours";
     const filePrefix = isAnnual ? "Facture_Annuelle" : "Facture_Mensuelle";
 

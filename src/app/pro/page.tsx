@@ -38,7 +38,7 @@ export default function ProPage() {
       const userEmail = user?.email ? `\n(Compte : ${user.email})` : ''
       
       return encodeURIComponent(
-          `Bonjour, je viens d'envoyer ${amount} KMF par Mvola au ${MVOLA_NUMBER}.\n` +
+          `Bonjour, je viens d'envoyer ${amount} FC par Mvola au ${MVOLA_NUMBER}.\n` +
           `Voici mon ID de transaction pour activer mon compte PRO ${type}.${userEmail}`
       )
   }
@@ -120,7 +120,7 @@ export default function ProPage() {
                 className={`flex-1 py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all relative ${selectedPlan === 'yearly' ? 'bg-brand text-white shadow-md' : 'text-gray-500 hover:bg-gray-50'}`}
             >
                 Annuel
-                {selectedPlan !== 'yearly' && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[8px] px-1.5 py-0.5 rounded-full font-bold animate-bounce">-17%</span>}
+                {selectedPlan !== 'yearly' && <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold animate-bounce">-17%</span>}
             </button>
         </div>
 
@@ -145,9 +145,9 @@ export default function ProPage() {
                <span className="text-5xl font-black text-gray-900 tracking-tighter">
                  {selectedPlan === 'monthly' ? '2 500' : '25 000'}
                </span>
-               <span className="text-lg font-bold text-gray-500">KMF</span>
+               <span className="text-lg font-bold text-gray-500">FC</span>
             </div>
-            {selectedPlan === 'yearly' && <p className="text-xs text-amber-500 font-bold mt-2">Soit 2 083 KMF / mois</p>}
+            {selectedPlan === 'yearly' && <p className="text-xs text-amber-500 font-bold mt-2">Soit 2 083 FC / mois</p>}
           </div>
 
           {/* LISTE DES AVANTAGES (Complète) */}
@@ -226,7 +226,7 @@ export default function ProPage() {
               </div>
           ) : (
               <div className="bg-gray-50 border border-gray-200 border-dashed rounded-xl p-8 text-center animate-in fade-in zoom-in-95 duration-300">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-gray-300">
+                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm text-gray-400">
                       <CreditCard size={24} />
                   </div>
                   <p className="font-bold text-gray-900 text-sm">Bientôt disponible</p>
@@ -237,7 +237,7 @@ export default function ProPage() {
         </motion.div>
 
         {/* Pied de page */}
-        <div className="text-center px-4 pt-4 pb-8 flex items-center justify-center gap-2 text-gray-300 opacity-60">
+        <div className="text-center px-4 pt-4 pb-8 flex items-center justify-center gap-2 text-gray-500">
             <ShieldCheck size={14} />
             <p className="text-[10px] font-medium uppercase tracking-widest">Paiement Sécurisé & Support 24/7</p>
         </div>

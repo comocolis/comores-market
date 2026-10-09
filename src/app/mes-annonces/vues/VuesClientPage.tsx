@@ -37,6 +37,7 @@ export default function ProductViewersPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+        if (!params.id) { router.replace('/mes-annonces'); return }
         // 1. Infos produit pour le titre
         const { data: prod } = await supabase.from('products').select('title').eq('id', params.id).single()
         if (prod) setProductTitle(prod.title)
@@ -73,7 +74,7 @@ export default function ProductViewersPage() {
         setLoading(false)
     }
     fetchData()
-  }, [params.id, supabase])
+  }, [params.id, supabase, router])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 font-sans text-gray-900">

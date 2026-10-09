@@ -15,6 +15,7 @@ import {
   MapPin, Star, Save, PenTool
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { UiButton, UiInput, UiSelect, UiTextarea } from '@/components/ui'
 
 import { DndContext, closestCenter, TouchSensor, MouseSensor, useSensor, useSensors, DragEndEvent } from '@dnd-kit/core'
 import { arrayMove, SortableContext, useSortable, horizontalListSortingStrategy } from '@dnd-kit/sortable'
@@ -345,6 +346,7 @@ export default function ModifierPage() {
   // 1. CHARGEMENT DES DONNÉES
   useEffect(() => {
     const loadData = async () => {
+        if (!params.id) { router.replace('/mes-annonces'); return }
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) { router.push('/auth'); return }
 
@@ -604,7 +606,7 @@ export default function ModifierPage() {
       })
 
       toast.success("Annonce mise à jour !")
-      router.push(`/annonce?id=${params.id}`)
+      router.push(`/annonce/${params.id}`)
 
     } catch (err) { 
         toast.error("Erreur lors de la mise à jour.") 
@@ -638,9 +640,9 @@ export default function ModifierPage() {
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x select-none">
-                            <div onClick={() => fileInputRef.current?.click()} className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
+                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Ajouter une photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
                                 {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-500" />}
-                            </div>
+                            </button>
                             {images.map((img) => (
                                 <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
                             ))}
@@ -651,172 +653,139 @@ export default function ModifierPage() {
             </div>
 
             {/* 2. INFOS PRINCIPALES */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
-                <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Titre</label>
-                    <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                        <Type size={18} className="text-gray-500" />
-                        <input 
-                            aria-label="Titre de l'annonce"
-                            type="text" 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
-                            value={formData.title} 
-                            onChange={e => setFormData({...formData, title: e.target.value})} 
-                        />
-                    </div>
-                </div>
-                
-                <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Prix (KMF)</label>
-                    <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                        <span className="text-gray-500 font-black text-xs px-2">KMF</span>
-                        <input 
-                            aria-label="Prix"
-                            type="number" 
-                            className="w-full bg-transparent p-3 outline-none text-sm font-semibold text-gray-900 placeholder:text-gray-500" 
-                            value={formData.price} 
-                            onChange={e => setFormData({...formData, price: e.target.value})} 
-                        />
-                    </div>
-                </div>
-                
+            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
+                <UiInput
+                    label="Titre"
+                    type="text"
+                    startAdornment={<Type size={18} aria-hidden="true" />}
+                    value={formData.title}
+                    onChange={e => setFormData({...formData, title: e.target.value})}
+                />
+
+                <UiInput
+                    label="Prix (FC)"
+                    type="number"
+                    inputMode="numeric"
+                    startAdornment="FC"
+                    value={formData.price}
+                    onChange={e => setFormData({...formData, price: e.target.value})}
+                />
+
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Catégorie</label>
-                        <select 
-                            aria-label="Catégorie"
-                            className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
-                            value={formData.category_id} 
-                            onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
-                        >
-                            {CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id}>{cat.label}</option>))}
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Sous-catégorie</label>
-                        <select 
-                            aria-label="Sous-catégorie"
-                            className="w-full bg-gray-100 p-3 rounded-xl text-sm font-semibold text-gray-900 outline-none border border-gray-200" 
-                            value={formData.sub_category} 
-                            onChange={e => setFormData({ ...formData, sub_category: e.target.value })}
-                        >
-                            <option value="">Choisir...</option>
-                            {currentSubCats.map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}
-                            <option value="Autre">Autre (Préciser...)</option>
-                        </select>
-                    </div>
+                    <UiSelect
+                        label="Catégorie"
+                        value={formData.category_id}
+                        onChange={e => setFormData({ ...formData, category_id: e.target.value, sub_category: '' })}
+                    >
+                        {CATEGORIES_LIST.map(cat => (<option key={cat.id} value={cat.id}>{cat.label}</option>))}
+                    </UiSelect>
+                    <UiSelect
+                        label="Sous-catégorie"
+                        value={formData.sub_category}
+                        onChange={e => setFormData({ ...formData, sub_category: e.target.value })}
+                    >
+                        <option value="">Choisir...</option>
+                        {currentSubCats.map((sub, idx) => (<option key={idx} value={sub}>{sub}</option>))}
+                        <option value="Autre">Autre (Préciser...)</option>
+                    </UiSelect>
                 </div>
 
                 {/* CHAMP MAGIQUE "AUTRE" */}
                 {formData.sub_category === 'Autre' && (
-                    <div className="animate-in slide-in-from-top-2 fade-in">
-                        <label className="text-xs font-bold text-brand uppercase ml-1 mb-1 block">Précisez la sous-catégorie</label>
-                        <div className="flex items-center bg-white rounded-xl px-3 border-2 border-brand/20 focus-within:border-brand focus-within:ring-4 focus-within:ring-brand/10 transition">
-                            <PenTool size={18} className="text-brand mr-2" />
-                            <input 
-                                aria-label="Précisez la sous-catégorie"
-                                type="text" 
-                                className="w-full bg-transparent p-3 outline-none text-sm font-bold text-gray-900 placeholder:text-gray-500" 
-                                placeholder="Ex: Drone, Tondeuse..." 
-                                value={customSubCat} 
-                                onChange={e => setCustomSubCat(e.target.value)}
-                            />
-                        </div>
-                    </div>
+                    <UiInput
+                        wrapperClassName="animate-in slide-in-from-top-2 fade-in"
+                        label="Précisez la sous-catégorie"
+                        type="text"
+                        startAdornment={<PenTool size={18} className="text-brand" aria-hidden="true" />}
+                        placeholder="Ex: Drone, Tondeuse..."
+                        value={customSubCat}
+                        onChange={e => setCustomSubCat(e.target.value)}
+                    />
                 )}
 
                 {/* 3. CHAMPS INTELLIGENTS DYNAMIQUES */}
                 {currentSpecFields.length > 0 && formData.sub_category !== 'Autre' && (
-                    <div className="animate-in slide-in-from-top-2 fade-in pt-2 border-t border-dashed border-gray-100 mt-2">
-                        <p className="text-xs font-black text-brand uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
+                    <div className="animate-in slide-in-from-top-2 fade-in pt-4 border-t border-dashed border-gray-200 mt-2">
+                        <p className="text-xs font-black text-brand-700 uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
                         <div className="grid grid-cols-2 gap-3">
-                            {currentSpecFields.map((field) => (
-                                <div key={field.key} className={field.key === 'fuel' || field.key === 'storage' ? "col-span-2" : ""}>
-                                    <label className="text-[10px] font-bold text-gray-500 uppercase ml-1 mb-1 block">{field.label}</label>
-                                    <div className="flex items-center bg-gray-100 rounded-xl px-3 border border-gray-200 focus-within:border-brand/50 focus-within:ring-2 focus-within:ring-brand/10 transition">
-                                        <field.icon size={16} className="text-gray-500 mr-2 shrink-0" />
-                                        {field.type === 'select' ? (
-                                            <select 
-                                                aria-label={field.label}
-                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900"
-                                                value={specs[field.key] || ''}
-                                                onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
-                                            >
-                                                <option value="">Sélectionner...</option>
-                                                {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                                            </select>
-                                        ) : (
-                                            <input 
-                                                aria-label={field.label}
-                                                type={field.type} 
-                                                className="w-full bg-transparent p-3 outline-none text-xs font-bold text-gray-900 placeholder:text-gray-500" 
-                                                placeholder={field.placeholder}
-                                                value={specs[field.key] || ''}
-                                                onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
-                                            />
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
+                            {currentSpecFields.map((field) => {
+                                const wrapperClassName = field.key === 'fuel' || field.key === 'storage' ? 'col-span-2' : ''
+                                const icon = <field.icon size={16} className="shrink-0" aria-hidden="true" />
+
+                                return field.type === 'select' ? (
+                                    <UiSelect
+                                        key={field.key}
+                                        wrapperClassName={wrapperClassName}
+                                        label={field.label}
+                                        startAdornment={icon}
+                                        value={specs[field.key] || ''}
+                                        onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                                    >
+                                        <option value="">Sélectionner...</option>
+                                        {field.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                                    </UiSelect>
+                                ) : (
+                                    <UiInput
+                                        key={field.key}
+                                        wrapperClassName={wrapperClassName}
+                                        label={field.label}
+                                        type={field.type}
+                                        startAdornment={icon}
+                                        placeholder={field.placeholder}
+                                        value={specs[field.key] || ''}
+                                        onChange={(e) => setSpecs({ ...specs, [field.key]: e.target.value })}
+                                    />
+                                )
+                            })}
                         </div>
                     </div>
                 )}
             </div>
 
             {/* 4. LOCALISATION */}
-            <div className="bg-white p-5 rounded-2xl shadow-sm border space-y-4">
+            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Île</label>
-                        <select 
-                            aria-label="Île"
-                            className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200" 
-                            value={formData.location_island} 
-                            onChange={e => setFormData({...formData, location_island: e.target.value})}
-                        >
-                            <option>Ngazidja</option>
-                            <option>Ndzouani</option>
-                            <option>Mwali</option>
-                            <option>Maore</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 uppercase ml-1 mb-1 block">Ville</label>
-                        <input 
-                            aria-label="Ville"
-                            type="text" 
-                            className="w-full bg-gray-100 rounded-xl p-3 text-sm font-semibold text-gray-900 border border-gray-200 placeholder:text-gray-500" 
-                            placeholder="Moroni" 
-                            value={formData.location_city} 
-                            onChange={e => setFormData({...formData, location_city: e.target.value})} 
-                        />
-                    </div>
+                    <UiSelect
+                        label="Île"
+                        value={formData.location_island}
+                        onChange={e => setFormData({...formData, location_island: e.target.value})}
+                    >
+                        <option>Ngazidja</option>
+                        <option>Ndzouani</option>
+                        <option>Mwali</option>
+                        <option>Maore</option>
+                    </UiSelect>
+                    <UiInput
+                        label="Ville"
+                        type="text"
+                        placeholder="Moroni"
+                        value={formData.location_city}
+                        onChange={e => setFormData({...formData, location_city: e.target.value})}
+                    />
                 </div>
             </div>
 
             {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
-                    <label className="text-xs font-bold text-gray-500 uppercase">Description</label>
-                    <div className="flex gap-2">
-                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} className="flex items-center gap-1 text-[9px] font-black text-blue-600 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95">
+                    <label htmlFor="listing-description" className="text-xs font-bold text-gray-700 uppercase tracking-wide">Description</label>
+                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Améliorer la description avec l'IA" className="flex items-center gap-1 text-[10px] font-black text-blue-700 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95 disabled:opacity-60">
                         {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
                         Sublimer
                     </button>
-                    </div>
                 </div>
-                <textarea 
-                    aria-label="Description"
-                    className="w-full bg-gray-100 p-4 rounded-2xl shadow-sm border border-gray-100 text-sm font-medium min-h-40 outline-none focus:ring-2 focus:ring-brand/20 transition resize-none text-gray-900 placeholder:text-gray-500" 
-                    placeholder="Décrivez votre produit..." 
-                    value={formData.description} 
-                    onChange={e => setFormData({...formData, description: e.target.value})} 
+                <UiTextarea
+                    id="listing-description"
+                    className="min-h-40!"
+                    placeholder="Décrivez votre produit..."
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
                 />
             </div>
 
-            <button type="submit" disabled={loading || isRephrasing} className="w-full bg-brand text-white font-bold py-5 rounded-2xl shadow-xl shadow-brand/30 hover:bg-brand-dark transition transform active:scale-95 flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
-            {loading ? <Loader2 className="animate-spin" /> : <><Save size={18} /> Mettre à jour</>}
-            </button>
+            <UiButton type="submit" size="lg" loading={loading} disabled={isRephrasing} className="w-full uppercase tracking-widest text-sm shadow-xl shadow-brand/30">
+                <Save size={18} aria-hidden="true" /> Mettre à jour
+            </UiButton>
       </form>
     </div>
   )

@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getClientIp, isRateLimited } from "@/lib/rate-limit";
 
 // 1. SETUP SUPABASE
 const supabase = createClient(
@@ -14,6 +15,10 @@ const groq = new Groq({
 });
 
 export async function POST(req: Request) {
+  if (isRateLimited(`chat:${getClientIp(req)}`, 20, 10 * 60 * 1000)) {
+    return NextResponse.json({ text: "Trop de messages, réessayez dans quelques minutes." }, { status: 429 });
+  }
+
   if (!process.env.GROQ_API_KEY) {
     return NextResponse.json({ text: "Erreur serveur : Clé API manquante." }, { status: 500 });
   }
@@ -22,11 +27,12 @@ export async function POST(req: Request) {
     const body = await req.json();
     const { message, history, systemContext } = body;
     
-    if (!message || typeof message !== 'string') {
+    if (!message || typeof message !== 'string' || message.length > 1000) {
       return NextResponse.json({ error: "Message vide" }, { status: 400 });
     }
 
-    const safeHistory = Array.isArray(history) ? history : [];
+    // Historique borne : evite les requetes IA surdimensionnees (cout / quota).
+    const safeHistory = Array.isArray(history) ? history.slice(-10) : [];
 
     // --- A. ANALYSE RAPIDE ---
     const keywords = message
@@ -95,7 +101,7 @@ export async function POST(req: Request) {
             role: (msg.role === 'user' || msg.role === 'model' || msg.role === 'assistant') 
                   ? (msg.role === 'model' ? 'assistant' : msg.role) 
                   : 'user',
-            content: content || ""
+            content: (content || "").slice(0, 1000)
         };
     });
 

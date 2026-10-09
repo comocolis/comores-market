@@ -60,7 +60,7 @@ export default function FilterModal({ onClose, priceMin, setPriceMin, priceMax, 
 
         {/* Section Prix */}
         <div className="space-y-4 mb-8">
-          <p className="font-bold text-gray-900 text-sm uppercase tracking-wide">Budget (KMF)</p>
+          <p className="font-bold text-gray-900 text-sm uppercase tracking-wide">Budget (FC)</p>
           <div className="flex gap-4">
             <div className="flex-1">
               <label htmlFor="min-price" className="text-xs font-semibold text-gray-500 mb-1.5 block">Minimum</label>

@@ -1,7 +1,11 @@
-export { UiButton } from './Button';
-export type { UiButtonProps } from './Button';
+export { UiButton, uiButtonClasses } from './Button';
+export type { UiButtonProps, UiButtonVariant, UiButtonSize } from './Button';
 export { UiInput } from './Input';
 export type { UiInputProps } from './Input';
+export { UiSelect } from './Select';
+export type { UiSelectProps } from './Select';
+export { UiTextarea } from './Textarea';
+export type { UiTextareaProps } from './Textarea';
 export { UiChip } from './Chip';
 export type { UiChipProps } from './Chip';
 export { UiSectionTitle } from './SectionTitle';

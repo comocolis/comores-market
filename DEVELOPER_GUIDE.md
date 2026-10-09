@@ -61,7 +61,7 @@ et reconstruire/déployer le site pour que le correctif soit actif en production
 | Langage | **TypeScript 5** (strict) |
 | Styles | **Tailwind CSS v4** + CSS custom (`@theme`, `@utility`) |
 | Backend / DB / Auth / Storage | **Supabase** (`@supabase/ssr`, `@supabase/supabase-js`) |
-| IA | **Groq SDK** (Llama 3.3 70B, Llama 4 Scout pour la vision) |
+| IA | **Groq SDK** (`openai/gpt-oss-120b` texte, `qwen/qwen3.8-27b` vision) |
 | Emails | **Resend** |
 | État/cache client | **@tanstack/react-query** + hooks locaux |
 | UI | **lucide-react** (icônes), **framer-motion** (animations), **sonner** (toasts) |
@@ -90,7 +90,7 @@ comores-market/
 │   │   ├── globals.css          # Design tokens + UX native (sélection/drag)
 │   │   ├── manifest.ts          # Manifest PWA
 │   │   ├── robots.ts, sitemap.ts, not-found.tsx, offline/
-│   │   ├── annonce/             # Détail d'annonce (SSR + SEO dynamique)
+│   │   ├── annonce/[id]/        # Détail d'annonce `/annonce/<uuid>` (SSR + SEO + JSON-LD) ; `annonce/page.tsx` = filet de sécurité de l'ancien format
 │   │   ├── publier/             # Création d'annonce (formulaire riche + IA)
 │   │   ├── modifier/            # Édition d'annonce
 │   │   ├── auth/                # Connexion/inscription + callback OAuth
@@ -208,11 +208,11 @@ erreur (schéma `supabase_functions` manquant).
 
 | Route | Méthode | Description | Auth |
 |---|---|---|---|
-| `/api/chat` | POST | Chatbot IA (Groq) + contexte produits Supabase | non |
+| `/api/chat` | POST | Chatbot IA (Groq) + contexte produits Supabase (message <= 1000 car., historique 10 msg) | non, 20 req/10 min/IP |
 | `/api/moderate` | POST | Modération IA d'une annonce (JSON) | ✅ JWT |
-| `/api/rephrase` | POST | Réécriture de description | ✅ JWT |
-| `/api/vision` | POST | Description d'image (Llama 4 Scout, `imageBase64`) | non |
-| `/api/home-products` | GET | Liste classée/paginée pour l'accueil | non |
+| `/api/rephrase` | POST | Réécriture de description (<= 5000 car.) | ✅ JWT + 15 req/10 min |
+| `/api/vision` | POST | Description d'image (`qwen/qwen3.8-27b`, `imageBase64` data-URL <= ~4 Mo) | ✅ JWT + 10 req/10 min |
+| `/api/home-products` | GET | Liste classée/paginée pour l'accueil (`limit` <= 40, `offset` <= 400) | non |
 | `/api/personalization/track` | POST | Persiste recherche (`search`) ou clic (`product_click`) | non (visitor_id) |
 | `/api/emails/alert-signup` | POST | Email admin « nouvel inscrit » (Resend) | non |
 | `/api/account/delete` | POST | Suppression du compte : purge Storage (service role) puis RPC `delete_own_account` | ✅ JWT |
@@ -273,7 +273,9 @@ cliqué (−18), vu (−12).
 - Tracking : `trackListingCreated`, `trackAdsConversion`.
 
 ### 8.4 Détail d'annonce — `app/annonce/`
-- SSR + `generateMetadata` (SEO/OpenGraph, prix KMF + équivalent €, `canonical`).
+- URL : `/annonce/<uuid>`. L'ancien format `/annonce?id=<uuid>` est redirigé en 308 par `middleware.ts` (les autres paramètres, ex. `utm_*`, sont conservés). Les liens internes, le sitemap et les liens déjà partagés / stockés en base (`notifications.link`) restent valides.
+- SSR + `generateMetadata` (SEO/OpenGraph, prix KMF + équivalent €, `canonical`) + JSON-LD `Product`. L'annonce lue côté serveur est passée au client (`initialProduct`) : affichage immédiat, sans spinner ni second aller-retour.
+- Annonce inexistante / identifiant invalide : page 404 avec `noindex` (le statut HTTP reste 200 tant que le `Suspense` du layout enveloppe les pages ; erreur de lecture Supabase : repli sur le chargement client).
 - Galerie plein écran + zoom (`react-zoom-pan-pinch`), carrousel, badges PRO/VEDETTE.
 - CTA WhatsApp, favoris, message vendeur, signalement.
 - Analytics + historique de clic (`trackProductView`, `trackProductClickHistory`).
@@ -335,7 +337,7 @@ Projet **Android Studio séparé** (Kotlin, Gradle KTS) affichant le site dans u
   `Permissions-Policy`, `X-Frame-Options: SAMEORIGIN`.
 - Webpack : `splitChunks` (vendor/common/supabase/ui), `runtimeChunk: single`.
 
-### 10.2 Design system (`globals.css` + `tailwind.config.ts`)
+### 10.2 Design system (`globals.css`, Tailwind v4 sans `tailwind.config.ts`)
 - Brand `#22c55e` / `#16a34a`, mustache `#fbbf24`, fond app `#F8FAFC`,
   fond extérieur `#374151`/`#1f2021`.
 - Container mobile `max-w-120` (500 px) centré ; safe areas (`pb-safe`, `pt-safe`).
@@ -343,6 +345,8 @@ Projet **Android Studio séparé** (Kotlin, Gradle KTS) affichant le site dans u
 - UX native : sélection/drag désactivés (`*:not(input,textarea)`), `img` en
   `pointer-events:none`, `user-select:text` forcé sur inputs ; `NativeFeatures.tsx`
   bloque le menu contextuel.
+- Tokens « calque 0 » dans `@theme` : `brand-50..900`, `ink`, `surface`, `line`, `--radius-card`, `--shadow-card/pop`, durées ; police `font-display` (Plus Jakarta Sans via `next/font`).
+- Bibliothèque `components/ui` : `UiButton`, `UiInput`, `UiChip`, `UiSectionTitle` (migration progressive des pages ; `HomePageClient` l'utilise déjà).
 - Composants : `PriceTag`, `Skeleton`, `EmptyState`, `FilterModal`, `NotificationBell`,
   `BottomNav`, `SplashScreen`, `CookieBanner`, `ProductSuggestions`.
 - `InstallBanner.tsx` **désactivé** (retourne `null`).
@@ -395,11 +399,10 @@ npx.cmd playwright test   # tests E2E
    `NEXT_PUBLIC_GOOGLE_ADS_ID` (valeurs `G-MRDLKB8904` / `AW-16447515729`).
    Vérifier que **Netlify** n'a pas `G-4BK10CRPPP` (sinon les données partent
    dans un property vide).
-4. **P0 — Modèles IA obsolètes** (voir l'encadré en haut) : toute l'IA est cassée,
-   modération désactivée. Doublon de logique routes API ↔ Edge Functions à unifier au passage.
-5. Résidus : `middleware.ts.bak`, `src/hooks/` vide.
-6. `images.remotePatterns` = `hostname: '**'` (permissif) dans `next.config.ts`.
-7. `NEXT_PUBLIC_GA_ID` défini mais non utilisé dans `layout.tsx` (valeur en dur).
+4. ✅ **Modèles IA** migrés et Edge Functions supprimées (voir l'encadré en haut). La modération reste *fail-open* (erreur Groq = annonce acceptée).
+5. Résidu : `src/hooks/` vide.
+6. ✅ `images.remotePatterns` restreint à `**.supabase.co`, `lh3.googleusercontent.com` et `www.comores-market.com` : toute nouvelle source d'image doit être ajoutée dans `next.config.ts`.
+7. Les RLS Supabase ne sont pas dans le repo (une seule migration) : l'accès admin est contrôlé côté serveur (`admin/page.tsx`) mais l'écriture de `profiles.role` dépend uniquement des RLS — à vérifier dans le dashboard.
 
 ---
 
@@ -409,7 +412,50 @@ npx.cmd playwright test   # tests E2E
 - Classement : `src/lib/homepage-ranking.ts`
 - Auth : `src/app/auth/page.tsx` + `src/app/auth/callback/route.ts` + `src/middleware.ts`
 - Publish : `src/app/publier/PublierClient.tsx`
-- Détail annonce : `src/app/annonce/AnnonceClient.tsx`
+- Détail annonce : `src/app/annonce/[id]/page.tsx` (serveur) + `src/app/annonce/AnnonceClient.tsx` (client)
 - API IA : `src/app/api/{chat,moderate,rephrase,vision}/route.ts`
 - IA + emails : `src/app/api/{chat,moderate,rephrase,vision,emails/alert-signup}/route.ts` (aucune Edge Function)
 - App Android : `G:\From Scratch\app\src\main\java\com\comoresmarket\app\MainActivity.kt`
+
+---
+
+## 14. Performance (audit du 07/10/2026)
+
+- **Bundle JS** : le `splitChunks` personnalisé qui forçait un `vendor` unique (~1,8 Mo) sur toutes les pages a été retiré ; Next découpe par route. Ne pas le réintroduire.
+- **Chargement à la demande** : `jspdf` (import dynamique dans `generatePROReceipt`, désormais `async`), `EliteAssistant` / `CookieBanner` / `NativeFeatures` (`components/DeferredWidgets.tsx`, `ssr:false`).
+- **Splash** : CSS pur (sans framer-motion), 1 seule fois par session (`sessionStorage`), ~1,2 s au lieu de 2,5 s à chaque visite.
+- **Middleware** : aucun appel `auth.getUser()` si aucun cookie `sb-*-auth-token` (visiteurs anonymes = pas de requête réseau).
+- **Accueil** : le rafraîchissement personnalisé du premier rendu est immédiat et silencieux (plus de skeleton ni de délai de 400 ms) ; l'écouteur de scroll n'écrit plus de state à chaque évènement.
+- **Annonce** : une seule requête Supabase par rendu (`cache()` partagé entre `generateMetadata` et la page).
+- **Images** : AVIF + WebP, cache optimiseur 30 jours, `icon0.svg` (1,8 Mo, servi comme favicon) supprimé, `placeholder.webp` au lieu de `.png`.
+- **Rate limiting** : `lib/rate-limit.ts` (fenêtre glissante en mémoire, best effort par instance).
+- **Android** : démarrage direct sur `www` (plus de redirection 308), liens externes ouverts hors WebView, trafic HTTP en clair interdit, `allowFileAccess` / `allowContentAccess` désactivés, App Link `www` ajouté. Nécessite un nouveau build / `versionCode` pour être publié.
+- **Build local Windows** : si `next build` échoue en `EPERM` sur `.next\diagnostics`, un processus verrouille le dossier : le renommer (`.next_old`) puis relancer.
+- **Mesures Lighthouse mobile (build prod local, 07/10/2026)** : accueil perf 47 → 71 (FCP 3,9 → 1,6 s, LCP 8,2 → 4,7 s), accessibilité 89 → 94, bonnes pratiques 100. Relancer : `npx lighthouse http://localhost:3000 --form-factor=mobile` sur `next start`. Pistes restantes : TBT (~370 ms, hydratation + router Next), LCP (délai de rendu ~0,8 s).
+- **Bug corrigé** : `ProductSuggestions` interrogeait `products` avec `is_pro` (colonne inexistante → HTTP 400 silencieux) ; la section « Pour vous » et les suggestions d'annonce ne s'affichaient jamais. Elle lit maintenant `products_with_details`. Colonnes réelles de `products` : id, user_id, category_id, title, description, price, images, location_island, location_city, whatsapp_number, status, created_at, fts, sub_category, boosted_until, quality_score.
+- **Scripts tiers** : gtag en `lazyOnload` (hors chemin critique) ; le splash ne précharge plus son logo ; seules les 2 premières images de l'accueil sont `priority`.
+- **Accessibilité** : contrastes des prix / libellés (`brand-700`, `gray-500`) et noms accessibles des boutons de l'assistant IA. Reste volontairement le jaune « Market » du logo sur fond vert.
+- **URLs d'annonce** : `/annonce/[id]` (voir §8.4). Le sitemap listait 0 annonce (colonne `updated_at` inexistante dans `products` → requête en erreur silencieuse) : corrigé avec `created_at`. Attention : `products` n'a pas de `updated_at`.
+- **JS de démarrage (07-08/10/2026)** : JS de l'accueil 734 → ~516 Ko. Règles à respecter :
+  - **Supabase navigateur à la demande** : `utils/supabase/lazy.ts` (`hasSessionCookie()`, `getSupabase()`). `BottomNav` et l'accueil n'importent plus `utils/supabase/client` statiquement ; un visiteur sans cookie `sb-*-auth-token` ne charge pas la librairie (~170 Ko). Sur toute nouvelle page *publique*, préférer `getSupabase()` ou un `fetch` REST à un import statique.
+  - `ProductSuggestions` lit `products_with_details` via `fetch` REST (clé anon), sans supabase-js.
+  - **Toasts** : `sonner` est importé dynamiquement dans `BottomNav` / accueil ; `<Toaster>` via `DeferredToaster`.
+  - **Assistant IA** : monté à la première interaction (scroll / toucher / clic / clavier) ou après 5 s (`useDeferredMount` dans `DeferredWidgets.tsx`) : framer-motion + react-markdown (~220 Ko) ne concurrencent plus l'affichage.
+  - **Prefetch** : les liens menant à `/auth` (barre du bas, avatar de l'accueil) ont `prefetch={false}` pour un visiteur anonyme (la page `/auth` embarque Supabase).
+  - **Accueil** : un nouveau visiteur (aucun `cm_visitor_id` en localStorage) ne refait pas de requête de personnalisation au montage (la liste SSR est déjà la bonne) ; `isReturningVisitor()` / `hasSessionCookie()` la déclenchent sinon. Halos de l'en-tête en dégradés radiaux (plus de `blur-3xl`).
+  - **Analyse du bundle** : `ANALYZE=1 npm run build` active les source maps navigateur, puis `npx source-map-explorer .next/static/chunks/<chunk>.js --no-border-checks`. Ne pas déployer ce build.
+  - **Lighthouse** : le score *simulé* (4G lente + CPU x4) varie de ±3 points ; mesurer à cache chaud (1 passe de chauffe pour l'optimiseur d'images AVIF), 3 passes, médiane. Le reste du temps est dominé par React + routeur Next (~385 Ko incompressibles).
+- **Refonte graphique — calque 3 (08/10/2026)** :
+  - **Annonce** : barre de contact collante au-dessus de `BottomNav` (`bottom-[calc(4rem+env(safe-area-inset-bottom))]`, `z-40`) : prix + « WhatsApp » (vendeur PRO avec numéro) ou « Écrire au vendeur » (fait défiler jusqu'au formulaire `#contact-form` et le focalise). Contrastes corrigés (`gray-300` → `gray-500`, prix en `brand-700`), rayons ramenés à l'échelle `rounded-3xl` / `rounded-4xl`, adresse sans virgule orpheline, description affichée sans guillemets parasites (masquée si vide).
+  - **Recherche** : état initial utile (recherches récentes en `localStorage` `cm_recent_searches` via `useSyncExternalStore` + recherches populaires), résultats avec `PriceTag`, état « aucun résultat » (`EmptyState`), réponses obsolètes écartées, `supabase-js` chargé à la demande.
+  - **Focus global** : la règle `:focus-visible` de `globals.css` est maintenant dans `@layer base` (une règle hors layer écrasait `outline-none` / `ring-*` de Tailwind v4 et forçait `border-radius: 4px` : double anneau et coins carrés au focus des champs arrondis).
+  - **Convention boutons** : avec `UiButton`, surcharger une propriété déjà définie par la variante demande le modificateur `!` de Tailwind v4 (ex. `px-4!`), l'ordre des classes ne décide pas.
+  - **Devise (décision 08/10/2026)** : l'interface affiche **« FC »** partout (cartes, annonce, profil, admin, formulaires, Boost/Pro, facture PDF, messages WhatsApp). Le code ISO « KMF » est conservé uniquement dans les données structurées (JSON-LD `priceCurrency`) et le titre SEO de `annonce/[id]`.
+- **Refonte graphique — calque 4 (08/10/2026), pages connectées** :
+  - **Bibliothèque `components/ui`** enrichie : `UiInput` (`startAdornment` / `endAdornment` / `wrapperClassName`, libellé relié par `htmlFor`), `UiSelect` (liste native + chevron), `UiTextarea`, `uiButtonClasses()` (habiller un `<Link>` comme un bouton), styles partagés dans `fieldStyles.ts`. Champs en `text-base` (16 px) : plus de zoom automatique d'iOS au focus.
+  - **Migrées** : `publier` et `modifier` (formulaire complet), `compte` (profil, mot de passe, modale de suppression ; valeurs en lecture via `ReadField`), `messages` (recherche, état vide, conversations accessibles au clavier, saisie), `mes-annonces` (boutons de la modale), `recherche`.
+  - **`components/ProductCard.tsx`** : carte d'annonce unique (accueil + favoris). Props : `product`, `isPro`, `isBoosted`, `index` (priorité d'image), `onClick`, `overlay`. Ne plus dupliquer de carte dans les pages.
+  - **Bug global corrigé** : Tailwind v4 donne à `border` sans couleur la valeur `currentColor` (bordures noires, visibles sur `publier`). `globals.css` fixe désormais `border-color: var(--color-line)` dans `@layer base`.
+  - **Lisibilité** : micro-textes `text-[8px]` / `[9px]` relevés à 10-11 px, `text-gray-300/400` → `gray-500` sur les textes porteurs d'information.
+  - **Piège PowerShell** : dans un script PowerShell, `` à l'intérieur d'une chaîne entre guillemets doubles est évalué (et disparaît). Écrire le code TS via `create` ou une here-string entre apostrophes (`@'...'@`).
+  - **Compte de test** : un compte de test existe sur la base de production ; ne tester sur cette base que par consultation (aucune publication / suppression / envoi de message), et ne jamais committer ses identifiants.

@@ -14,6 +14,8 @@ import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { motion, AnimatePresence } from 'framer-motion'
+import { EmptyState } from '@/components/EmptyState'
+import { UiInput } from '@/components/ui'
 
 // UTILITAIRE
 const getOptimizedImage = (url: string | null, width = 200) => {
@@ -350,30 +352,35 @@ function MessagesContent() {
                         <span className="text-xs font-black text-white">{conversations.filter(c => c.unreadCount > 0).length}</span>
                     </div>
                 </div>
-                <div className="relative group px-2">
-                    <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-gray-500">
-                        <Search size={18} strokeWidth={3} />
-                    </div>
-                    <input 
-                        type="text" 
-                        placeholder="Chercher un contact..." 
-                        value={searchTerm} 
-                        onChange={(e) => setSearchTerm(e.target.value)} 
-                        className="w-full bg-white border-none rounded-2xl py-4 pl-12 pr-4 text-gray-900 font-bold placeholder:text-gray-300 shadow-sm outline-none focus:ring-2 focus:ring-white/20 transition" 
+                <div className="px-2">
+                    <UiInput
+                        type="search"
+                        aria-label="Chercher un contact"
+                        placeholder="Chercher un contact..."
+                        startAdornment={<Search size={18} strokeWidth={2.5} aria-hidden="true" />}
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="font-semibold"
                     />
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto pt-44 pb-24 px-5 space-y-4">
                 {loading ? (<div className="flex justify-center pt-10"><Loader2 className="animate-spin text-brand" size={32} /></div>) : filteredConvs.length === 0 ? (
-                    <div className="text-center text-gray-300 pt-20 flex flex-col items-center">
-                        <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-sm"><MessageCircle size={32} className="opacity-10" /></div>
-                        <p className="font-black text-[10px] uppercase tracking-widest">Boîte de réception vide</p>
-                    </div>
+                    searchTerm.trim() ? (
+                        <EmptyState icon={Search} title="Aucun contact trouvé" description={`Aucune conversation ne correspond à « ${searchTerm.trim()} ».`} />
+                    ) : (
+                        <EmptyState
+                            icon={MessageCircle}
+                            title="Boîte de réception vide"
+                            description="Vos conversations avec les acheteurs et les vendeurs apparaîtront ici."
+                            action={{ label: 'Découvrir des annonces', href: '/' }}
+                        />
+                    )
                 ) : (
                     <AnimatePresence>
                         {filteredConvs.map((conv, idx) => (
-                            <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} 
+                            <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} role="button" tabIndex={0} aria-label={`Ouvrir la conversation avec ${conv.counterpartName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openConversation(conv) } }}
                             className={`p-4 rounded-4xl shadow-sm border flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-lg group ${conv.isSystem ? 'bg-amber-50 border-amber-100' : 'bg-white border-white'}`}>
                                 <div className={`w-16 h-16 rounded-2xl shrink-0 relative overflow-hidden shadow-inner flex items-center justify-center ${conv.isSystem ? 'bg-amber-100 text-amber-600' : 'bg-gray-50 text-gray-200'}`}>
                                     {conv.isSystem ? (
@@ -391,14 +398,14 @@ function MessagesContent() {
                                             {conv.counterpartIsPro && <ShieldCheck size={12} className="text-brand fill-brand/10" />}
                                             {conv.isSystem && <ShieldCheck size={12} className="text-amber-500 fill-amber-500/20" />}
                                         </p>
-                                        <span className={`text-[9px] font-black uppercase tracking-widest ${conv.unreadCount > 0 ? 'text-brand' : 'text-gray-300'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {day:'numeric', month:'short'})}</span>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${conv.unreadCount > 0 ? 'text-brand-700' : 'text-gray-500'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {day:'numeric', month:'short'})}</span>
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
-                                            <p className={`text-[9px] font-black tracking-widest truncate mb-0.5 opacity-50 ${conv.isSystem ? 'text-amber-600' : 'text-brand'}`}>{conv.productTitle}</p>
+                                            <p className={`text-[10px] font-black tracking-widest truncate mb-0.5 ${conv.isSystem ? 'text-amber-700' : 'text-brand-700'}`}>{conv.productTitle}</p>
                                             <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'text-gray-500 font-medium'}`}>{conv.lastMessage}</p>
                                         </div>
-                                        {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-lg flex items-center justify-center text-[9px] text-white font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
+                                        {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-lg flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
                                     </div>
                                 </div>
                             </motion.div>
@@ -434,7 +441,7 @@ function MessagesContent() {
                             {activeConv?.counterpartIsPro && <ShieldCheck size={14} className="text-white fill-white/20" />}
                             {activeConv?.isSystem && <ShieldCheck size={14} className="text-amber-400" />}
                         </h2>
-                        <p className={`text-[9px] font-black text-white/50 uppercase tracking-widest truncate mt-1.5 ${activeConv?.isSystem ? 'text-amber-400/80' : ''}`}>{activeConv?.productTitle}</p>
+                        <p className={`text-[10px] font-black text-white/50 uppercase tracking-widest truncate mt-1.5 ${activeConv?.isSystem ? 'text-amber-400/80' : ''}`}>{activeConv?.productTitle}</p>
                     </div>
                 </div>
                 <div className="flex gap-2">
@@ -445,7 +452,7 @@ function MessagesContent() {
             {showMenu && (
                 <div className="absolute top-full right-6 mt-2 bg-white shadow-2xl rounded-4xl border border-gray-100 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
                     {activeConv?.productId && !activeConv.isSystem && (
-                        <Link href={`/annonce?id=${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
+                        <Link href={`/annonce/${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
                     )}
                     <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
                 </div>
@@ -486,7 +493,7 @@ function MessagesContent() {
                                           {msg.content.replace('[ADMIN]', '').trim()}
                                       </div>
                                     )}
-                                    <div className={`flex items-center justify-end gap-1.5 pb-2 pr-4 text-[8px] font-black uppercase tracking-tighter ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/30 p-2 text-white' : (isMe || (activeConv.isSystem && !isMe) ? 'text-white/60' : 'text-gray-300')}`}>
+                                    <div className={`flex items-center justify-end gap-1.5 pb-2 pr-4 text-[10px] font-black uppercase tracking-tighter ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/30 p-2 text-white' : (isMe || (activeConv.isSystem && !isMe) ? 'text-white/70' : 'text-gray-500')}`}>
                                         <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                         {isMe && (msg.pending ? <Loader2 size={8} className="animate-spin" /> : (msg.is_read ? <Check size={10} strokeWidth={4} /> : <Check size={10} strokeWidth={4} className="opacity-40" />))}
                                     </div>
@@ -502,10 +509,10 @@ function MessagesContent() {
         <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] to-transparent pt-4">
             <div className="flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" aria-label="Joindre" />
-                <button onClick={() => fileInputRef.current?.click()} aria-label="Photo" className={`p-4 text-gray-300 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100 ${activeConv?.isSystem ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isUploading || activeConv?.isSystem}>
+                <button onClick={() => fileInputRef.current?.click()} aria-label="Photo" className={`p-4 text-gray-500 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100 ${activeConv?.isSystem ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isUploading || activeConv?.isSystem}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
-                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-[14px] font-bold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-300" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-base font-semibold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-500" aria-label="Votre message" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
                 <button onClick={handleSend} disabled={!replyContent.trim()} aria-label="Envoyer" className="bg-brand text-white p-4 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-20"><Send size={24} /></button>
             </div>
         </div>

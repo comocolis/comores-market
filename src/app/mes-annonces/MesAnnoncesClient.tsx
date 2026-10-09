@@ -14,6 +14,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { EmptyStateListings } from '@/components/EmptyState'
+import { UiButton } from '@/components/ui'
 
 export default function MesAnnoncesClient() {
   const supabase = createClient()
@@ -87,8 +88,8 @@ export default function MesAnnoncesClient() {
                   <h3 className="font-black text-xl mb-2 tracking-tight">Supprimer l'offre ?</h3>
                   <p className="text-gray-500 text-sm mb-8 leading-relaxed">Cette action effacera définitivement l'annonce de la plateforme.</p>
                   <div className="flex flex-col gap-3">
-                      <button onClick={handleDelete} className="w-full py-4 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-lg shadow-red-500/20 uppercase text-xs tracking-widest">Confirmer</button>
-                      <button onClick={() => setDeleteModal({ isOpen: false, productId: null })} className="w-full py-4 rounded-2xl font-black text-gray-500 bg-[#F5F7F9] active:scale-95 transition uppercase text-xs tracking-widest">Annuler</button>
+                      <UiButton variant="danger" onClick={handleDelete} className="w-full uppercase tracking-widest text-xs">Confirmer</UiButton>
+                      <UiButton variant="secondary" onClick={() => setDeleteModal({ isOpen: false, productId: null })} className="w-full uppercase tracking-widest text-xs">Annuler</UiButton>
                   </div>
               </motion.div>
           </div>
@@ -140,7 +141,7 @@ export default function MesAnnoncesClient() {
                       className={`bg-white rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50' : 'border-white'}`}
                     >
                         <div className="p-4 flex gap-4">
-                            <Link href={`/annonce?id=${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
+                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
                                 {img && (
                                   <Image 
                                     src={img} 
@@ -159,29 +160,29 @@ export default function MesAnnoncesClient() {
                             </Link>
 
                             <div className="flex-1 min-w-0 flex flex-col py-1">
-                                <Link href={`/annonce?id=${product.id}`}>
+                                <Link href={`/annonce/${product.id}`}>
                                   <h3 className="font-black text-gray-900 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
                                 </Link>
                                 <PriceTag 
                                 price={product.price} 
-                                className="text-brand font-black text-lg" 
+                                className="text-brand-700 font-black text-lg" 
                                 />
                                 <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-auto uppercase font-black tracking-widest">
-                                    <MapPin size={12} className="text-brand/40" /> {product.location_city}
+                                    <MapPin size={12} className="text-gray-400" aria-hidden="true" /> {product.location_city}
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-2">
                                 <Link 
                                   href={`/modifier?id=${product.id}`} 
-                                  className="p-3 text-blue-500 bg-blue-50/50 rounded-2xl hover:bg-blue-100 transition active:scale-90"
+                                  className="p-3 text-blue-600 bg-blue-50 rounded-2xl hover:bg-blue-100 transition active:scale-90"
                                   aria-label="Modifier l'annonce"
                                 >
                                     <Pencil size={18} />
                                 </Link>
                                 <button 
                                   onClick={() => confirmDelete(product.id)} 
-                                  className="p-3 text-red-500 bg-red-50/50 rounded-2xl hover:bg-red-100 transition active:scale-90"
+                                  className="p-3 text-red-600 bg-red-50 rounded-2xl hover:bg-red-100 transition active:scale-90"
                                   aria-label="Supprimer l'annonce"
                                 >
                                     <Trash2 size={18} />
@@ -192,17 +193,17 @@ export default function MesAnnoncesClient() {
                         {/* --- SECTION BOOST --- */}
                         <div className="px-4 pb-2">
                           {isBoosted ? (
-                            <div className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-600 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border border-amber-100">
+                            <div className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-amber-100">
                                 <Clock size={14} className="animate-pulse" /> 
                                 Boost Actif ({boostHoursLeft}h restantes)
                             </div>
                           ) : (
                             <Link
                               href={`/boost?id=${product.id}`}
-                              className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
+                              className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                             >
                               <Zap size={14} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-                              Booster l'annonce (250 KMF)
+                              Booster l'annonce (250 FC)
                             </Link>
                           )}
                         </div>

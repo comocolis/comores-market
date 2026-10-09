@@ -1,22 +1,10 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { getClientIp, isRateLimited } from '@/lib/rate-limit';
 
-// --- Anti-spam : fenetre glissante par IP (best effort, memoire du serveur) ---
+// --- Anti-spam : 5 demandes / heure / IP (voir lib/rate-limit) ---
 const RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 const RATE_LIMIT_MAX = 5;
-const hits = new Map<string, number[]>();
-
-function isRateLimited(ip: string) {
-  const now = Date.now();
-  const stamps = (hits.get(ip) || []).filter((t) => now - t < RATE_LIMIT_WINDOW_MS);
-  if (stamps.length >= RATE_LIMIT_MAX) {
-    hits.set(ip, stamps);
-    return true;
-  }
-  stamps.push(now);
-  hits.set(ip, stamps);
-  return false;
-}
 
 // --- Echappement HTML : empeche l'injection de balises dans l'email admin ---
 const HTML_ENTITIES: Record<string, string> = {
@@ -39,12 +27,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing API Key' }, { status: 500 });
   }
 
-  const ip =
-    request.headers.get('x-forwarded-for')?.split(',')[0].trim() ||
-    request.headers.get('x-real-ip') ||
-    'inconnu';
-
-  if (isRateLimited(ip)) {
+  if (isRateLimited(`signup:${getClientIp(request)}`, RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS)) {
     return NextResponse.json({ error: 'Trop de demandes' }, { status: 429 });
   }
 

@@ -22,6 +22,34 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(canonicalUrl, 308)
   }
 
+  // Ancien format d'annonce `/annonce?id=<uuid>` -> `/annonce/<uuid>` (308 permanent, autres parametres comme utm_* conserves).
+  if (request.nextUrl.pathname === '/annonce') {
+    const legacyId = request.nextUrl.searchParams.get('id')
+    if (legacyId && /^[0-9a-fA-F-]{36}$/.test(legacyId)) {
+      const url = request.nextUrl.clone()
+      url.pathname = `/annonce/${legacyId}`
+      url.searchParams.delete('id')
+      return NextResponse.redirect(url, 308)
+    }
+  }
+
+  const protectedRoutes = ['/compte', '/messages', '/publier', '/favoris', '/mes-annonces', '/admin']
+  const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
+
+  // Visiteur sans cookie de session Supabase : inutile d'interroger l'API Auth (gain de latence).
+  const hasSessionCookie = request.cookies
+    .getAll()
+    .some((cookie) => cookie.name.startsWith('sb-') && cookie.name.includes('-auth-token'))
+
+  if (!hasSessionCookie) {
+    if (isProtectedRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth'
+      return NextResponse.redirect(url)
+    }
+    return NextResponse.next({ request: { headers: request.headers } })
+  }
+
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -55,9 +83,6 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const protectedRoutes = ['/compte', '/messages', '/publier', '/favoris', '/mes-annonces', '/admin']
-  const isProtectedRoute = protectedRoutes.some((route) => request.nextUrl.pathname.startsWith(route))
-
   if (isProtectedRoute && !user) {
     const url = request.nextUrl.clone()
     url.pathname = '/auth'
@@ -75,6 +100,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|manifest.json|sw.js|workbox-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
+    '/((?!_next/static|_next/image|\\.well-known|favicon.ico|sitemap.xml|robots.txt|manifest.json|sw.js|workbox-.*|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|txt|xml)$).*)',
   ],
 }

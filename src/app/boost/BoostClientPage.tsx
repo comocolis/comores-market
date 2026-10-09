@@ -36,6 +36,7 @@ export default function BoostLandingPage() {
 
   useEffect(() => {
     const getProduct = async () => {
+      if (!params.id) { router.replace('/mes-annonces'); return }
       const { data } = await supabase
         .from('products')
         .select('title, images, price')
@@ -45,7 +46,7 @@ export default function BoostLandingPage() {
       setLoading(false)
     }
     getProduct()
-  }, [params.id, supabase])
+  }, [params.id, supabase, router])
 
   const handleConfirmPayment = () => {
     // 0. Google Ads Enhanced Conversions
@@ -60,7 +61,7 @@ export default function BoostLandingPage() {
     trackAdsConversion('VOTRE_LABEL_BOOST', 250);
 
     const msg = encodeURIComponent(
-      `Bonjour ! Je souhaite activer le Boost (250 KMF) pour mon annonce :\n\n` +
+      `Bonjour ! Je souhaite activer le Boost (250 FC) pour mon annonce :\n\n` +
       `📌 Titre : ${product?.title}\n` +
       `🆔 ID : ${params.id}\n\n` +
       `J'ai effectué le paiement via Mvola, merci de l'activer !`
@@ -93,7 +94,7 @@ export default function BoostLandingPage() {
             <div className="flex items-center justify-center gap-2">
                 <span className="text-6xl font-extrabold text-white tracking-tighter">250</span>
                 <div className="flex flex-col items-start leading-none pt-2">
-                    <span className="text-lg font-bold text-white">KMF</span>
+                    <span className="text-lg font-bold text-white">FC</span>
                     <span className="text-xs font-medium text-white/80">/ 24h</span>
                 </div>
             </div>
@@ -109,7 +110,7 @@ export default function BoostLandingPage() {
                   {firstImage && <Image src={firstImage} alt="" fill className="object-cover" />}
                </div>
                <div className="min-w-0">
-                  <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest mb-0.5">Annonce sélectionnée</p>
+                  <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-0.5">Annonce sélectionnée</p>
                   <h3 className="text-sm font-bold text-gray-900 truncate">{product?.title}</h3>
                </div>
             </div>
@@ -154,7 +155,7 @@ export default function BoostLandingPage() {
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">1</span>
-                        <h3 className="font-black text-gray-900 text-sm">Envoyez 250 KMF</h3>
+                        <h3 className="font-black text-gray-900 text-sm">Envoyez 250 FC</h3>
                     </div>
                     <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-center justify-between group">
                         <div className="flex items-center gap-3">
@@ -186,7 +187,7 @@ export default function BoostLandingPage() {
                 </div>
 
                 <div className="pt-4 text-center border-t border-gray-50">
-                   <p className="text-[10px] text-gray-300 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
                       <Mail size={12} /> {CONTACT_EMAIL}
                    </p>
                 </div>
@@ -203,7 +204,7 @@ export default function BoostLandingPage() {
             </div>
         )}
 
-        <p className="text-center mt-8 text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">
+        <p className="text-center mt-8 text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
            Activation sous 30 minutes
         </p>
       </div>

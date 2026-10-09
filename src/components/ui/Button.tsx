@@ -2,8 +2,8 @@
 
 import type { ButtonHTMLAttributes, DetailedHTMLProps } from 'react';
 
-type UiButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type UiButtonSize = 'sm' | 'md' | 'lg';
+export type UiButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+export type UiButtonSize = 'sm' | 'md' | 'lg';
 
 export interface UiButtonProps
   extends DetailedHTMLProps<ButtonHTMLAttributes<HTMLButtonElement>, HTMLButtonElement> {
@@ -28,6 +28,11 @@ const sizeClasses: Record<UiButtonSize, string> = {
   lg: 'py-4 px-8 text-base',
 };
 
+/** Classes d'un bouton, pour habiller un <Link> ou un <a> de la meme facon qu'un UiButton. */
+export function uiButtonClasses(variant: UiButtonVariant = 'primary', size: UiButtonSize = 'md', extra = '') {
+  return `${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${extra}`.trim();
+}
+
 /**
  * Bouton standardise : memes variantes, memes tailles, memes etats.
  * La page d'accueil et les formulaires migreront progressivement vers lui.
@@ -43,7 +48,7 @@ export function UiButton({
 }: UiButtonProps) {
   return (
     <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${className}`.trim()}
+      className={uiButtonClasses(variant, size, className)}
       disabled={disabled || loading}
       {...props}
     >

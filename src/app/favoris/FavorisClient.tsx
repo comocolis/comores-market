@@ -2,25 +2,20 @@
 
 import { createClient } from '@/utils/supabase/client'
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
-import Image from 'next/image'
-import { 
-  Heart, Loader2, ShoppingBag, ShieldCheck, Crown, 
-  ArrowLeft 
-} from 'lucide-react'
+import { Heart, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
-import { getFirstProductImage } from '@/utils/parseImages'
+import ProductCard from '@/components/ProductCard'
 import { SkeletonProductGrid } from '@/components/Skeleton'
 import { EmptyStateFavorites } from '@/components/EmptyState'
-import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
-import PriceTag from '@/components/PriceTag' // ✅ Import ajouté
 
 export default function FavorisClient() {
   const supabase = createClient()
   const router = useRouter()
   const [favorites, setFavorites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  // Fige a l'ouverture de la page : Date.now() ne doit pas etre appele pendant le rendu.
+  const [now] = useState(() => Date.now())
 
   useEffect(() => {
     const getData = async () => {
@@ -72,65 +67,21 @@ export default function FavorisClient() {
             <div className="grid grid-cols-2 gap-3">
                 <AnimatePresence>
                     {favorites.map((product, index) => {
-                        const img = getFirstProductImage(product.images)
-                        const isPro = product.profiles?.is_pro 
+                        const isBoosted = product.boosted_until ? new Date(product.boosted_until).getTime() > now : false
 
                         return (
-                            <motion.div
-                                key={product.id}
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                            >
-                                <Link 
-                                    href={`/annonce?id=${product.id}`} 
-                                    className={`rounded-xl overflow-hidden flex flex-col transition border group ${
-                                        isPro 
-                                        ? 'bg-mustard/5 border-mustard shadow-sm shadow-mustard/20' 
-                                        : 'bg-white shadow-sm border-gray-100'
-                                    }`}
-                                >
-                                    <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
-                                        {img ? (
-                                            <Image 
-                                                src={img} 
-                                                alt={product.title} 
-                                                fill 
-                                                sizes="50vw"
-                                                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                                                placeholder="blur"
-                                                blurDataURL={BLUR_PLACEHOLDERS.product}
-                                                priority={index < 4}
-                                            />
-                                        ) : (
-                                            <div className="flex items-center justify-center h-full text-gray-200">
-                                                <ShoppingBag size={24} />
-                                            </div>
-                                        )}
-                                        
-                                        {isPro && (
-                                            <div className="absolute top-2 left-2 bg-mustard text-gray-900 text-[9px] font-black px-2 py-0.5 rounded-full z-10 shadow-sm flex items-center gap-1">
-                                                <Crown size={10} strokeWidth={3} /> PRO
-                                            </div>
-                                        )}
-
-                                        <div className="absolute top-2 right-2 p-2 rounded-full bg-white/80 backdrop-blur-md text-red-500 shadow-sm">
+                            <motion.div key={product.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+                                <ProductCard
+                                    product={product}
+                                    index={index}
+                                    isPro={Boolean(product.profiles?.is_pro)}
+                                    isBoosted={isBoosted}
+                                    overlay={
+                                        <span className="flex p-2 rounded-full bg-white/90 backdrop-blur-md text-red-500 shadow-sm" aria-hidden="true">
                                             <Heart size={14} fill="currentColor" />
-                                        </div>
-                                    </div>
-
-                                    <div className="p-3">
-                                        <h3 className="font-bold text-gray-900 text-sm mb-1 truncate flex items-center gap-1">
-                                            {product.title}
-                                            {isPro && <ShieldCheck size={12} className="text-mustard shrink-0" />}
-                                        </h3>
-                                        
-                                        {/* ✅ Remplacement du formatage manuel par le composant PriceTag */}
-                                        <PriceTag 
-                                            price={product.price} 
-                                            className={`font-extrabold text-sm ${isPro ? 'text-mustard-dark' : 'text-brand'}`} 
-                                        />
-                                    </div>
-                                </Link>
+                                        </span>
+                                    }
+                                />
                             </motion.div>
                         )
                     })}

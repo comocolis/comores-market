@@ -1,6 +1,16 @@
 import { NextResponse } from 'next/server'
 import { getRankedHomepageProducts } from '@/lib/homepage-ranking'
 
+const MAX_LIMIT = 40
+const MAX_OFFSET = 400
+
+// Borne les parametres de pagination : evite des requetes SQL surdimensionnees (NaN, valeurs enormes).
+function clampInt(value: string | null, fallback: number, min: number, max: number) {
+  const parsed = Number.parseInt(value ?? '', 10)
+  if (Number.isNaN(parsed)) return fallback
+  return Math.min(Math.max(parsed, min), max)
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -13,8 +23,8 @@ export async function GET(request: Request) {
         selectedIsland: searchParams.get('selectedIsland') || 'Tout',
         priceMin: searchParams.get('priceMin') || undefined,
         priceMax: searchParams.get('priceMax') || undefined,
-        limit: Number.parseInt(searchParams.get('limit') || '20', 10),
-        offset: Number.parseInt(searchParams.get('offset') || '0', 10),
+        limit: clampInt(searchParams.get('limit'), 20, 1, MAX_LIMIT),
+        offset: clampInt(searchParams.get('offset'), 0, 0, MAX_OFFSET),
       },
       searchParams.get('visitorId')
     )

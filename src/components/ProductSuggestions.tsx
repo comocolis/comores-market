@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { createClient } from '@/utils/supabase/client'
 import Link from 'next/link'
 import Image from 'next/image'
 import { MapPin } from 'lucide-react'
@@ -26,34 +25,43 @@ export default function ProductSuggestions({
   title = "Recommandé pour vous",
   icon: TitleIcon,
 }: ProductSuggestionsProps) {
-  const supabase = createClient()
   const [suggestions, setSuggestions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    const controller = new AbortController()
+
     const fetchSuggestions = async () => {
       try {
-        let query = supabase
-          .from('products')
-          .select('id, title, price, images, location_island, location_city, sub_category, created_at, is_pro, boosted_until')
-          .limit(50)
+        // Lecture publique via l'API REST de Supabase (vue enrichie : `is_pro` n'existe pas sur `products`).
+        // Un simple fetch evite de charger la librairie supabase-js sur l'accueil.
+        const params = new URLSearchParams({
+          select: 'id,title,price,images,location_island,location_city,sub_category,created_at,is_pro,boosted_until',
+          order: 'created_at.desc',
+          limit: '50',
+        })
+        if (excludeProductId) params.set('id', `neq.${excludeProductId}`)
+        if (category && category !== 0) params.set('category_id', `eq.${category}`)
 
-        if (excludeProductId) query = query.neq('id', excludeProductId)
-        if (category && category !== 0) query = query.eq('category_id', category)
+        const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+        const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/products_with_details?${params}`, {
+          headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` },
+          signal: controller.signal,
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}`)
 
-        const { data: products } = await query
-        if (products) {
-          setSuggestions(products.slice(0, limit))
-        }
+        const products = await response.json()
+        if (Array.isArray(products)) setSuggestions(products.slice(0, limit))
       } catch (error) {
-        console.error('Error fetching suggestions:', error)
+        if ((error as Error).name !== 'AbortError') console.error('Error fetching suggestions:', error)
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) setLoading(false)
       }
     }
     fetchSuggestions()
-  }, [userId, excludeProductId, category, limit, supabase])
 
+    return () => controller.abort()
+  }, [userId, excludeProductId, category, limit])
   if (loading || suggestions.length === 0) return null
 
   return (
@@ -70,7 +78,7 @@ export default function ProductSuggestions({
           return (
             <Link 
               key={product.id} 
-              href={`/annonce?id=${product.id}`}
+              href={`/annonce/${product.id}`}
               className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
                 isBoosted ? 'bg-white border-2 border-amber-400' : 'bg-white shadow-sm border border-gray-100'
               }`}

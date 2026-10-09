@@ -37,71 +37,31 @@ const nextConfig: NextConfig = {
   
   // Optimisation des images
   images: {
+    // Hotes autorises uniquement (evite un proxy d'images ouvert) : Storage Supabase + avatars Google.
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**',
-      },
+      { protocol: 'https', hostname: '**.supabase.co' },
+      { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
+      { protocol: 'https', hostname: 'www.comores-market.com' },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    formats: ['image/webp'],
-    minimumCacheTTL: 60,
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60 * 60 * 24 * 30,
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
   },
   reactStrictMode: true,
+  // Active uniquement pour l'analyse du bundle : ANALYZE=1 npm run build
+  productionBrowserSourceMaps: process.env.ANALYZE === '1',
   
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
   generateEtags: true,
   
-  // Webpack optimizations
-  webpack: (config, { dev, isServer }) => {
-    if (!dev && !isServer) {
-      config.optimization = {
-        ...config.optimization,
-        moduleIds: 'deterministic',
-        runtimeChunk: 'single',
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            default: false,
-            vendors: false,
-            vendor: {
-              name: 'vendor',
-              chunks: 'all',
-              test: /node_modules/,
-              priority: 20,
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              priority: 10,
-              reuseExistingChunk: true,
-              enforce: true,
-            },
-            supabase: {
-              name: 'supabase',
-              test: /[\\/]node_modules[\\/]@supabase[\\/]/,
-              chunks: 'all',
-              priority: 30,
-            },
-            ui: {
-              name: 'ui',
-              test: /[\\/]node_modules[\\/](lucide-react|framer-motion|sonner)[\\/]/,
-              chunks: 'all',
-              priority: 25,
-            },
-          },
-        },
-      };
-    }
-    return config;
-  },
-  
+  // Pas de splitChunks personnalise : le decoupage par route de Next evite de charger
+  // un "vendor" monolithique (jspdf, html2canvas, dnd-kit...) sur toutes les pages.
+
   // Security Headers
   async headers() {
     return [

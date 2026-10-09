@@ -11,6 +11,7 @@ import {
 import { toast } from 'sonner'
 import Image from 'next/image'
 import Link from 'next/link'
+import { UiInput } from '@/components/ui'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
 // Extracted sorting logic for reuse
@@ -372,9 +373,9 @@ function AdminContent() {
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
                     <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2 mb-4"><MessageSquare className="text-brand" size={16} /> Envoyer un Message</h2>
                     <form onSubmit={sendAdminMessage} className="space-y-3">
-                        <div className="flex gap-2">
-                            <input type="text" aria-label="ID Utilisateur" placeholder="ID Utilisateur (UUID)..." value={targetId} onChange={e => setTargetId(e.target.value)} className="w-1/3 bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs font-mono outline-none"/>
-                            <input type="text" aria-label="Message système" placeholder="Message système..." value={adminMsg} onChange={e => setAdminMsg(e.target.value)} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl p-3 text-sm outline-none"/>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                            <UiInput id="admin-target-id" type="text" aria-label="ID Utilisateur" placeholder="ID Utilisateur (UUID)..." value={targetId} onChange={e => setTargetId(e.target.value)} wrapperClassName="sm:w-1/3!" className="font-mono text-sm"/>
+                            <UiInput id="admin-message" type="text" aria-label="Message système" placeholder="Message système..." value={adminMsg} onChange={e => setAdminMsg(e.target.value)} wrapperClassName="sm:flex-1"/>
                         </div>
                         <button disabled={sendingMsg} type="submit" aria-label="Envoyer le message" className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition">{sendingMsg ? <Loader2 size={16} className="animate-spin"/> : <><Send size={16}/> Envoyer</>}</button>
                     </form>
@@ -386,7 +387,7 @@ function AdminContent() {
         {activeTab === 'messages' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 <h2 className="text-lg font-bold text-gray-800 px-2">Boîte de réception ({contactMessages.length})</h2>
-                {contactMessages.length === 0 ? <div className="text-center py-10 text-gray-400 font-medium">Aucun message reçu.</div> : contactMessages.map(msg => (
+                {contactMessages.length === 0 ? <div className="text-center py-10 text-gray-500 font-medium">Aucun message reçu.</div> : contactMessages.map(msg => (
                     <div key={msg.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
                         <div className="flex justify-between items-start mb-2">
                              <div className="flex items-center gap-2">
@@ -417,7 +418,7 @@ function AdminContent() {
         {/* USERS */}
         {activeTab === 'users' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                <input type="text" aria-label="Rechercher un utilisateur" placeholder="Rechercher..." className="w-full bg-white p-4 rounded-xl shadow-sm text-sm font-bold outline-none border border-gray-100" onChange={e => setSearchTerm(e.target.value)} />
+                <UiInput id="admin-search" type="text" aria-label="Rechercher un utilisateur" placeholder="Rechercher..." onChange={e => setSearchTerm(e.target.value)} />
                 {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
                     const daysLeft = getDaysRemaining(u.subscription_end_date); const isProActive = u.is_pro && daysLeft > 0; const subType = getSubscriptionType(u.subscription_end_date);
                     return (
@@ -461,13 +462,13 @@ function AdminContent() {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2"><p className="font-bold text-sm text-gray-900 truncate">{p.title}</p> <span className="text-[10px] font-bold bg-gray-100 px-2 rounded">Score: {p.quality_score}/10</span></div>
                                     <p className="text-[10px] text-gray-500 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
-                                    <p className="text-amber-600 font-black text-xs mt-1">{p.price} KMF</p>
+                                    <p className="text-amber-600 font-black text-xs mt-1">{p.price} FC</p>
                                 </div>
                                 <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} aria-label={`Supprimer l'annonce ${p.title}`} className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
                             </div>
                             <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
                                 <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce?id=${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
                             </div>
                         </div>
                     )

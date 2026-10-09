@@ -234,7 +234,7 @@ export default function EliteAssistant() {
                     e.stopPropagation()
                     setIsVisible(false)
                   }}
-                  aria-label="Fermer"
+                  aria-label="Masquer l'assistant"
                   className="absolute -top-2 -left-2 w-6 h-6 bg-white text-gray-500 rounded-full flex items-center justify-center shadow-md border border-gray-100 hover:bg-red-500 hover:text-white transition-colors z-50 active:scale-90"
                 >
                   <X size={12} strokeWidth={3} />
@@ -247,7 +247,8 @@ export default function EliteAssistant() {
 
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                onPointerDown={(e) => isOpen && e.stopPropagation()} 
+                aria-label={isOpen ? "Réduire l'assistant" : "Ouvrir l'assistant IA"}
+                onPointerDown={(e) => isOpen && e.stopPropagation()}
                 className="bg-linear-to-br from-amber-400 via-amber-500 to-orange-600 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-amber-500/40 border-4 border-white transition-all overflow-hidden"
               >
                 <Sparkles size={24} className={isOpen ? 'rotate-12 scale-110 transition-transform' : ''} />

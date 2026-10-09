@@ -1,8 +1,8 @@
 'use client'
 
 import { createClient } from '@/utils/supabase/client'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { useEffect, useState, useRef, TouchEvent, useCallback, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useState, useRef, TouchEvent, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { 
@@ -17,6 +17,8 @@ import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from '@/utils/dateUtils'
+import { UiButton } from '@/components/ui'
+import { shareLink } from '@/utils/share'
 import PriceTag from '@/components/PriceTag'; // Ajoutez cette ligne
 import { 
   trackProductView, 
@@ -25,6 +27,19 @@ import {
   trackEvent 
 } from '@/lib/analytics'
 import { getOrCreateVisitorId, trackProductClickHistory } from '@/lib/personalization'
+const WHATSAPP_PATH = "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
+
+function WhatsAppIcon({ size = 22 }: { size?: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" className="shrink-0" aria-hidden="true">
+      <path d={WHATSAPP_PATH} />
+    </svg>
+  )
+}
+
+// Les descriptions sont parfois saisies entre guillemets : on les retire pour l'affichage.
+const cleanDescription = (value: string) => value.replace(/^[\s"”]+|[\s"”]+$/g, '').trim()
+
 // --- DICTIONNAIRE DES ICÔNES ---
 const ICON_MAP: Record<string, any> = {
     'Année': Calendar,
@@ -78,7 +93,7 @@ const ICON_MAP: Record<string, any> = {
 
 const getOptimizedImage = (url: string | null, width = 800) => {
   if (!url || url === 'undefined' || url === 'null' || url.trim() === '') {
-    return '/placeholder.png'; 
+    return '/placeholder.webp'; 
   }
   return url;
 };
@@ -90,15 +105,29 @@ declare global {
   }
 }
 
-function AnnonceContent() {
+function parseProductImages(raw: unknown): string[] {
+  if (!raw || typeof raw !== 'string') return []
+  try {
+    const imgs = JSON.parse(raw)
+    return Array.isArray(imgs) ? imgs : [raw]
+  } catch {
+    return [raw]
+  }
+}
+
+interface AnnonceClientProps {
+  productId: string
+  // Annonce chargee cote serveur (SSR) : affichee immediatement, sans spinner.
+  initialProduct?: any
+}
+
+export default function AnnonceClient({ productId, initialProduct = null }: AnnonceClientProps) {
   const supabase = createClient()
   const router = useRouter()
-  // MODIFICATION: Use searchParams instead of params
-  const searchParams = useSearchParams()
-  const id = searchParams.get('id')
+  const id = productId
   
-  const [product, setProduct] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+  const [product, setProduct] = useState<any>(initialProduct)
+  const [loading, setLoading] = useState(!initialProduct)
   const [currentUser, setCurrentUser] = useState<any>(null)
   
   const [message, setMessage] = useState('')
@@ -108,7 +137,7 @@ function AnnonceContent() {
   const [reporting, setReporting] = useState(false)
   
   const [favorites, setFavorites] = useState<Set<string>>(new Set())
-  const [images, setImages] = useState<string[]>([])
+  const [images, setImages] = useState<string[]>(() => parseProductImages(initialProduct?.images))
   const [selectedImageIndex, setSelectedImageIndex] = useState(0)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const [suggestedProducts, setSuggestedProducts] = useState<any[]>([])
@@ -145,6 +174,12 @@ function AnnonceContent() {
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
+    // Annonce deja fournie par le serveur : pas de second aller-retour.
+    if (initialProduct) {
+        setLoading(false)
+        return
+    }
+
     // Fetch Product
     const { data: productData, error } = await supabase
         .from('products')
@@ -164,7 +199,7 @@ function AnnonceContent() {
         console.error("Product fetch error:", error);
     }
     setLoading(false)
-  }, [supabase, id])
+  }, [supabase, id, initialProduct])
 
   useEffect(() => { getData() }, [getData])
 
@@ -315,12 +350,9 @@ function AnnonceContent() {
   }
 
   const handleShare = async () => {
-    if (navigator.share) {
-        try { await navigator.share({ title: product.title, url: window.location.href }) } catch (e) {}
-    } else {
-        navigator.clipboard.writeText(window.location.href)
-        toast.success("Lien copié !")
-    }
+    const result = await shareLink(product.title, window.location.href)
+    if (result === 'copied') toast.success("Lien copié !")
+    else if (result === 'failed') toast.error("Impossible de partager le lien")
   }
 
   const handleWhatsAppClick = () => {
@@ -347,7 +379,7 @@ function AnnonceContent() {
     const currentUrl = window.location.href;
     const formattedPrice = new Intl.NumberFormat('fr-KM').format(product.price);
     
-    let messageBody = `Salam ! Je suis intéressé par votre annonce *${product.title}* à ${formattedPrice} KMF sur Comores Market.\n\n`;
+    let messageBody = `Salam ! Je suis intéressé par votre annonce *${product.title}* à ${formattedPrice} FC sur Comores Market.\n\n`;
     messageBody += `Est-ce toujours disponible ?\n\n`;
     messageBody += `Lien de l'annonce : ${currentUrl}`;
 
@@ -355,10 +387,20 @@ function AnnonceContent() {
     window.open(`https://wa.me/${phone}?text=${text}`, '_blank')
   }
 
+  const scrollToContactForm = () => {
+    const form = document.getElementById('contact-form')
+    if (!form) return
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    form.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' })
+    form.querySelector('textarea')?.focus({ preventScroll: true })
+  }
+
   if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={40} /></div>
   if (!product) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Annonce introuvable ou chargement...</div>
 
   const isOwner = currentUser?.id === product.user_id
+  const description = cleanDescription(mainDescription)
+  const locationLabel = [product.location_city, product.location_island].filter(Boolean).join(', ')
   const isFav = favorites.has(product.id)
   const seller = Array.isArray(product.profiles) ? product.profiles[0] : product.profiles;
   const contactPhone = (product.whatsapp_number || seller?.phone_number || '').trim()
@@ -434,7 +476,7 @@ function AnnonceContent() {
       </div>
 
       {/* CONTENU INFO */}
-      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-[3.5rem] relative z-10 min-h-screen shadow-sm border-t border-white">
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-4xl relative z-10 min-h-screen shadow-sm border-t border-white">
         <div className="max-w-2xl mx-auto">
             
             {isBoosted && (
@@ -455,26 +497,26 @@ function AnnonceContent() {
                             {product.sub_category || "Divers"}
                         </div>
                         <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-black tracking-widest">
-                            <MapPin size={12} className="text-brand" /> {product.location_city}, {product.location_island}
+                            <MapPin size={12} className="text-brand" aria-hidden="true" /> {locationLabel}
                         </div>
                     </div>
                 </div>
                 <div className="text-right shrink-0">
                     <PriceTag 
                     price={product.price} 
-                     className="text-2xl font-black text-brand tracking-tighter" 
+                     className="text-2xl font-black text-brand-700 tracking-tighter" 
                     />
-                    <div className="flex items-center justify-end gap-1 text-[9px] text-gray-300 font-black uppercase mt-1 tracking-tighter">
-                        <Clock size={10} /> {formatDistanceToNow(new Date(product.created_at), { addSuffix: true })}
+                    <div className="flex items-center justify-end gap-1 text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-tight">
+                        <Clock size={10} /> <span suppressHydrationWarning>{formatDistanceToNow(new Date(product.created_at), { addSuffix: true })}</span>
                     </div>
                 </div>
             </div>
 
             {/* PROFIL VENDEUR */}
             <div className="flex flex-col gap-4 mb-8">
-              <Link href={`/profil?id=${product.user_id}`} className="bg-gray-50 p-5 rounded-[2.5rem] border border-white flex items-center justify-between active:scale-[0.98] transition shadow-sm">
+              <Link href={`/profil?id=${product.user_id}`} className="bg-gray-50 p-4 rounded-3xl border border-gray-100 flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-[1.8rem] flex items-center justify-center overflow-hidden relative border-4 border-white shadow-md bg-white">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-2 border-white shadow-md bg-white">
                           {seller?.avatar_url ? (
                             <Image 
                                 src={getOptimizedImage(seller.avatar_url, 200)} 
@@ -492,7 +534,7 @@ function AnnonceContent() {
                             {seller?.full_name || "Utilisateur"} 
                             {isProActive && <ShieldCheck size={16} className="text-brand fill-brand/10" />}
                           </p>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-gray-300 mt-0.5">{isProActive ? 'Compte Pro' : 'Particulier'}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500 mt-0.5">{isProActive ? 'Compte Pro' : 'Particulier'}</p>
                       </div>
                   </div>
                   <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
@@ -501,7 +543,7 @@ function AnnonceContent() {
 
             {/* FICHE TECHNIQUE */}
             {specsList.length > 0 && (
-                <div className="bg-[#F8FAFC] p-6 rounded-[2.5rem] border border-gray-100 mb-8">
+                <div className="bg-[#F8FAFC] p-5 rounded-3xl border border-gray-100 mb-8">
                     <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-4 flex items-center gap-2">
                         <Grid size={14} /> Fiche Technique
                     </h2>
@@ -524,33 +566,21 @@ function AnnonceContent() {
                 </div>
             )}
 
-            <div className="mb-12">
-                <h2 className="text-[10px] font-black text-gray-300 uppercase tracking-[0.2em] mb-4">Description</h2>
-                <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line font-medium italic border-l-4 border-gray-50 pl-6 py-2">
-                  "{mainDescription}"
-                </p>
-            </div>
+            {description && (
+                <div className="mb-10">
+                    <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Description</h2>
+                    <p className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-line border-l-4 border-brand-100 pl-4">
+                      {description}
+                    </p>
+                </div>
+            )}
 
             {!isOwner && (
-                <div className="space-y-4 pb-20">
-                    {/* BOUTON WHATSAPP OFFICIEL SÉCURISÉ */}
-                {isProActive && contactPhone && (
-                        <button 
-                            onClick={handleWhatsAppClick} 
-                            className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white font-bold py-3.5 px-6 rounded-full shadow-lg shadow-green-500/20 active:scale-95 transition-all duration-300 flex items-center justify-center gap-3"
-                        >
-                            {/* Logo WhatsApp Officiel (SVG) */}
-                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" className="shrink-0">
-                                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                            </svg>
-                            <span className="text-sm">Discuter sur WhatsApp</span>
-                        </button>
-                    )}
-                    
-                    <div className="bg-gray-50 p-7 rounded-[2.5rem] border border-white">
+                <div className="space-y-4 pb-24">
+                    <div id="contact-form" className="bg-gray-50 p-5 rounded-3xl border border-gray-100 scroll-mt-24">
                         <h4 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
-                            <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm" placeholder="Votre message..." value={message} onChange={(e) => setMessage(e.target.value)} />
+                            <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm" aria-label="Votre message au vendeur" placeholder="Bonjour, cette annonce est-elle toujours disponible ?" value={message} onChange={(e) => setMessage(e.target.value)} />
                             <button type="submit" disabled={sending || !message.trim()} className="absolute right-4 bottom-4 bg-brand text-white p-3.5 rounded-xl shadow-lg active:scale-90 transition disabled:opacity-30">
                                 {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                             </button>
@@ -574,7 +604,7 @@ function AnnonceContent() {
                             return (
                                 <Link 
                                     key={suggested.id} 
-                                    href={`/annonce?id=${suggested.id}`} 
+                                    href={`/annonce/${suggested.id}`} 
                                     className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md active:scale-[0.98] transition-all"
                                 >
                                     <div className="relative w-full aspect-square bg-gray-100">
@@ -616,6 +646,31 @@ function AnnonceContent() {
         </div>
       </motion.div>
 
+      {/* BARRE DE CONTACT COLLANTE : l'action principale reste accessible pendant tout le defilement */}
+      {!isOwner && (
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-full max-w-120 -translate-x-1/2 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur-md">
+          <div className="flex items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-[11px] font-bold uppercase tracking-wide text-gray-500">{product.title}</p>
+              <p className="text-lg font-black leading-tight text-brand-700">{new Intl.NumberFormat('fr-KM').format(product.price)} FC</p>
+            </div>
+            {isProActive && contactPhone ? (
+              <>
+                <UiButton variant="secondary" size="md" onClick={scrollToContactForm} aria-label="Écrire un message au vendeur" className="px-4!">
+                  <MessageCircle size={20} aria-hidden="true" />
+                </UiButton>
+                <UiButton onClick={handleWhatsAppClick} className="px-5!">
+                  <WhatsAppIcon /> WhatsApp
+                </UiButton>
+              </>
+            ) : (
+              <UiButton onClick={scrollToContactForm} className="px-6!">
+                <MessageCircle size={18} aria-hidden="true" /> Écrire au vendeur
+              </UiButton>
+            )}
+          </div>
+        </div>
+      )}
       {/* LIGHTBOX & MODAL */}
       <AnimatePresence>
         {lightboxIndex !== null && (
@@ -644,7 +699,7 @@ function AnnonceContent() {
                         alt={product?.title || "Product image"} 
                         className="max-w-full max-h-full object-contain" 
                         onError={(e) => {
-                          e.currentTarget.src = '/placeholder.png';
+                          e.currentTarget.src = '/placeholder.webp';
                         }}
                       />
                     </TransformComponent>
@@ -689,12 +744,4 @@ function AnnonceContent() {
       </AnimatePresence>
     </div>
   )
-}
-
-export default function AnnonceClient() {
-    return (
-        <Suspense fallback={<div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={40} /></div>}>
-            <AnnonceContent />
-        </Suspense>
-    )
 }

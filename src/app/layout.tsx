@@ -1,17 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { ToastProvider } from '@/components/ToastProvider';
 import BottomNav from '@/components/BottomNav';
 import OfflineScreen from '@/components/OfflineScreen';
-import { Suspense, lazy } from "react"; 
+import { Suspense } from "react";
 import Script from 'next/script';
 import { Inter, Plus_Jakarta_Sans } from "next/font/google";
 import SplashScreen from '@/components/SplashScreen';
 import InstallBanner from '@/components/InstallBanner';
+import { DeferredAssistant, DeferredNativeFeatures, DeferredCookieBanner, DeferredToaster } from '@/components/DeferredWidgets';
 
-const EliteAssistant = lazy(() => import('@/components/EliteAssistant'));
-const NativeFeatures = lazy(() => import('@/components/NativeFeatures'));
-const CookieBanner = lazy(() => import('@/components/CookieBanner'));
 
 const inter = Inter({
   subsets: ["latin"],
@@ -99,10 +96,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         {/* GOOGLE TAGS (IDs lus via NEXT_PUBLIC_GA_ID / NEXT_PUBLIC_GOOGLE_ADS_ID) */}
         <Script 
           src={`https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`} 
-          strategy="afterInteractive" 
+          strategy="lazyOnload" 
         />
         
-        <Script id="google-tags-config" strategy="afterInteractive">
+        <Script id="google-tags-config" strategy="lazyOnload">
           {`
             window.dataLayer = window.dataLayer || [];
             function gtag(){dataLayer.push(arguments);}
@@ -113,7 +110,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Script>
 
         <Suspense fallback={null}>
-          <NativeFeatures />
+          <DeferredNativeFeatures />
         </Suspense>
         
         <Suspense fallback={null}>
@@ -121,7 +118,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </Suspense>
 
         <div className="relative w-full max-w-120 mx-auto min-h-dvh flex flex-col bg-[#F8FAFC] shadow-2xl shadow-black/10">
-          <ToastProvider />
+          <DeferredToaster />
           
           <main className="flex-1 relative bg-[#F8FAFC] z-0 pb-24">
             <Suspense fallback={<div className="w-full h-screen flex items-center justify-center"><div className="text-gray-500">Chargement...</div></div>}>
@@ -130,7 +127,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </main>
 
           <Suspense fallback={null}>
-            <EliteAssistant />
+            <DeferredAssistant />
           </Suspense>
 
           <div className="fixed bottom-0 z-50 left-1/2 -translate-x-1/2 w-full max-w-120 bg-[#F8FAFC] border-t border-gray-100">
@@ -142,7 +139,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
 
         <Suspense fallback={null}>
-          <CookieBanner />
+          <DeferredCookieBanner />
         </Suspense>
 
         <OfflineScreen />

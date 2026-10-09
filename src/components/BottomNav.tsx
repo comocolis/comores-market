@@ -1,14 +1,12 @@
 'use client'
 
-import { createClient } from '@/utils/supabase/client'
+import { getSupabase, hasSessionCookie } from '@/utils/supabase/lazy'
 import Link from 'next/link'
 import { usePathname, useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
 import { Home, Heart, MessageCircle, User, Plus, Bell, LucideIcon } from 'lucide-react'
-import { toast } from 'sonner'
 
 export default function BottomNav() {
-  const supabase = createClient()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const router = useRouter()
@@ -33,14 +31,20 @@ export default function BottomNav() {
   // 1. Initialisation et récupération de l'utilisateur
   useEffect(() => {
     setMounted(true)
+    // Visiteur anonyme : pas de cookie de session, donc ni librairie Supabase ni requete reseau.
+    if (!hasSessionCookie()) return
+
+    let cancelled = false
     const getUser = async () => {
+      const supabase = await getSupabase()
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
+      if (user && !cancelled) {
         setUserId(user.id)
         refreshCounts(user.id)
       }
     }
     getUser()
+    return () => { cancelled = true }
   }, [])
 
   // 2. Refresh forcé quand on change de page (pour être sûr d'être à jour)
@@ -51,6 +55,7 @@ export default function BottomNav() {
   }, [pathname, searchParams, isChatOpen, userId])
 
   const refreshCounts = async (uid: string) => {
+    const supabase = await getSupabase()
     // Compteur Messages
     const { count: msgCount } = await supabase
       .from('messages')
@@ -74,7 +79,14 @@ export default function BottomNav() {
   useEffect(() => {
     if (!userId) return
 
-    const channel = supabase.channel('bottom-nav-realtime')
+    let cancelled = false
+    let client: Awaited<ReturnType<typeof getSupabase>> | null = null
+    let channel: ReturnType<Awaited<ReturnType<typeof getSupabase>>['channel']> | null = null
+
+    getSupabase().then((supabase) => {
+    if (cancelled) return
+    client = supabase
+    channel = supabase.channel('bottom-nav-realtime')
       .on('postgres_changes', { 
         event: '*', // On écoute TOUT : INSERT (nouveau) et UPDATE (lu)
         schema: 'public', 
@@ -86,10 +98,10 @@ export default function BottomNav() {
             
             // Notification seulement si INSERT et qu'on n'est pas déjà dans les messages
             if (payload.eventType === 'INSERT' && !pathnameRef.current?.includes('/messages')) {
-                toast.message('Nouveau message !', {
+                import('sonner').then(({ toast }) => toast.message('Nouveau message !', {
                     description: payload.new.content ? payload.new.content.substring(0, 40) + '...' : 'Message reçu',
                     action: { label: 'Voir', onClick: () => router.push('/messages') },
-                })
+                }))
             }
         }
       )
@@ -105,21 +117,23 @@ export default function BottomNav() {
             setTimeout(() => refreshCounts(userId), 500)
             
             if (payload.eventType === 'INSERT') {
-                toast.info(payload.new.title, {
+                import('sonner').then(({ toast }) => toast.info(payload.new.title, {
                     description: payload.new.message,
                     icon: <Bell size={16} className="text-amber-500" />,
                     action: { label: 'Voir', onClick: () => router.push('/compte/notifications') },
-                })
+                }))
             }
         }
       )
       .subscribe()
+    })
 
     return () => { 
-        supabase.removeChannel(channel)
+        cancelled = true
+        if (client && channel) client.removeChannel(channel)
     }
     // On retire 'pathname' et 'router' des dépendances pour éviter les déconnexions
-  }, [userId, supabase])
+  }, [userId])
 
   if (!mounted || isChatOpen || isAuthPage) return null
 
@@ -127,21 +141,23 @@ export default function BottomNav() {
   const publishHref = userId ? '/publier' : '/auth'
   const messagesHref = userId ? '/messages' : '/auth'
   const accountHref = userId ? '/compte' : '/auth'
+  // Visiteur anonyme : 4 liens menent a /auth ; on evite de prefetcher cette page (~200 Ko avec Supabase) au chargement.
+  const prefetchAuthTargets = userId ? undefined : false
 
   return (
     <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 bg-white/95 backdrop-blur-md border-t border-gray-100 pb-safe z-50 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)]">
       <div className="max-w-md mx-auto grid grid-cols-5 h-16 items-end pb-2 relative text-gray-900">
         <NavBtn href="/" icon={Home} label="Accueil" active={pathname === '/'} />
-        <NavBtn href={favoritesHref} icon={Heart} label="Favoris" active={pathname === '/favoris'} />
+        <NavBtn href={favoritesHref} icon={Heart} label="Favoris" active={pathname === '/favoris'} prefetch={prefetchAuthTargets} />
         
         <div className="flex justify-center relative -top-5">
-          <Link href={publishHref} aria-label="Publier une annonce" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
+          <Link href={publishHref} prefetch={prefetchAuthTargets} aria-label="Publier une annonce" className="bg-brand w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-brand/30 border-4 border-white hover:scale-105 transition transform active:scale-95">
             <Plus strokeWidth={3} size={28} />
           </Link>
         </div>
 
         {/* MESSAGES */}
-        <Link href={messagesHref} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
+        <Link href={messagesHref} prefetch={prefetchAuthTargets} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname === '/messages' ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <MessageCircle size={24} strokeWidth={pathname === '/messages' ? 2.5 : 2} />
                 {unreadCount > 0 && (
@@ -154,7 +170,7 @@ export default function BottomNav() {
         </Link>
 
         {/* COMPTE */}
-    <Link href={accountHref} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
+    <Link href={accountHref} prefetch={prefetchAuthTargets} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition relative ${pathname.includes('/compte') ? 'text-brand' : 'text-gray-600 hover:text-gray-700'}`}>
             <div className="relative">
                 <User size={24} strokeWidth={pathname.includes('/compte') ? 2.5 : 2} className={pathname.includes('/compte') ? "fill-brand text-brand" : ""} />
                 {unreadNotifCount > 0 && (
@@ -175,11 +191,12 @@ interface NavBtnProps {
   icon: LucideIcon;
   label: string;
   active: boolean;
+  prefetch?: boolean;
 }
 
-function NavBtn({ href, icon: Icon, label, active }: NavBtnProps) {
+function NavBtn({ href, icon: Icon, label, active, prefetch }: NavBtnProps) {
   return (
-    <Link href={href} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition ${active ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
+    <Link href={href} prefetch={prefetch} className={`flex flex-col items-center justify-center gap-1 h-full w-full transition ${active ? 'text-brand' : 'text-gray-500 hover:text-gray-600'}`}>
         <Icon size={24} strokeWidth={active ? 2.5 : 2} className={active ? "fill-brand text-brand" : ""} />
         <span className="text-[9px] font-bold">{label}</span>
     </Link>

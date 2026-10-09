@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import Image from 'next/image'
 import Link from 'next/link' 
+import { UiTextarea } from '@/components/ui'
+import { shareLink } from '@/utils/share'
 import { 
   MapPin, User, ArrowLeft, Loader2, 
   Facebook, Instagram, Star, Plus, X, 
@@ -177,9 +179,9 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
   }
 
   const handleShare = async () => {
-    const data = { title: `Profil de ${profile?.full_name}`, url: window.location.href }
-    if (navigator.share) { try { await navigator.share(data) } catch (e) {} }
-    else { navigator.clipboard.writeText(window.location.href); toast.success("Lien copié") }
+    const result = await shareLink(`Profil de ${profile?.full_name}`, window.location.href)
+    if (result === 'copied') toast.success("Lien copié")
+    else if (result === 'failed') toast.error("Impossible de partager le lien")
   }
 
   const handleAddReview = async () => {
@@ -301,10 +303,10 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
           </div>
 
           <div className="space-y-1">
-            <h2 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
               {profile?.full_name || "Utilisateur"} 
               {isProActive && <Crown size={22} className="text-amber-500 fill-amber-500" />}
-            </h2>
+            </h1>
             <div className="flex items-center justify-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit mx-auto mt-2">
                 <Clock size={12} strokeWidth={3} />
                 <span className="text-[10px] font-black uppercase tracking-tight">{responseTimeLabel}</span>
@@ -312,11 +314,11 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
           </div>
 
           <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100">
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Annonces</span></div>
-            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Confiance</span></div>
+            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Annonces</span></div>
+            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Confiance</span></div>
             <div className="flex flex-col items-center">
                 <span className="text-lg font-black text-gray-900">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
-                <span className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Depuis</span>
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Depuis</span>
             </div>
           </div>
 
@@ -389,7 +391,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
 
                         return (
                           <div key={p.id} className="flex flex-col gap-3">
-                            <Link href={`/annonce?id=${p.id}`} className="group relative">
+                            <Link href={`/annonce/${p.id}`} className="group relative">
                               <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
                                   <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
                                     {img && (
@@ -406,15 +408,15 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                                     )}
                                     {isBoosted && (
                                       // FIX: gradient au lieu de linear
-                                      <div className="absolute top-2 left-2 bg-linear-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[8px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
+                                      <div className="absolute top-2 left-2 bg-linear-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
                                           <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
                                     )}
-                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} KMF</div>
+                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} FC</div>
                                   </div>
                                   <div className="pt-3 px-1">
                                     <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
-                                    <div className="flex items-center gap-1 mt-1 text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                                    <div className="flex items-center gap-1 mt-1 text-[11px] text-gray-500 font-bold uppercase tracking-widest">
                                       <ShoppingBag size={10} /> {p.location_city || 'Moroni'}
                                     </div>
                                   </div>
@@ -423,14 +425,14 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
 
                             {isOwner && (
                               isBoosted && boostedUntil ? (
-                                <div className="w-full bg-amber-50 text-amber-600 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
+                                <div className="w-full bg-amber-50 text-amber-700 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
                                   <Clock size={12} /> {Math.ceil((new Date(boostedUntil).getTime() - new Date().getTime()) / (1000 * 3600))}h rest.
                                 </div>
                               ) : (
                                 <Link 
                                   href={`/boost?id=${p.id}`}
                                   // FIX: gradient au lieu de linear
-                                  className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
+                                  className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >
                                   <Zap size={14} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
                                   Booster 24h
@@ -471,7 +473,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                                     </div>
                                     <div><p className="font-black text-sm text-gray-900">{reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
                                 </div>
-                                <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
+                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
                             </div>
                             {r.comment && <div className="bg-[#F5F7F9] p-5 rounded-3xl"><p className="text-gray-600 text-sm leading-relaxed">"{r.comment}"</p></div>}
                         </div>
@@ -488,7 +490,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
               <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
                   <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 rounded-full text-gray-500"><X size={20}/></button></div>
                   <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} aria-label={`Noter ${s} étoiles`} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
-                  <textarea className="w-full bg-[#F5F7F9] border-none rounded-3xl p-5 text-sm min-h-32 outline-none focus:ring-4 focus:ring-brand/5 transition" placeholder="Votre avis..." value={newComment} onChange={e => setNewComment(e.target.value)} />
+                  <UiTextarea aria-label="Votre avis" placeholder="Votre avis..." rows={4} value={newComment} onChange={e => setNewComment(e.target.value)} />
                   <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-3xl shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>
               </motion.div>
           </motion.div>

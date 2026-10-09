@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.comoresmarket.app",
+      "sha256_cert_fingerprints": [
+        "4B:0F:A4:A8:BE:4F:58:FB:D0:BD:B7:90:B6:DF:FB:BE:E5:FE:73:90:A0:41:EE:FD:49:E9:0B:0E:0A:F3:EE:75"
+      ]
+    }
+  }
+]

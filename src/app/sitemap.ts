@@ -14,15 +14,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // 2. Récupération optimisée (Limitation temporaire à 5000, extensible à 45000 plus tard)
   const { data: products } = await supabase
     .from('products')
-    .select('id, updated_at')
+    .select('id, created_at')
     .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(5000)
 
   // 3. Génération des URLs dynamiques (Produits)
   const productUrls: MetadataRoute.Sitemap = (products || []).map((product) => ({
-    url: `${BASE_URL}/annonce?id=${product.id}`,
-    lastModified: new Date(product.updated_at || new Date()),
+    url: `${BASE_URL}/annonce/${product.id}`,
+    lastModified: new Date(product.created_at || new Date()),
     changeFrequency: 'weekly',
     priority: 0.8,
   }))
