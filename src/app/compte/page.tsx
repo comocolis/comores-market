@@ -16,6 +16,7 @@ import { UiButton, UiInput, UiSelect, UiTextarea } from '@/components/ui'
 import { motion, AnimatePresence } from 'framer-motion'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 import { containsContactInfo } from '@/utils/contentSafety'
+import ThemeToggle from '@/components/ThemeToggle'
 
 const getOptimizedAvatar = (url: string | null, size = 200) => {
   if (!url) return null;
@@ -28,8 +29,8 @@ const getOptimizedAvatar = (url: string | null, size = 200) => {
 function ReadField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500">{label}</span>
-      <p className="rounded-2xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-800 wrap-break-word">{children}</p>
+      <span className="mb-1 block text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">{label}</span>
+      <p className="rounded-2xl bg-gray-50 dark:bg-slate-800/80 px-4 py-3 text-sm font-semibold text-gray-800 dark:text-slate-200 wrap-break-word">{children}</p>
     </div>
   )
 }
@@ -63,7 +64,7 @@ export default function ComptePage() {
   const [formData, setFormData] = useState({
     full_name: '',
     city: '',
-    island: '', // Modification : chaîne vide par défaut au lieu de 'Ngazidja'
+    island: '',
     phone_number: '',
     facebook_url: '',
     instagram_url: '',
@@ -103,14 +104,13 @@ export default function ComptePage() {
           setFormData({
               full_name: profileData.full_name || '',
               city: profileData.city || '',
-              island: profileData.island || '', // Modification : fallback sur une chaîne vide
+              island: profileData.island || '',
               phone_number: profileData.phone_number || '',
               facebook_url: profileData.facebook_url || '',
               instagram_url: profileData.instagram_url || '',
               description: profileData.description || '' 
           })
 
-          // Calcul sécurisé des jours restants côté client uniquement
           if (profileData.subscription_end_date) {
             const days = Math.ceil((new Date(profileData.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
             setDaysRemaining(days > 0 ? days : 0)
@@ -140,7 +140,6 @@ export default function ComptePage() {
       setDeleting(true)
 
       try {
-          // Purge des fichiers + suppression du compte : fait cote serveur.
           const response = await fetch('/api/account/delete', { method: 'POST' })
           const data = await response.json().catch(() => ({}))
 
@@ -262,7 +261,7 @@ export default function ComptePage() {
     setFormData({
         full_name: profile?.full_name || '',
         city: profile?.city || '',
-        island: profile?.island || '', // Modification : fallback sur une chaîne vide
+        island: profile?.island || '',
         phone_number: profile?.phone_number || '',
         facebook_url: profile?.facebook_url || '',
         instagram_url: profile?.instagram_url || '',
@@ -311,18 +310,18 @@ export default function ComptePage() {
 
   const canAccessAdmin = profile?.role === 'super_admin' || profile?.role === 'admin'
 
-  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>
+  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-900 text-brand"><Loader2 className="animate-spin text-brand" size={32} /></div>
 
   return (
-    <div className="min-h-dvh w-full bg-[#F8FAFC] pb-32 font-sans text-gray-900 overflow-x-hidden relative">
+    <div className="min-h-dvh w-full bg-[#F8FAFC] dark:bg-slate-900 pb-32 font-sans text-gray-900 dark:text-slate-100 overflow-x-hidden relative transition-colors duration-200">
       
       <AnimatePresence>
         {showDeleteModal && (
           <div className="fixed inset-0 z-200 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6" onClick={() => setShowDeleteModal(false)}>
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center" onClick={e => e.stopPropagation()}>
-                  <div className="bg-red-50 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-600"><AlertTriangle size={28} /></div>
-                  <h3 className="font-black text-xl mb-1">Clôturer le compte ?</h3>
-                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider mb-5 leading-relaxed">Tapez <span className="text-red-600 font-black">SUPPRIMER</span> pour confirmer</p>
+              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[2.5rem] shadow-2xl p-8 text-center border border-gray-100 dark:border-slate-800" onClick={e => e.stopPropagation()}>
+                  <div className="bg-red-50 dark:bg-red-950/40 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-5 text-red-600 dark:text-red-400"><AlertTriangle size={28} /></div>
+                  <h3 className="font-black text-xl mb-1 dark:text-slate-100">Clôturer le compte ?</h3>
+                  <p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-5 leading-relaxed">Tapez <span className="text-red-600 dark:text-red-400 font-black">SUPPRIMER</span> pour confirmer</p>
                   <UiInput aria-label="Confirmation de suppression" wrapperClassName="mb-5" className="text-center font-black uppercase" placeholder="Validation" value={deleteConfirmation} onChange={(e) => setDeleteConfirmation(e.target.value.toUpperCase())} />
                   <div className="flex flex-col gap-2.5">
                       <UiButton variant="danger" onClick={confirmDeleteAccount} loading={deleting} disabled={deleteConfirmation !== 'SUPPRIMER'} className="w-full uppercase tracking-widest text-xs">Confirmer la suppression</UiButton>
@@ -333,21 +332,24 @@ export default function ComptePage() {
         )}
       </AnimatePresence>
 
-      <div className="bg-white p-6 pb-10 rounded-b-[2.5rem] shadow-sm relative z-10 border-b border-gray-100">
+      <div className="bg-white dark:bg-slate-900 p-6 pb-10 rounded-b-[2.5rem] shadow-sm relative z-10 border-b border-gray-100 dark:border-slate-800 transition-colors duration-200">
         <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-black tracking-tighter">Réglages</h1>
             
-            <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <ThemeToggle />
               <Link 
                 href={`/profil?id=${user?.id}`} 
-                className="bg-blue-50 p-3 rounded-xl text-blue-600 border border-blue-100 transition hover:bg-blue-100 active:scale-90 shadow-sm"
+                className="bg-blue-50 dark:bg-blue-950/40 p-2.5 rounded-xl text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/50 transition hover:bg-blue-100 dark:hover:bg-blue-900/50 active:scale-90 shadow-sm"
+                title="Voir mon profil public"
               >
                 <ExternalLink size={18} />
               </Link>
               <button 
                 onClick={handleSignOut}
                 aria-label="Se déconnecter"
-                className="bg-red-50 p-3 rounded-xl text-red-600 border border-red-100 transition hover:bg-red-100 active:scale-90 shadow-sm"
+                title="Se déconnecter"
+                className="bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl text-red-600 dark:text-red-400 border border-red-100 dark:border-red-900/50 transition hover:bg-red-100 dark:hover:bg-red-900/50 active:scale-90 shadow-sm"
               >
                 <LogOut size={18} />
               </button>
@@ -356,7 +358,7 @@ export default function ComptePage() {
 
         <div className="flex items-center gap-5">
             <div className="relative cursor-pointer" onClick={handleAvatarClick}>
-                <div className={`relative w-20 h-20 bg-gray-100 rounded-3xl flex items-center justify-center text-brand text-2xl font-black overflow-hidden border-4 shadow-md transition-all duration-300 ${isEditingInfo ? 'border-brand scale-105' : 'border-white'}`}>
+                <div className={`relative w-20 h-20 bg-gray-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center text-brand text-2xl font-black overflow-hidden border-4 shadow-md transition-all duration-300 ${isEditingInfo ? 'border-brand scale-105' : 'border-white dark:border-slate-800'}`}>
                     {avatarUploading ? <Loader2 className="animate-spin" /> : profile?.avatar_url ? (
                       <Image 
                         src={getOptimizedAvatar(profile.avatar_url) || '/placeholder.jpg'} 
@@ -367,11 +369,11 @@ export default function ComptePage() {
                         className="object-cover" 
                       />
                     ) : (
-                      <span className="text-gray-300 font-black">{profile?.full_name?.[0] || <User size={28} />}</span>
+                      <span className="text-gray-300 dark:text-slate-600 font-black">{profile?.full_name?.[0] || <User size={28} />}</span>
                     )}
                     {isEditingInfo && <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center"><Camera size={20} className="text-white" /></div>}
                 </div>
-                <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-lg border-2 border-white shadow-md transition ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-50 text-gray-500'}`}>
+                <div className={`absolute -bottom-1 -right-1 p-1.5 rounded-lg border-2 border-white dark:border-slate-900 shadow-md transition ${isEditingInfo ? 'bg-brand text-white' : 'bg-gray-50 dark:bg-slate-800 text-gray-500 dark:text-slate-400'}`}>
                     <Pencil size={10} strokeWidth={4} />
                 </div>
                 <input type="file" accept="image/*" ref={fileInputRef} className="hidden" onChange={handleAvatarChange} aria-label="Sélectionnez une photo de profil" />
@@ -379,7 +381,7 @@ export default function ComptePage() {
             
             <div className="flex-1 min-w-0">
                 <h2 className="font-black text-lg truncate tracking-tight leading-none mb-1.5">{profile?.full_name || "Nom du Showroom"}</h2>
-                <p className="text-[11px] text-gray-500 font-bold truncate tracking-wider mb-2.5">{user?.email}</p>
+                <p className="text-[11px] text-gray-500 dark:text-slate-400 font-bold truncate tracking-wider mb-2.5">{user?.email}</p>
                 {isProActive ? (
                     <div className="flex flex-col items-start gap-1.5">
                         <div className="inline-flex flex-col items-start bg-linear-to-r from-amber-500 to-orange-500 text-white px-3.5 py-1 rounded-xl shadow-md shadow-amber-500/10">
@@ -387,13 +389,13 @@ export default function ComptePage() {
                         </div>
                         <button 
                             onClick={downloadMyInvoice}
-                            className="flex items-center gap-1 text-[10px] font-black text-emerald-600 hover:text-emerald-700 bg-emerald-50/60 px-2.5 py-1 rounded-lg border border-emerald-100 transition active:scale-95"
+                            className="flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 bg-emerald-50/60 dark:bg-emerald-950/40 px-2.5 py-1 rounded-lg border border-emerald-100 dark:border-emerald-900/50 transition active:scale-95"
                         >
                             <FileText size={10} /> Ma Facture
                         </button>
                     </div>
                 ) : (
-                    <Link href="/pro" className="group inline-flex items-center gap-1.5 bg-gray-900 text-white text-[11px] font-black px-4 py-2.5 rounded-xl shadow-md shadow-gray-900/10 active:scale-95 transition-all hover:bg-black border border-gray-800">
+                    <Link href="/pro" className="group inline-flex items-center gap-1.5 bg-gray-900 dark:bg-brand text-white text-[11px] font-black px-4 py-2.5 rounded-xl shadow-md active:scale-95 transition-all hover:bg-black border border-gray-800 dark:border-emerald-600">
                         Devenir Pro 
                         <Sparkles size={10} className="text-amber-400 group-hover:animate-pulse" />
                     </Link>
@@ -406,47 +408,47 @@ export default function ComptePage() {
         
         <div className="flex flex-col gap-3">
           {canAccessAdmin && (
-               <Link href="/admin" className="w-full bg-gray-900 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg border border-white/5 active:scale-98 transition">
+               <Link href="/admin" className="w-full bg-gray-900 dark:bg-slate-800 text-white p-5 rounded-2xl flex items-center justify-between shadow-lg border border-white/5 dark:border-slate-700 active:scale-98 transition">
                   <div className="flex items-center gap-3">
                       <div className="bg-brand/10 p-2.5 rounded-xl text-brand"><LayoutDashboard size={20} /></div>
-                      <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Panneau Admin</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Gestion Plateforme</p></div>
+                      <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Panneau Admin</p><p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Gestion Plateforme</p></div>
                   </div>
-                  <ChevronRight size={18} className="text-gray-600" />
+                  <ChevronRight size={18} className="text-gray-500" />
                </Link>
           )}
 
-          <Link href="/compte/notifications" className="bg-white p-5 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100/50 active:scale-98 transition">
+          <Link href="/compte/notifications" className="bg-white dark:bg-slate-800/90 p-5 rounded-2xl flex items-center justify-between shadow-sm border border-gray-100/50 dark:border-slate-700/50 active:scale-98 transition">
               <div className="flex items-center gap-3">
-                  <div className="bg-amber-50 p-2.5 rounded-xl text-amber-500 relative">
+                  <div className="bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-xl text-amber-500 relative">
                       <Bell size={20} />
                       {unreadCount > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black text-white shadow-sm">
+                          <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-white dark:border-slate-800 flex items-center justify-center text-[10px] font-black text-white shadow-sm">
                               {unreadCount > 9 ? '9+' : unreadCount}
                           </span>
                       )}
                   </div>
-                  <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Notifications</p><p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Alertes & Messages</p></div>
+                  <div><p className="font-black text-xs uppercase tracking-wider leading-none mb-1">Notifications</p><p className="text-[10px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">Alertes & Messages</p></div>
               </div>
-              <ChevronRight size={18} className="text-gray-300" />
+              <ChevronRight size={18} className="text-gray-300 dark:text-slate-600" />
           </Link>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-            <Link href="/mes-annonces" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
-                <div className="bg-blue-50 text-blue-500 p-2.5 rounded-xl w-fit"><Package size={18} /></div>
-                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500">Annonces</span>
+            <Link href="/mes-annonces" className="bg-white dark:bg-slate-800/90 p-5 rounded-2xl shadow-sm border border-gray-100/50 dark:border-slate-700/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
+                <div className="bg-blue-50 dark:bg-blue-950/40 text-blue-500 dark:text-blue-400 p-2.5 rounded-xl w-fit"><Package size={18} /></div>
+                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500 dark:text-slate-400">Annonces</span>
             </Link>
-            <Link href="/favoris" className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
-                <div className="bg-pink-50 text-pink-500 p-2.5 rounded-xl w-fit"><Heart size={18} /></div>
-                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500">Coups de cœur</span>
+            <Link href="/favoris" className="bg-white dark:bg-slate-800/90 p-5 rounded-2xl shadow-sm border border-gray-100/50 dark:border-slate-700/50 flex flex-col gap-2.5 active:scale-98 transition hover:shadow-md">
+                <div className="bg-pink-50 dark:bg-pink-950/40 text-pink-500 dark:text-pink-400 p-2.5 rounded-xl w-fit"><Heart size={18} /></div>
+                <span className="font-black text-[11px] uppercase tracking-wider text-gray-500 dark:text-slate-400">Coups de cœur</span>
             </Link>
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-5">
-            <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-                <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500">Mon Showroom</h3>
+        <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl shadow-sm border border-gray-100/50 dark:border-slate-700/50 space-y-5">
+            <div className="flex justify-between items-center border-b border-gray-100 dark:border-slate-700/50 pb-4">
+                <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 dark:text-slate-400">Mon Showroom</h3>
                 {!isEditingInfo && (
-                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingInfo(true)} className="text-brand-700! bg-brand/5! px-3! py-1.5!">Modifier</UiButton>
+                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingInfo(true)} className="text-brand-700! dark:text-emerald-400! bg-brand/5! dark:bg-emerald-950/40! px-3! py-1.5!">Modifier</UiButton>
                 )}
             </div>
             
@@ -460,7 +462,7 @@ export default function ComptePage() {
                 {isEditingInfo ? (
                   <UiTextarea label="Bio / Slogan" className="min-h-24!" placeholder="Présentez-vous..." value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
                 ) : (
-                  <ReadField label="Bio / Slogan"><span className="font-medium text-gray-600 italic">{profile?.description ? `"${profile.description}"` : "Aucune bio..."}</span></ReadField>
+                  <ReadField label="Bio / Slogan"><span className="font-medium text-gray-600 dark:text-slate-300 italic">{profile?.description ? `"${profile.description}"` : "Aucune bio..."}</span></ReadField>
                 )}
 
                 <div className="grid grid-cols-2 gap-3">
@@ -480,16 +482,16 @@ export default function ComptePage() {
                 </div>
 
                 {isProActive && (
-                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+                  <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100 dark:border-slate-700/50">
                     {isEditingInfo ? (
                       <UiInput label="Lien Facebook" type="text" value={formData.facebook_url} onChange={e => setFormData({...formData, facebook_url: e.target.value})} />
                     ) : (
-                      <ReadField label="Lien Facebook"><span className="block truncate text-blue-700">{profile?.facebook_url || "Non lié"}</span></ReadField>
+                      <ReadField label="Lien Facebook"><span className="block truncate text-blue-700 dark:text-blue-400">{profile?.facebook_url || "Non lié"}</span></ReadField>
                     )}
                     {isEditingInfo ? (
                       <UiInput label="Lien Instagram" type="text" value={formData.instagram_url} onChange={e => setFormData({...formData, instagram_url: e.target.value})} />
                     ) : (
-                      <ReadField label="Lien Instagram"><span className="block truncate text-pink-700">{profile?.instagram_url || "Non lié"}</span></ReadField>
+                      <ReadField label="Lien Instagram"><span className="block truncate text-pink-700 dark:text-pink-400">{profile?.instagram_url || "Non lié"}</span></ReadField>
                     )}
                   </div>
                 )}
@@ -511,33 +513,33 @@ export default function ComptePage() {
             )}
         </div>
 
-        <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-3">
-            <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 flex items-center gap-1.5"><FileText size={14} /> Informations</h3>
+        <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl shadow-sm border border-gray-100/50 dark:border-slate-700/50 space-y-3">
+            <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 dark:text-slate-400 flex items-center gap-1.5"><FileText size={14} /> Informations</h3>
             
-            <Link href="/faq" className="flex items-center justify-between p-3.5 bg-gray-50/60 rounded-xl active:scale-98 transition hover:bg-gray-50">
+            <Link href="/faq" className="flex items-center justify-between p-3.5 bg-gray-50/60 dark:bg-slate-800/50 rounded-xl active:scale-98 transition hover:bg-gray-50 dark:hover:bg-slate-800">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white text-blue-500 flex items-center justify-center shadow-sm">
+                    <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-blue-500 dark:text-blue-400 flex items-center justify-center shadow-sm">
                         <HelpCircle size={14} />
                     </div>
-                    <span className="text-xs font-black text-gray-700">Aide & FAQ</span>
+                    <span className="text-xs font-black text-gray-700 dark:text-slate-200">Aide & FAQ</span>
                 </div>
-                <ChevronRight size={14} className="text-gray-500" />
+                <ChevronRight size={14} className="text-gray-500 dark:text-slate-400" />
             </Link>
 
-            <Link href="/cgu" className="flex items-center justify-between p-3.5 bg-gray-50/60 rounded-xl active:scale-98 transition hover:bg-gray-50">
+            <Link href="/cgu" className="flex items-center justify-between p-3.5 bg-gray-50/60 dark:bg-slate-800/50 rounded-xl active:scale-98 transition hover:bg-gray-50 dark:hover:bg-slate-800">
                 <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white text-gray-500 flex items-center justify-center shadow-sm">
+                    <div className="w-7 h-7 rounded-lg bg-white dark:bg-slate-700 text-gray-500 dark:text-slate-300 flex items-center justify-center shadow-sm">
                         <ShieldCheck size={14} />
                     </div>
-                    <span className="text-xs font-black text-gray-700">Conditions Générales</span>
+                    <span className="text-xs font-black text-gray-700 dark:text-slate-200">Conditions Générales</span>
                 </div>
-                <ChevronRight size={14} className="text-gray-500" />
+                <ChevronRight size={14} className="text-gray-500 dark:text-slate-400" />
             </Link>
         </div>
 
         {!isGoogleUser && (
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100/50 space-y-4">
-              <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 flex items-center gap-1.5"><Lock size={14} /> Sécurité</h3>
+          <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl shadow-sm border border-gray-100/50 dark:border-slate-700/50 space-y-4">
+              <h3 className="font-black text-[11px] uppercase tracking-[0.15em] text-gray-500 dark:text-slate-400 flex items-center gap-1.5"><Lock size={14} /> Sécurité</h3>
               {isEditingPassword ? (
                   <form onSubmit={handleUpdatePassword} className="space-y-3">
                       <UiInput
@@ -548,28 +550,28 @@ export default function ComptePage() {
                           value={newPassword}
                           onChange={e => setNewPassword(e.target.value)}
                           endAdornment={
-                            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="p-1 text-gray-500 hover:text-gray-700">
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"} className="p-1 text-gray-500 hover:text-gray-700 dark:text-slate-400 dark:hover:text-slate-200">
                               {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
                           }
                       />
                       <div className="flex gap-2">
                           <UiButton type="button" variant="secondary" onClick={() => setIsEditingPassword(false)} className="flex-1 uppercase tracking-wider text-xs">Annuler</UiButton>
-                          <UiButton type="submit" loading={passwordLoading} className="flex-1 uppercase tracking-wider text-xs bg-gray-900! hover:bg-black!">Mettre à jour</UiButton>
+                          <UiButton type="submit" loading={passwordLoading} className="flex-1 uppercase tracking-wider text-xs bg-gray-900! dark:bg-brand! hover:bg-black!">Mettre à jour</UiButton>
                       </div>
                   </form>
               ) : ( 
-                <div className="flex justify-between items-center bg-gray-50/50 p-4 rounded-xl border border-transparent">
-                  <p className="text-gray-300 tracking-[0.6em] font-black text-xs">••••••••</p>
-                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingPassword(true)} className="text-brand-700! bg-brand/5! px-3! py-1.5!">Changer</UiButton>
+                <div className="flex justify-between items-center bg-gray-50/50 dark:bg-slate-800/50 p-4 rounded-xl border border-transparent">
+                  <p className="text-gray-300 dark:text-slate-600 tracking-[0.6em] font-black text-xs">••••••••</p>
+                  <UiButton variant="ghost" size="sm" onClick={() => setIsEditingPassword(true)} className="text-brand-700! dark:text-emerald-400! bg-brand/5! dark:bg-emerald-950/40! px-3! py-1.5!">Changer</UiButton>
                 </div>
               )}
           </div>
         )}
 
-        <div className="bg-red-50/50 p-6 rounded-3xl shadow-sm border border-red-100/40 space-y-4">
-            <h3 className="font-black text-[11px] text-red-600 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle size={14} /> Zone Critique</h3>
-            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white border border-red-100 text-red-600 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest active:scale-98 transition shadow-sm hover:bg-red-50 flex items-center justify-center gap-1.5">
+        <div className="bg-red-50/50 dark:bg-red-950/20 p-6 rounded-3xl shadow-sm border border-red-100/40 dark:border-red-900/30 space-y-4">
+            <h3 className="font-black text-[11px] text-red-600 dark:text-red-400 uppercase tracking-widest flex items-center gap-1.5"><AlertTriangle size={14} /> Zone Critique</h3>
+            <button onClick={() => setShowDeleteModal(true)} className="w-full bg-white dark:bg-slate-800 border border-red-100 dark:border-red-900/50 text-red-600 dark:text-red-400 font-black py-4 rounded-2xl text-[11px] uppercase tracking-widest active:scale-98 transition shadow-sm hover:bg-red-50 dark:hover:bg-red-950/40 flex items-center justify-center gap-1.5">
               <Trash2 size={12} /> Supprimer mon espace
             </button>
         </div>

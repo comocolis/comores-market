@@ -17,9 +17,9 @@ const baseClasses =
 
 const variantClasses: Record<UiButtonVariant, string> = {
   primary: 'bg-brand text-white hover:bg-brand-dark shadow-sm',
-  secondary: 'bg-gray-100 text-gray-800 hover:bg-gray-200',
-  ghost: 'bg-transparent text-gray-700 hover:bg-gray-100',
-  danger: 'bg-red-600 text-white hover:bg-red-700 shadow-sm',
+  secondary: 'bg-gray-100 dark:bg-slate-800 text-gray-800 dark:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-700',
+  ghost: 'bg-transparent text-gray-700 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800',
+  danger: 'bg-red-600 dark:bg-red-600 text-white hover:bg-red-700 shadow-sm',
 };
 
 const sizeClasses: Record<UiButtonSize, string> = {

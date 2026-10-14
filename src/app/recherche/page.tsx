@@ -31,7 +31,6 @@ const RECENT_KEY = 'cm_recent_searches'
 const MAX_RECENT = 6
 const POPULAR_SEARCHES = ['iPhone', 'Voiture', 'Terrain', 'Appartement', 'Moto', 'Ordinateur', 'Climatiseur', 'Vanille']
 
-// Historique local branche sur useSyncExternalStore : lecture sans setState dans un effet, sans decalage d'hydratation.
 const recentListeners = new Set<() => void>()
 
 function subscribeRecent(callback: () => void) {
@@ -67,15 +66,13 @@ function writeRecent(items: string[]) {
     if (items.length === 0) localStorage.removeItem(RECENT_KEY)
     else localStorage.setItem(RECENT_KEY, JSON.stringify(items))
   } catch {
-    // stockage indisponible : l'historique local est simplement ignore
   }
   recentListeners.forEach((listener) => listener())
 }
+
 export default function RecherchePage() {
   const router = useRouter()
   const [query, setQuery] = useState('')
-  // Resultats associes au terme pour lequel ils ont ete obtenus : permet de deriver `loading`
-  // et d'ecarter naturellement les reponses obsoletes.
   const [data, setData] = useState<{ term: string; items: SearchResult[] } | null>(null)
 
   const recentRaw = useSyncExternalStore(subscribeRecent, getRecentSnapshot, getRecentServerSnapshot)
@@ -90,7 +87,6 @@ export default function RecherchePage() {
 
   const clearRecent = () => writeRecent([])
 
-  // Recherche automatique avec delai (debounce).
   useEffect(() => {
     if (term.length < 2) return
 
@@ -106,7 +102,6 @@ export default function RecherchePage() {
 
       if (cancelled) return
 
-      // Calcule ici (et non au rendu) : Date.now() n'est pas pur.
       const now = Date.now()
       const items = ((rows as SearchResult[]) || []).map((item) => ({
         ...item,
@@ -127,22 +122,23 @@ export default function RecherchePage() {
       clearTimeout(timer)
     }
   }, [term])
+
   return (
-    <div className="min-h-screen bg-transparent pb-24 font-sans">
+    <div className="min-h-screen bg-transparent dark:bg-slate-900 pb-24 font-sans text-gray-900 dark:text-slate-100 transition-colors duration-200">
       {/* En-tete */}
-      <div className="sticky top-0 z-40 flex flex-col gap-3 bg-white p-4 pt-safe shadow-sm">
+      <div className="sticky top-0 z-40 flex flex-col gap-3 bg-white dark:bg-slate-900 p-4 pt-safe shadow-sm border-b border-gray-100 dark:border-slate-800 transition-colors duration-200">
         <div className="flex items-center gap-2">
           <button
             onClick={() => router.back()}
             aria-label="Retour"
-            className="-ml-2 rounded-full p-2 text-gray-600 transition hover:bg-gray-100 active:scale-90"
+            className="-ml-2 rounded-full p-2 text-gray-600 dark:text-slate-300 transition hover:bg-gray-100 dark:hover:bg-slate-800 active:scale-90"
           >
             <ArrowLeft size={22} />
           </button>
-          <h1 className="font-display text-xl font-black tracking-tight text-gray-900">Recherche</h1>
+          <h1 className="font-display text-xl font-black tracking-tight text-gray-900 dark:text-slate-100">Recherche</h1>
         </div>
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-slate-400" size={20} aria-hidden="true" />
           <input
             type="text"
             inputMode="search"
@@ -150,7 +146,7 @@ export default function RecherchePage() {
             autoComplete="off"
             aria-label="Rechercher une annonce"
             placeholder="Que cherchez-vous ?"
-            className="w-full rounded-2xl border border-transparent bg-gray-100 py-3.5 pl-12 pr-11 text-base font-medium text-gray-900 outline-none transition placeholder:text-gray-500 focus:border-brand-600 focus:bg-white focus:ring-2 focus:ring-brand-600/20"
+            className="w-full rounded-2xl border border-transparent bg-gray-100 dark:bg-slate-800 py-3.5 pl-12 pr-11 text-base font-medium text-gray-900 dark:text-slate-100 outline-none transition placeholder:text-gray-500 dark:placeholder:text-slate-400 focus:border-brand-600 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-brand-600/20"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             autoFocus
@@ -159,7 +155,7 @@ export default function RecherchePage() {
             <button
               onClick={() => setQuery('')}
               aria-label="Effacer la recherche"
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-gray-500 transition hover:bg-gray-200 active:scale-90"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1.5 text-gray-500 dark:text-slate-400 transition hover:bg-gray-200 dark:hover:bg-slate-700 active:scale-90"
             >
               <X size={18} />
             </button>
@@ -168,7 +164,6 @@ export default function RecherchePage() {
       </div>
 
       <div className="space-y-6 p-4">
-        {/* Etat initial : raccourcis plutot qu'une page vide */}
         {showIdle && (
           <>
             {recent.length > 0 && (
@@ -178,7 +173,7 @@ export default function RecherchePage() {
                   eyebrow="Historique"
                   title="Recherches récentes"
                   action={
-                    <button onClick={clearRecent} className="text-xs font-bold text-gray-500 underline-offset-2 hover:underline">
+                    <button onClick={clearRecent} className="text-xs font-bold text-gray-500 dark:text-slate-400 underline-offset-2 hover:underline">
                       Effacer
                     </button>
                   }
@@ -206,16 +201,15 @@ export default function RecherchePage() {
           </>
         )}
 
-        {/* Resultats */}
         {!showIdle && loading && (
           <div className="flex justify-center pt-10" role="status" aria-label="Recherche en cours">
-            <Loader2 className="animate-spin text-brand" />
+            <Loader2 className="animate-spin text-brand dark:text-emerald-400" />
           </div>
         )}
 
         {!showIdle && !loading && results.length > 0 && (
           <div className="space-y-3">
-            <p className="px-1 text-xs font-bold uppercase tracking-wide text-gray-500" aria-live="polite">
+            <p className="px-1 text-xs font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400" aria-live="polite">
               {results.length} résultat{results.length > 1 ? 's' : ''}
             </p>
             {results.map((product) => {
@@ -229,9 +223,9 @@ export default function RecherchePage() {
                   key={product.id}
                   href={`/annonce/${product.id}`}
                   onClick={() => trackProductClickHistory({ productId: product.id, source: 'search_results', visitorId: getOrCreateVisitorId() })}
-                  className="flex gap-3 rounded-card border border-gray-100 bg-white p-3 shadow-card transition active:scale-[0.99] hover:shadow-pop"
+                  className="flex gap-3 rounded-card border border-gray-100 dark:border-slate-700/60 bg-white dark:bg-slate-800/90 p-3 shadow-card transition active:scale-[0.99] hover:shadow-pop"
                 >
-                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-gray-100">
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-900">
                     {img && <Image src={img} alt="" fill sizes="96px" className="object-cover" />}
                     {isPro && (
                       <span className="absolute left-1 top-1 flex items-center gap-0.5 rounded-full bg-black/80 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-widest text-white">
@@ -240,13 +234,13 @@ export default function RecherchePage() {
                     )}
                   </div>
                   <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
-                    <h2 className="line-clamp-2 font-display text-sm font-bold leading-snug text-gray-900">{product.title}</h2>
-                    <PriceTag price={product.price} className="text-base font-black tracking-tight text-brand-700" />
-                    <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500">
-                      <MapPin size={11} className="shrink-0 text-gray-400" aria-hidden="true" />
+                    <h2 className="line-clamp-2 font-display text-sm font-bold leading-snug text-gray-900 dark:text-slate-100">{product.title}</h2>
+                    <PriceTag price={product.price} className="text-base font-black tracking-tight text-brand-700 dark:text-emerald-400" />
+                    <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">
+                      <MapPin size={11} className="shrink-0 text-gray-400 dark:text-slate-500" aria-hidden="true" />
                       <span className="truncate">{place}</span>
                       {isBoosted && (
-                        <span className="ml-auto flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[9px] font-black text-amber-700">
+                        <span className="ml-auto flex shrink-0 items-center gap-0.5 rounded-full bg-amber-100 dark:bg-amber-950/60 px-1.5 py-0.5 text-[9px] font-black text-amber-700 dark:text-amber-300">
                           <Sparkles size={9} /> VEDETTE
                         </span>
                       )}

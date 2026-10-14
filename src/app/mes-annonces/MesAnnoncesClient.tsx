@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import PriceTag from '@/components/PriceTag';
 import { 
-  Trash2, MapPin, Loader2, Plus, ArrowLeft, Pencil, 
+  Trash2, MapPin, Loader2, ArrowLeft, Pencil,
   BarChart3, AlertTriangle, ChevronRight, Sparkles, ShoppingBag,
   Zap, Clock 
 } from 'lucide-react'
@@ -34,7 +34,6 @@ export default function MesAnnoncesClient() {
 
       const { data: productsData } = await supabase
         .from('products')
-        // select explicite sans boosted_until
         .select('id, title, price, images, location_city, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -72,7 +71,7 @@ export default function MesAnnoncesClient() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] pb-32 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 pb-32 font-sans text-gray-900 dark:text-slate-100 transition-colors duration-200">
       
       {/* MODALE SUPPRESSION */}
       <AnimatePresence>
@@ -80,13 +79,13 @@ export default function MesAnnoncesClient() {
           <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setDeleteModal({ isOpen: false, productId: null })}>
               <motion.div 
                 initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-8 text-center border border-white" onClick={e => e.stopPropagation()}
+                className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] shadow-2xl p-8 text-center border border-white dark:border-slate-800" onClick={e => e.stopPropagation()}
               >
-                  <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-6 shadow-inner text-red-500">
+                  <div className="bg-red-50 dark:bg-red-950/40 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-6 shadow-inner text-red-500">
                       <AlertTriangle size={36} />
                   </div>
-                  <h3 className="font-black text-xl mb-2 tracking-tight">Supprimer l'offre ?</h3>
-                  <p className="text-gray-500 text-sm mb-8 leading-relaxed">Cette action effacera définitivement l'annonce de la plateforme.</p>
+                  <h3 className="font-black text-xl mb-2 tracking-tight dark:text-slate-100">Supprimer l'offre ?</h3>
+                  <p className="text-gray-500 dark:text-slate-400 text-sm mb-8 leading-relaxed">Cette action effacera définitivement l'annonce de la plateforme.</p>
                   <div className="flex flex-col gap-3">
                       <UiButton variant="danger" onClick={handleDelete} className="w-full uppercase tracking-widest text-xs">Confirmer</UiButton>
                       <UiButton variant="secondary" onClick={() => setDeleteModal({ isOpen: false, productId: null })} className="w-full uppercase tracking-widest text-xs">Annuler</UiButton>
@@ -124,7 +123,7 @@ export default function MesAnnoncesClient() {
 
       <div className="p-5 space-y-5 max-w-lg mx-auto">
         {loading ? (
-            <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand" size={32} /></div>
+            <div className="flex justify-center pt-20"><Loader2 className="animate-spin text-brand dark:text-emerald-400" size={32} /></div>
         ) : products.length === 0 ? (
             <EmptyStateListings />
         ) : (
@@ -138,18 +137,18 @@ export default function MesAnnoncesClient() {
                 return (
                     <motion.div 
                       key={product.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
-                      className={`bg-white rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50' : 'border-white'}`}
+                      className={`bg-white dark:bg-slate-800/90 rounded-[2.2rem] shadow-sm border overflow-hidden group transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100/50 dark:ring-amber-900/30' : 'border-white dark:border-slate-700/60'}`}
                     >
                         <div className="p-4 flex gap-4">
-                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
+                            <Link href={`/annonce/${product.id}`} className="w-24 h-24 bg-gray-50 dark:bg-slate-900 rounded-3xl relative overflow-hidden shrink-0 shadow-inner group-active:scale-95 transition-transform duration-500">
                                 {img && (
                                   <Image 
                                     src={img} 
                                     alt="" 
                                     fill 
                                     className="object-cover"
-                                    priority={idx < 4} // 🚀 LCP Optimisation
-                                    sizes="96px" // 🚀 Optimisation taille (96px = w-24)
+                                    priority={idx < 4}
+                                    sizes="96px"
                                   />
                                 )}
                                 {isBoosted && (
@@ -161,28 +160,28 @@ export default function MesAnnoncesClient() {
 
                             <div className="flex-1 min-w-0 flex flex-col py-1">
                                 <Link href={`/annonce/${product.id}`}>
-                                  <h3 className="font-black text-gray-900 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
+                                  <h3 className="font-black text-gray-900 dark:text-slate-100 text-[15px] truncate group-hover:text-brand transition tracking-tight">{product.title}</h3>
                                 </Link>
                                 <PriceTag 
-                                price={product.price} 
-                                className="text-brand-700 font-black text-lg" 
+                                  price={product.price}
+                                  className="text-brand-700 dark:text-emerald-400 font-black text-lg"
                                 />
-                                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 mt-auto uppercase font-black tracking-widest">
-                                    <MapPin size={12} className="text-gray-400" aria-hidden="true" /> {product.location_city}
+                                <div className="flex items-center gap-1.5 text-[10px] text-gray-500 dark:text-slate-400 mt-auto uppercase font-black tracking-widest">
+                                    <MapPin size={12} className="text-gray-400 dark:text-slate-500" aria-hidden="true" /> {product.location_city}
                                 </div>
                             </div>
 
                             <div className="flex flex-col gap-2">
                                 <Link 
                                   href={`/modifier?id=${product.id}`} 
-                                  className="p-3 text-blue-600 bg-blue-50 rounded-2xl hover:bg-blue-100 transition active:scale-90"
+                                  className="p-3 text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/40 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-900/50 transition active:scale-90"
                                   aria-label="Modifier l'annonce"
                                 >
                                     <Pencil size={18} />
                                 </Link>
                                 <button 
                                   onClick={() => confirmDelete(product.id)} 
-                                  className="p-3 text-red-600 bg-red-50 rounded-2xl hover:bg-red-100 transition active:scale-90"
+                                  className="p-3 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 rounded-2xl hover:bg-red-100 dark:hover:bg-red-900/50 transition active:scale-90"
                                   aria-label="Supprimer l'annonce"
                                 >
                                     <Trash2 size={18} />
@@ -193,7 +192,7 @@ export default function MesAnnoncesClient() {
                         {/* --- SECTION BOOST --- */}
                         <div className="px-4 pb-2">
                           {isBoosted ? (
-                            <div className="w-full flex items-center justify-center gap-2 bg-amber-50 text-amber-700 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-amber-100">
+                            <div className="w-full flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-3 rounded-2xl text-[11px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-900/40">
                                 <Clock size={14} className="animate-pulse" /> 
                                 Boost Actif ({boostHoursLeft}h restantes)
                             </div>
@@ -211,18 +210,18 @@ export default function MesAnnoncesClient() {
                         {/* SECTION STATISTIQUES */}
                         <Link 
                             href={`/mes-annonces/vues?id=${product.id}`}
-                            className="flex items-center justify-between bg-[#F5F7F9] px-5 py-3.5 active:bg-gray-100 transition mt-2"
+                            className="flex items-center justify-between bg-[#F5F7F9] dark:bg-slate-800/50 px-5 py-3.5 active:bg-gray-100 dark:active:bg-slate-800 transition mt-2"
                         >
                             <div className="flex items-center gap-3">
-                                <div className="p-1.5 bg-white rounded-lg shadow-sm">
-                                  <BarChart3 size={14} className="text-brand" />
+                                <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
+                                  <BarChart3 size={14} className="text-brand dark:text-emerald-400" />
                                 </div>
                                 <div className="flex items-baseline gap-1.5">
-                                  <span className="text-sm font-black text-gray-900">{views}</span>
-                                  <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest">vues</span>
+                                  <span className="text-sm font-black text-gray-900 dark:text-slate-100">{views}</span>
+                                  <span className="text-[10px] text-gray-500 dark:text-slate-400 uppercase font-black tracking-widest">vues</span>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-1 text-[9px] text-brand font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition">
+                            <div className="flex items-center gap-1 text-[9px] text-brand dark:text-emerald-400 font-black uppercase tracking-widest opacity-70 group-hover:opacity-100 transition">
                                 Analyser <ChevronRight size={12} />
                             </div>
                         </Link>

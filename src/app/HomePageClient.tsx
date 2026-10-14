@@ -4,7 +4,9 @@ import { getSupabase, hasSessionCookie } from '@/utils/supabase/lazy'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import ProductCard from '@/components/ProductCard'
-import { 
+import ThemeToggle from '@/components/ThemeToggle'
+import ProPromoBanner from '@/components/ProPromoBanner'
+import {
   Search, User, SlidersHorizontal, Loader2,
   LayoutGrid, Car, Home, Shirt, Smartphone, Sofa, Ticket, Utensils, Wrench, Sparkles, Briefcase
 } from 'lucide-react'
@@ -17,18 +19,15 @@ import ProductSuggestions from '@/components/ProductSuggestions'
 import dynamic from 'next/dynamic'
 import { UiChip } from '@/components/ui'
 
-// ✅ Lazy Loading de la modale Filtres
 const FilterModal = dynamic(() => import('@/components/FilterModal'), {
   loading: () => null,
   ssr: false 
 })
 
-// --- TYPE DEFINITIONS ---
 export type Product = HomepageProduct
 
 const ITEMS_PER_PAGE = 20
 
-// --- CONSTANTES ---
 const CATEGORIES = [
   { id: 0, label: 'Tout', icon: LayoutGrid }, 
   { id: 1, label: 'Véhicules', icon: Car }, 
@@ -90,13 +89,10 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   const categoryBarRef = useRef<HTMLDivElement | null>(null)
   const subNavRef = useRef<HTMLDivElement | null>(null)
 
-  // --- LOGIQUE DE SCROLL INTELLIGENT ---
   const [showSubNav, setShowSubNav] = useState(true)
   const lastScrollYRef = useRef(0)
 
   useEffect(() => {
-    // lastScrollY en ref : aucun re-rendu ni re-abonnement a chaque evenement scroll,
-    // le state ne change que lorsque la visibilite de la sous-navigation bascule.
     const handleScroll = () => {
       const currentScrollY = window.scrollY
       const shouldShow = !(currentScrollY > lastScrollYRef.current && currentScrollY > 200)
@@ -145,7 +141,6 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   }, [])
 
   useEffect(() => {
-    // Nouveau visiteur anonyme : aucun historique, la liste du serveur est deja la bonne (pas de second chargement).
     canPersonalizeRef.current = isReturningVisitor() || hasSessionCookie()
     setVisitorId(getOrCreateVisitorId())
     setVisitorReady(true)
@@ -153,7 +148,6 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
 
   const fetchProducts = useCallback(async (isInitial = true, targetPage = 0, silent = false) => {
     if (isInitial) {
-        // silent : rafraichissement personnalise du premier rendu, sans masquer la liste deja affichee par le SSR
         if (!silent) setLoading(true)
         if (searchTerm.trim().length > 2) trackSearch(searchTerm)
         if (selectedIsland !== 'Tout' || selectedSubCategory !== 'Tout' || priceMin || priceMax) {
@@ -207,9 +201,8 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       
     } catch (error) {
       console.error('Error fetching products:', error)
-      // sonner est charge a la demande (hors du bundle initial)
       import('sonner').then(({ toast }) => toast.error('Erreur lors du chargement des produits'))
-    } finally { // ✅ Correction apportée ici !
+    } finally {
       setLoading(false)
       setIsFetchingMore(false)
     }
@@ -231,7 +224,6 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
     return () => clearTimeout(timer)
   }, [selectedCategory, selectedSubCategory, selectedIsland, searchTerm, priceMin, priceMax, visitorReady, authResolved, fetchProducts, initialHasMore])
 
-  // Track category changes
   useEffect(() => {
     if (selectedCategory !== 0) {
       const category = CATEGORIES.find(c => c.id === selectedCategory)
@@ -240,7 +232,6 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   }, [selectedCategory])
 
   useEffect(() => {
-    // Visiteur anonyme : aucun besoin de charger la librairie Supabase (~170 Ko) sur l'accueil.
     if (!hasSessionCookie()) {
       setAuthResolved(true)
       return
@@ -275,36 +266,39 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
   const currentSubCats = selectedCategory !== 0 ? SUB_CATEGORIES[selectedCategory] : []
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 font-sans">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 pb-24 font-sans text-gray-900 dark:text-slate-100 transition-colors duration-200">
       
       {/* 1. HEADER FIXE */}
       <div ref={headerRef} className="relative bg-brand pt-safe px-4 pb-5 sticky top-0 z-50 shadow-md overflow-hidden">
-        {/* Halos en degrades radiaux : meme rendu que blur-3xl, sans filtre GPU couteux sur mobiles modestes */}
         <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_-10%,rgb(255_255_255/0.14),transparent_45%),radial-gradient(circle_at_-5%_70%,rgb(251_191_36/0.22),transparent_40%)]" />
         <div className="relative flex justify-between items-center mb-4 pt-2">
             <h1 className="font-display text-2xl font-black tracking-tight">
                 <span className="text-white">Comores</span>
                 <span className="text-mustard">Market</span>
             </h1>
-            <Link 
-              href={userId ? `/profil?id=${userId}` : "/auth"} 
-              prefetch={userId ? undefined : false}
-              className="flex items-center justify-center bg-white/20 w-9 h-9 rounded-full backdrop-blur-sm border border-white/10 hover:bg-white/30 transition"
-              aria-label="Mon Profil"
-            >
-                <User size={18} className="text-white" />
-            </Link>
+            <div className="flex items-center gap-2">
+              <ThemeToggle className="!bg-white/25 dark:!bg-black/35 hover:!bg-white/35 dark:hover:!bg-black/45 !border-white/35 dark:!border-white/25 shadow-md backdrop-blur-md" />
+              <Link
+                href={userId ? `/profil?id=${userId}` : "/auth"}
+                prefetch={userId ? undefined : false}
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-white/25 dark:bg-black/35 hover:bg-white/35 dark:hover:bg-black/45 text-white border border-white/35 dark:border-white/25 backdrop-blur-md transition shadow-md active:scale-95"
+                aria-label="Mon Profil"
+                title="Mon Profil"
+              >
+                  <User size={19} className="text-white stroke-[2.2]" />
+              </Link>
+            </div>
         </div>
         <div className="relative flex gap-2 rounded-3xl bg-white/10 p-2 shadow-pop backdrop-blur-md border border-white/20">
             <div className="relative flex-1">
                 <input 
                     type="text" 
                     placeholder="Que cherchez-vous ?" 
-                    className="w-full bg-white p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 placeholder:text-gray-500 border border-transparent focus:border-mustard transition-all" 
+                    className="w-full bg-white dark:bg-slate-800 p-3.5 pl-11 rounded-2xl text-sm font-medium outline-none shadow-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-500 dark:placeholder:text-slate-400 border border-transparent focus:border-mustard transition-all"
                     value={searchTerm} 
                     onChange={e => setSearchTerm(e.target.value)} 
                 />
-                <Search className="absolute left-4 top-3.5 text-gray-500" size={18} />
+                <Search className="absolute left-4 top-3.5 text-gray-500 dark:text-slate-400" size={18} />
             </div>
             <button 
               onClick={() => setShowFilters(true)} 
@@ -317,15 +311,15 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       </div>
 
       {/* 2. BARRE CATEGORIES FIXE */}
-      <div ref={categoryBarRef} className="bg-white border-b border-gray-100 py-3 sticky z-40 shadow-sm">
+      <div ref={categoryBarRef} className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 py-3 sticky z-40 shadow-sm transition-colors duration-200">
         <div className="flex gap-2 overflow-x-auto px-4 scrollbar-hide">
             {CATEGORIES.map(cat => (
                 <button 
                   key={cat.id} 
                   onClick={() => handleCategorySelect(cat.id)} 
-                  className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 ${selectedCategory === cat.id ? 'bg-brand/10 text-brand-700 border border-brand/20' : 'text-gray-500'}`}
+                  className={`flex flex-col items-center gap-1.5 min-w-17.5 p-2 rounded-2xl transition active:scale-95 group hover:bg-gray-50 dark:hover:bg-slate-800/80 ${selectedCategory === cat.id ? 'bg-brand/10 dark:bg-brand/20 text-brand-700 dark:text-emerald-400 border border-brand/20' : 'text-gray-500 dark:text-slate-400'}`}
                 >
-                    <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand' : 'text-gray-500'} />
+                    <cat.icon size={24} strokeWidth={1.5} className={selectedCategory === cat.id ? 'text-brand dark:text-emerald-400' : 'text-gray-500 dark:text-slate-400'} />
                     <span className="text-[10px] font-bold whitespace-nowrap">{cat.label}</span>
                 </button>
             ))}
@@ -333,7 +327,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
       </div>
 
       {/* 3. BARRE SOUS-CATEGORIES & ILES (INTELLIGENTE) */}
-      <div ref={subNavRef} className={`bg-gray-50 border-b border-gray-100 py-3 sticky z-30 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
+      <div ref={subNavRef} className={`bg-gray-50 dark:bg-slate-900/90 border-b border-gray-100 dark:border-slate-800 py-3 sticky z-30 shadow-sm transition-all duration-300 ease-in-out ${showSubNav ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0 pointer-events-none'}`}>
         <div className="space-y-3">
           <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide">
             {ISLANDS.map(ile => (
@@ -344,7 +338,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
           </div>
           
           {currentSubCats.length > 0 && (
-            <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 pt-3">
+            <div className="px-4 flex gap-2 overflow-x-auto scrollbar-hide border-t border-gray-100 dark:border-slate-800 pt-3">
                <UiChip active={selectedSubCategory === 'Tout'} onClick={() => setSelectedSubCategory('Tout')}>Tout</UiChip>
                {currentSubCats.map(sub => (
                  <UiChip key={sub} active={selectedSubCategory === sub} onClick={() => setSelectedSubCategory(sub)}>{sub}</UiChip>
@@ -354,8 +348,11 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
         </div>
       </div>
 
+      {/* BANNIÈRE PROMO PRO OFFERT POUR LES VISITEURS NON CONNECTÉS */}
+      {!userId && <ProPromoBanner />}
+
       {/* GRID PRODUITS */}
-      <div className="px-4 py-2 pb-24 mt-4">
+      <div className="px-4 py-2 pb-24 mt-2">
         {loading ? (
           <SkeletonProductGrid count={12} />
         ) : products.length === 0 ? (
@@ -384,7 +381,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
             <button
               onClick={() => fetchProducts(false, page + 1)}
               disabled={loading || isFetchingMore}
-              className="bg-white border border-gray-200 text-gray-900 font-bold py-3 px-8 rounded-full shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 text-xs uppercase tracking-widest hover:bg-gray-50"
+              className="bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-900 dark:text-slate-100 font-bold py-3 px-8 rounded-full shadow-sm active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2 text-xs uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-slate-700"
             >
               {isFetchingMore ? <Loader2 className="animate-spin" size={16} /> : "Voir plus d'annonces"}
             </button>
@@ -393,7 +390,7 @@ export default function HomePageClient({ initialProducts, renderedAt, initialHas
 
       </div>
 
-      {/* 4. RECOMMANDATIONS (CLIENT-SIDE) */}
+      {/* 4. RECOMMANDATIONS */}
       <ProductSuggestions 
         title="Pour vous" 
         icon={Sparkles}

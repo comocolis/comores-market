@@ -27,7 +27,7 @@ export default function ContactPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col text-gray-900 dark:text-slate-100 transition-colors duration-200">
       <div className="bg-brand py-12 px-6 text-center rounded-b-[2.5rem] shadow-sm">
         <h1 className="text-3xl font-extrabold text-white mb-2">Contactez-nous</h1>
         <p className="text-white/80 max-w-md mx-auto">
@@ -37,15 +37,15 @@ export default function ContactPage() {
       </div>
 
       <div className="flex-1 px-6 -mt-8 pb-24">
-        <div className="max-w-lg mx-auto bg-white rounded-3xl shadow-xl p-8">
+        <div className="max-w-lg mx-auto bg-white dark:bg-slate-800/90 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-slate-700/60">
           
           {isSuccess ? (
             <div className="text-center py-12 animate-in fade-in zoom-in">
-              <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-6">
+              <div className="w-20 h-20 bg-green-100 dark:bg-emerald-950/50 text-green-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 size={40} />
               </div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Message reçu !</h2>
-              <p className="text-gray-500 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 mb-2">Message reçu !</h2>
+              <p className="text-gray-500 dark:text-slate-400 mb-8">
                 Merci de nous avoir contactés. Notre équipe va traiter votre demande dans les plus brefs délais.
               </p>
               <UiButton onClick={() => setIsSuccess(false)}>Envoyer un autre message</UiButton>
@@ -101,8 +101,8 @@ export default function ContactPage() {
             </form>
           )}
 
-          <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-             <Link href="/" className="text-sm text-gray-600 font-medium hover:text-brand-700 transition">
+          <div className="mt-8 pt-6 border-t border-gray-100 dark:border-slate-700/50 text-center">
+             <Link href="/" className="text-sm text-gray-600 dark:text-slate-400 font-medium hover:text-brand-700 dark:hover:text-emerald-400 transition">
                 ← Retour à l&apos;accueil
              </Link>
           </div>

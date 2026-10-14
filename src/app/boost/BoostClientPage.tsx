@@ -1,7 +1,5 @@
 'use client'
 
-
-
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -10,8 +8,7 @@ import {
   MessageCircle, Loader2, Smartphone, CreditCard, Mail
 } from 'lucide-react'
 import Image from 'next/image'
-// AJOUT : Import du tracking
-import { trackBoostPurchase, trackAdsConversion, setEnhancedConversionData } from '@/lib/analytics'
+import { trackBoostPurchase, trackAdsConversion } from '@/lib/analytics'
 
 export default function BoostLandingPage() {
   const supabase = createClient()
@@ -29,7 +26,6 @@ export default function BoostLandingPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState<'mvola' | 'cb'>('mvola')
 
-  // --- PARAMÈTRES DE PAIEMENT ---
   const MVOLA_NUMBER = "434 20 63"
   const WHATSAPP_CONTACT = "33758760743"
   const CONTACT_EMAIL = "contact.comoresmarket@gmail.com"
@@ -49,15 +45,7 @@ export default function BoostLandingPage() {
   }, [params.id, supabase, router])
 
   const handleConfirmPayment = () => {
-    // 0. Google Ads Enhanced Conversions
-    // Si on avait l'utilisateur (ex: const { user } = useAuth()), on pourrait faire :
-    // setEnhancedConversionData({ email: user.email });
-
-    // 1. GA4 : On enregistre l'achat du boost
     trackBoostPurchase(params.id as string, '24h_visibility', 250);
-
-    // 2. Google Ads : On signale la conversion
-    // Remplacez 'VOTRE_LABEL_BOOST' par le label Ads correspondant
     trackAdsConversion('VOTRE_LABEL_BOOST', 250);
 
     const msg = encodeURIComponent(
@@ -70,17 +58,17 @@ export default function BoostLandingPage() {
   }
 
   if (loading) return (
-    <div className="h-screen flex items-center justify-center bg-white">
-      <Loader2 className="animate-spin text-brand" size={32} />
+    <div className="h-screen flex items-center justify-center bg-white dark:bg-slate-900">
+      <Loader2 className="animate-spin text-brand dark:text-emerald-400" size={32} />
     </div>
   )
 
   const firstImage = product?.images ? JSON.parse(product.images)[0] : null
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans pb-24 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 font-sans pb-24 text-gray-900 dark:text-slate-100 overflow-x-hidden transition-colors duration-200">
       
-      {/* HEADER PREMIUM (Thème Ambre pour le Boost) */}
+      {/* HEADER HERO */}
       <div className="bg-amber-500 pt-14 px-4 pb-24 rounded-b-[2.5rem] shadow-sm relative">
         <button 
           onClick={() => router.back()} 
@@ -104,26 +92,26 @@ export default function BoostLandingPage() {
 
       {/* APERÇU DE L'OFFRE & AVANTAGES */}
       <div className="px-4 -mt-16 relative z-10 max-w-md mx-auto">
-        <div className="bg-white p-6 rounded-3xl shadow-xl border border-white space-y-6">
-            <div className="flex items-center gap-4 bg-gray-50 p-3 rounded-2xl border border-gray-100">
-               <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-gray-200 shadow-sm">
+        <div className="bg-white dark:bg-slate-800/90 p-6 rounded-3xl shadow-xl border border-white dark:border-slate-700/60 space-y-6">
+            <div className="flex items-center gap-4 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-2xl border border-gray-100 dark:border-slate-700/50">
+               <div className="w-14 h-14 rounded-xl overflow-hidden relative shrink-0 bg-gray-200 dark:bg-slate-700 shadow-sm">
                   {firstImage && <Image src={firstImage} alt="" fill className="object-cover" />}
                </div>
                <div className="min-w-0">
-                  <p className="text-[11px] font-black text-amber-600 uppercase tracking-widest mb-0.5">Annonce sélectionnée</p>
-                  <h3 className="text-sm font-bold text-gray-900 truncate">{product?.title}</h3>
+                  <p className="text-[11px] font-black text-amber-600 dark:text-amber-400 uppercase tracking-widest mb-0.5">Annonce sélectionnée</p>
+                  <h3 className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate">{product?.title}</h3>
                </div>
             </div>
 
             <div className="space-y-4 pt-2">
                 {[
-                  { icon: <Zap size={18} />, color: 'bg-amber-100 text-amber-600', text: "Position prioritaire devant tout le monde" },
-                  { icon: <Clock size={18} />, color: 'bg-blue-100 text-blue-600', text: "Visibilité maximale pendant 24 heures" },
-                  { icon: <ShieldCheck size={18} />, color: 'bg-emerald-100 text-emerald-600', text: "Badge Prestige 'Boosté' exclusif" }
+                  { icon: <Zap size={18} />, color: 'bg-amber-100 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400', text: "Position prioritaire devant tout le monde" },
+                  { icon: <Clock size={18} />, color: 'bg-blue-100 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400', text: "Visibilité maximale pendant 24 heures" },
+                  { icon: <ShieldCheck size={18} />, color: 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400', text: "Badge Prestige 'Boosté' exclusif" }
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <div className={`${item.color} p-2 rounded-xl shrink-0`}>{item.icon}</div>
-                    <p className="text-xs font-bold text-gray-600">{item.text}</p>
+                    <p className="text-xs font-bold text-gray-600 dark:text-slate-300">{item.text}</p>
                   </div>
                 ))}
             </div>
@@ -132,50 +120,48 @@ export default function BoostLandingPage() {
 
       {/* SÉLECTEUR DE PAIEMENT */}
       <div className="px-4 mt-10 max-w-md mx-auto">
-        <h3 className="font-black text-gray-900 mb-4 ml-1 uppercase text-[10px] tracking-widest opacity-50">Moyen de paiement</h3>
+        <h3 className="font-black text-gray-900 dark:text-slate-100 mb-4 ml-1 uppercase text-[10px] tracking-widest opacity-50">Moyen de paiement</h3>
         
-        <div className="bg-gray-200 p-1 rounded-2xl flex mb-6">
+        <div className="bg-gray-200 dark:bg-slate-800 p-1 rounded-2xl flex mb-6">
             <button 
                 onClick={() => setActiveTab('mvola')}
-                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'mvola' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500'}`}
+                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'mvola' ? 'bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-md' : 'text-gray-500 dark:text-slate-400'}`}
             >
                 <Smartphone size={16} /> Mvola
             </button>
             <button 
                 onClick={() => setActiveTab('cb')}
-                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'cb' ? 'bg-white text-gray-900 shadow-md' : 'text-gray-500'}`}
+                className={`flex-1 py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 ${activeTab === 'cb' ? 'bg-white dark:bg-slate-900 text-gray-900 dark:text-slate-100 shadow-md' : 'text-gray-500 dark:text-slate-400'}`}
             >
                 <CreditCard size={16} /> Carte
             </button>
         </div>
 
         {activeTab === 'mvola' ? (
-            <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-white space-y-8 animate-in fade-in slide-in-from-bottom-2">
-                {/* ÉTAPE 1 */}
+            <div className="bg-white dark:bg-slate-800/90 p-6 rounded-[2.5rem] shadow-sm border border-white dark:border-slate-700/60 space-y-8 animate-in fade-in slide-in-from-bottom-2">
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">1</span>
-                        <h3 className="font-black text-gray-900 text-sm">Envoyez 250 FC</h3>
+                        <h3 className="font-black text-gray-900 dark:text-slate-100 text-sm">Envoyez 250 FC</h3>
                     </div>
-                    <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-center justify-between group">
+                    <div className="bg-amber-50 dark:bg-amber-950/40 p-5 rounded-2xl border border-amber-100 dark:border-amber-900/50 flex items-center justify-between group">
                         <div className="flex items-center gap-3">
                            <div className="w-10 h-10 bg-amber-500 rounded-xl flex items-center justify-center text-white font-black text-lg">M</div>
                            <div>
-                              <p className="font-black text-gray-900 text-xs">Mvola Comores</p>
-                              <p className="text-[10px] text-amber-600 font-bold">Telma Money</p>
+                              <p className="font-black text-gray-900 dark:text-slate-100 text-xs">Mvola Comores</p>
+                              <p className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">Telma Money</p>
                            </div>
                         </div>
-                        <span className="font-black text-xl text-gray-900 tracking-tighter">{MVOLA_NUMBER}</span>
+                        <span className="font-black text-xl text-gray-900 dark:text-slate-100 tracking-tighter">{MVOLA_NUMBER}</span>
                     </div>
                 </div>
 
-                {/* ÉTAPE 2 */}
                 <div>
                     <div className="flex items-center gap-2 mb-4">
                         <span className="bg-amber-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black">2</span>
-                        <h3 className="font-black text-gray-900 text-sm">Confirmation</h3>
+                        <h3 className="font-black text-gray-900 dark:text-slate-100 text-sm">Confirmation</h3>
                     </div>
-                    <p className="text-[11px] text-gray-500 font-bold leading-relaxed mb-6 px-1">
+                    <p className="text-[11px] text-gray-500 dark:text-slate-400 font-bold leading-relaxed mb-6 px-1">
                         Une fois le transfert effectué, cliquez sur le bouton ci-dessous pour nous envoyer votre preuve de paiement.
                     </p>
                     <button 
@@ -186,25 +172,25 @@ export default function BoostLandingPage() {
                     </button>
                 </div>
 
-                <div className="pt-4 text-center border-t border-gray-50">
-                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                <div className="pt-4 text-center border-t border-gray-50 dark:border-slate-700/50">
+                   <p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
                       <Mail size={12} /> {CONTACT_EMAIL}
                    </p>
                 </div>
             </div>
         ) : (
-            <div className="bg-white p-12 rounded-[2.5rem] text-center border border-white shadow-sm animate-in fade-in">
-                <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300">
+            <div className="bg-white dark:bg-slate-800/90 p-12 rounded-[2.5rem] text-center border border-white dark:border-slate-700/60 shadow-sm animate-in fade-in">
+                <div className="w-16 h-16 bg-gray-50 dark:bg-slate-900 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-300 dark:text-slate-600">
                     <CreditCard size={32} />
                 </div>
-                <h3 className="font-black text-gray-900 mb-2">Bientôt disponible</h3>
-                <p className="text-gray-500 text-xs font-bold leading-relaxed">
+                <h3 className="font-black text-gray-900 dark:text-slate-100 mb-2">Bientôt disponible</h3>
+                <p className="text-gray-500 dark:text-slate-400 text-xs font-bold leading-relaxed">
                   Le paiement par carte bancaire (Stripe/PayPal) arrive prochainement. Pour l&apos;instant, merci d&apos;utiliser Mvola.
                 </p>
             </div>
         )}
 
-        <p className="text-center mt-8 text-[10px] text-gray-500 font-bold uppercase tracking-[0.2em]">
+        <p className="text-center mt-8 text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-[0.2em]">
            Activation sous 30 minutes
         </p>
       </div>

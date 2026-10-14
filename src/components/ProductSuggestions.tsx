@@ -33,8 +33,6 @@ export default function ProductSuggestions({
 
     const fetchSuggestions = async () => {
       try {
-        // Lecture publique via l'API REST de Supabase (vue enrichie : `is_pro` n'existe pas sur `products`).
-        // Un simple fetch evite de charger la librairie supabase-js sur l'accueil.
         const params = new URLSearchParams({
           select: 'id,title,price,images,location_island,location_city,sub_category,created_at,is_pro,boosted_until',
           order: 'created_at.desc',
@@ -66,24 +64,23 @@ export default function ProductSuggestions({
 
   return (
     <div className="mt-8 mb-6">
-      <h2 className="font-display font-black text-xs uppercase tracking-widest text-gray-700 mb-4 flex items-center gap-2 px-4">
-        {TitleIcon ? <TitleIcon size={14} className="text-brand" aria-hidden="true" /> : null} {title}
+      <h2 className="font-display font-black text-xs uppercase tracking-widest text-gray-700 dark:text-slate-300 mb-4 flex items-center gap-2 px-4">
+        {TitleIcon ? <TitleIcon size={14} className="text-brand dark:text-emerald-400" aria-hidden="true" /> : null} {title}
       </h2>
       <div className="px-4 grid grid-cols-2 gap-3">
         {suggestions.map((product: any) => {
           const img = getFirstProductImage(product.images)
           const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date()
-          const isPro = product.is_pro
 
           return (
             <Link 
               key={product.id} 
               href={`/annonce/${product.id}`}
               className={`rounded-2xl overflow-hidden flex flex-col transition active:scale-[0.98] relative group ${
-                isBoosted ? 'bg-white border-2 border-amber-400' : 'bg-white shadow-sm border border-gray-100'
+                isBoosted ? 'bg-white dark:bg-slate-800 border-2 border-amber-400' : 'bg-white dark:bg-slate-800/90 shadow-sm border border-gray-100 dark:border-slate-700/60'
               }`}
             >
-              <div className="relative w-full aspect-square bg-gray-100 overflow-hidden">
+              <div className="relative w-full aspect-square bg-gray-100 dark:bg-slate-900 overflow-hidden">
                 {img && (
                   <Image 
                     src={img} 
@@ -96,20 +93,19 @@ export default function ProductSuggestions({
               </div>
               
               <div className="p-3">
-                <h3 className="font-bold text-gray-900 text-xs mb-1 truncate">
+                <h3 className="font-bold text-gray-900 dark:text-slate-100 text-xs mb-1 truncate">
                   {product.title}
                 </h3>
                 
-                {/* Forçage de l'affichage avec une taille fixe pour s'assurer que le contenu est rendu */}
                 <div className="min-h-10">
                   <PriceTag 
                     price={product.price} 
-                    className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600' : 'text-brand'}`} 
+                    className={`font-extrabold text-sm ${isBoosted ? 'text-amber-600 dark:text-amber-400' : 'text-brand dark:text-emerald-400'}`}
                   />
                 </div>
 
-                <div className="flex items-center gap-1 text-gray-600 text-[9px] font-bold uppercase mt-1">
-                  <MapPin size={10} className="text-gray-400" /> {product.location_city}
+                <div className="flex items-center gap-1 text-gray-600 dark:text-slate-400 text-[9px] font-bold uppercase mt-1">
+                  <MapPin size={10} className="text-gray-400 dark:text-slate-500" /> {product.location_city}
                 </div>
               </div>
             </Link>

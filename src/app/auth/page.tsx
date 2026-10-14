@@ -11,7 +11,6 @@ import { trackEvent } from '@/lib/analytics'
 import { sendAdminAlert } from '@/lib/edge-functions'
 import { UiButton, UiInput, UiSelect } from '@/components/ui'
 
-// ✅ FONCTION DE CONVERSION GOOGLE ADS
 const triggerRegistrationConversion = () => {
   if (typeof window !== 'undefined' && (window as any).gtag) {
     (window as any).gtag('event', 'conversion', {
@@ -53,11 +52,9 @@ export default function AuthPage() {
   
   const [selectedCountry, setSelectedCountry] = useState(ALLOWED_COUNTRIES[0])
 
-  // ✅ Désactivation définitive de la bannière d'installation PWA à l'initialisation
   useEffect(() => {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
-      // Empêche l'affichage automatique et enregistre le blocage
       localStorage.setItem('pwa_banner_disabled', 'true');
     };
 
@@ -87,7 +84,6 @@ export default function AuthPage() {
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  // ✅ CONNEXION / INSCRIPTION AVEC GOOGLE (Avec prompt de sélection de compte)
   const handleGoogleLogin = async () => {
     setLoading(true)
     try {
@@ -97,7 +93,7 @@ export default function AuthPage() {
         options: {
           redirectTo: `${origin}/auth/callback`,
           queryParams: {
-            prompt: 'select_account', // Force l'affichage du choix des comptes Google connectés
+            prompt: 'select_account',
           },
         },
       })
@@ -225,7 +221,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex flex-col items-center justify-center p-6 font-sans relative overflow-hidden transition-colors duration-200">
       <div className="absolute top-0 left-0 w-full h-[45%] bg-brand rounded-b-[2.5rem] z-0 shadow-sm"></div>
 
       <div className="w-full max-w-sm relative z-10 flex flex-col items-center">
@@ -237,11 +233,11 @@ export default function AuthPage() {
             <p className="text-white/90 text-sm mt-2 font-medium">Achat et vente entre les îles<br/>(NAM KARIBU)</p>
         </div>
 
-        <div className="bg-white p-8 rounded-3xl shadow-xl w-full">
+        <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl w-full border border-gray-100 dark:border-slate-700/60">
             {!['forgot', 'magic_link'].includes(view) && (
-                <div className="flex bg-gray-100 p-1 rounded-xl mb-6">
-                    <button onClick={() => setView('login')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'login' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Connexion</button>
-                    <button onClick={() => setView('register')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'register' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Inscription</button>
+                <div className="flex bg-gray-100 dark:bg-slate-900 p-1 rounded-xl mb-6">
+                    <button onClick={() => setView('login')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'login' ? 'bg-white dark:bg-slate-800 shadow-sm text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'}`}>Connexion</button>
+                    <button onClick={() => setView('register')} className={`flex-1 py-2.5 text-sm font-bold rounded-lg transition ${view === 'register' ? 'bg-white dark:bg-slate-800 shadow-sm text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400'}`}>Inscription</button>
                 </div>
             )}
 
@@ -250,15 +246,15 @@ export default function AuthPage() {
                     <div className="w-12 h-12 bg-mustard/10 rounded-full flex items-center justify-center mx-auto mb-3 text-mustard">
                         <Wand2 size={24} />
                     </div>
-                    <h2 className="text-lg font-bold text-gray-900">Connexion sans mot de passe</h2>
-                    <p className="text-xs text-gray-500">Nous vous enverrons un lien magique.</p>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Connexion sans mot de passe</h2>
+                    <p className="text-xs text-gray-500 dark:text-slate-400">Nous vous enverrons un lien magique.</p>
                 </div>
             )}
 
             {view === 'forgot' && (
                 <div className="mb-6 text-center">
-                    <h2 className="text-lg font-bold text-gray-900">Réinitialisation</h2>
-                    <p className="text-xs text-gray-500">Entrez votre email pour changer de mot de passe.</p>
+                    <h2 className="text-lg font-bold text-gray-900 dark:text-slate-100">Réinitialisation</h2>
+                    <p className="text-xs text-gray-500 dark:text-slate-400">Entrez votre email pour changer de mot de passe.</p>
                 </div>
             )}
 
@@ -272,9 +268,9 @@ export default function AuthPage() {
                                   type="button" 
                                   aria-label="Ajouter une photo de profil"
                                   onClick={() => fileInputRef.current?.click()} 
-                                  className={`w-24 h-24 rounded-full bg-gray-100 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300'}`}
+                                  className={`w-24 h-24 rounded-full bg-gray-100 dark:bg-slate-900 border-2 border-dashed flex items-center justify-center cursor-pointer overflow-hidden group hover:border-mustard transition ${avatarPreview ? 'border-solid border-mustard' : 'border-gray-300 dark:border-slate-700'}`}
                                 >
-                                    {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-500 group-hover:text-mustard transition" size={32} />}
+                                    {avatarPreview ? <Image src={avatarPreview} alt="Aperçu" fill className="object-cover" /> : <Camera className="text-gray-500 dark:text-slate-400 group-hover:text-mustard transition" size={32} />}
                                 </button>
                                 {avatarPreview && (
                                   <button 
@@ -388,7 +384,7 @@ export default function AuthPage() {
                           type="button"
                           aria-label={showPassword ? "Masquer le mot de passe" : "Afficher le mot de passe"}
                           onClick={() => setShowPassword(!showPassword)}
-                          className="rounded-md p-1 text-gray-500 transition hover:text-gray-700"
+                          className="rounded-md p-1 text-gray-500 dark:text-slate-400 transition hover:text-gray-700 dark:hover:text-slate-200"
                         >
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </button>
@@ -407,21 +403,20 @@ export default function AuthPage() {
                 </UiButton>
             </form>
 
-            {/* --- BOUTON D'AUTHENTIFICATION GOOGLE --- */}
             {['login', 'register'].includes(view) && (
               <>
                 <div className="relative my-5 flex items-center justify-center">
                   <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200"></div>
+                    <div className="w-full border-t border-gray-200 dark:border-slate-700"></div>
                   </div>
-                  <span className="relative bg-white px-3 text-xs uppercase tracking-wider text-gray-500 font-semibold">ou</span>
+                  <span className="relative bg-white dark:bg-slate-800 px-3 text-xs uppercase tracking-wider text-gray-500 dark:text-slate-400 font-semibold">ou</span>
                 </div>
 
                 <button
                   type="button"
                   onClick={handleGoogleLogin}
                   disabled={loading}
-                  className="w-full flex items-center justify-center gap-3 bg-white border border-gray-200 text-gray-700 font-bold py-3.5 rounded-xl shadow-sm hover:bg-gray-50 transition transform active:scale-95 disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 font-bold py-3.5 rounded-xl shadow-sm hover:bg-gray-50 dark:hover:bg-slate-700 transition transform active:scale-95 disabled:opacity-50"
                 >
                   <svg className="w-5 h-5 min-w-5" viewBox="0 0 24 24">
                     <path
@@ -454,20 +449,19 @@ export default function AuthPage() {
                 )}
 
                 {view === 'login' ? (
-                    <button onClick={() => setView('forgot')} className="text-sm text-gray-600 underline">Mot de passe oublié ?</button>
+                    <button onClick={() => setView('forgot')} className="text-sm text-gray-600 dark:text-slate-400 underline">Mot de passe oublié ?</button>
                 ) : (view === 'forgot' || view === 'magic_link') && (
-                    <button onClick={() => setView('login')} className="text-sm text-gray-600 underline">Retour connexion</button>
+                    <button onClick={() => setView('login')} className="text-sm text-gray-600 dark:text-slate-400 underline">Retour connexion</button>
                 )}
             </div>
         </div>
 
-        {/* --- MENU PUBLIC EN BAS --- */}
         <div className="mt-8 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Link href="/" className="text-gray-500 text-sm hover:text-gray-900 font-bold transition">
+            <Link href="/" className="text-gray-500 dark:text-slate-400 text-sm hover:text-gray-900 dark:hover:text-slate-100 font-bold transition">
                 Continuer sans compte
             </Link>
 
-            <div className="flex items-center gap-4 text-[11px] font-bold text-gray-600 uppercase tracking-widest">
+            <div className="flex items-center gap-4 text-[11px] font-bold text-gray-600 dark:text-slate-400 uppercase tracking-widest">
                 <Link href="/pro" className="hover:text-brand transition">Vendeur Pro</Link>
                 <span>•</span>
                 <Link href="/faq" className="hover:text-brand transition">Aide</Link>

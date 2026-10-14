@@ -20,14 +20,11 @@ interface ProductCardProps {
   product: ProductCardData
   isPro?: boolean
   isBoosted?: boolean
-  /** Index dans la liste : les premieres cartes sont chargees en priorite (LCP). */
   index?: number
   onClick?: () => void
-  /** Element superpose en haut a droite de la photo (ex. bouton favori). */
   overlay?: ReactNode
 }
 
-/** Carte d'annonce unique pour toutes les grilles (accueil, favoris, profil...). */
 export default function ProductCard({ product, isPro = false, isBoosted = false, index = 99, onClick, overlay }: ProductCardProps) {
   const img = getFirstProductImage(product.images) || '/placeholder.webp'
 
@@ -35,9 +32,9 @@ export default function ProductCard({ product, isPro = false, isBoosted = false,
     <Link
       href={`/annonce/${product.id}`}
       onClick={onClick}
-      className="group flex flex-col bg-white rounded-card shadow-card border border-gray-100 overflow-hidden transition-all duration-base hover:-translate-y-0.5 hover:shadow-pop active:scale-[0.98]"
+      className="group flex flex-col bg-white dark:bg-slate-800/90 rounded-card shadow-card border border-gray-100 dark:border-slate-700/60 overflow-hidden transition-all duration-base hover:-translate-y-0.5 hover:shadow-pop active:scale-[0.98]"
     >
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+      <div className="relative aspect-square bg-gray-100 dark:bg-slate-900 overflow-hidden">
         <Image
           src={img}
           alt={product.title}
@@ -73,14 +70,14 @@ export default function ProductCard({ product, isPro = false, isBoosted = false,
       </div>
 
       <div className="p-3 flex flex-col flex-1">
-        <h3 className="font-display text-gray-900 text-sm font-bold line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
+        <h3 className="font-display text-gray-900 dark:text-slate-100 text-sm font-bold line-clamp-2 leading-tight mb-1 group-hover:text-brand transition-colors">
           {product.title}
         </h3>
         <div className="mt-auto flex flex-col gap-1">
-          <PriceTag price={product.price} className="text-brand-700 font-black text-base tracking-tight" />
+          <PriceTag price={product.price} className="text-brand-700 dark:text-emerald-400 font-black text-base tracking-tight" />
           {product.location_city ? (
-            <div className="flex items-center gap-1 text-gray-500 text-[11px] uppercase font-bold tracking-wide">
-              <MapPin size={11} className="text-gray-400" aria-hidden="true" /> {product.location_city}
+            <div className="flex items-center gap-1 text-gray-500 dark:text-slate-400 text-[11px] uppercase font-bold tracking-wide">
+              <MapPin size={11} className="text-gray-400 dark:text-slate-500" aria-hidden="true" /> {product.location_city}
             </div>
           ) : null}
         </div>

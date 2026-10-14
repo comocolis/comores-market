@@ -1,13 +1,11 @@
 'use client'
 
-
-
 import { createClient } from '@/utils/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
 import { 
-  Camera, Loader2, DollarSign, Type, X, ChevronLeft, Lock, Crown, 
+  Camera, Loader2, Type, X, ChevronLeft, Lock, Crown,
   Sparkles, ShieldCheck, GripHorizontal,
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
@@ -23,7 +21,6 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
-// AJOUT : Import du tracking analytics
 import { trackEvent } from '@/lib/analytics'
 import { rephraseText, moderateContent } from '@/lib/edge-functions'
 
@@ -59,7 +56,6 @@ interface FieldConfig {
 }
 
 const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
-    // === 1. VÉHICULES ===
     'Voitures': [
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: 'Ex: 2018' },
         { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: 'Ex: 85000' },
@@ -89,7 +85,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'compatibility', label: 'Compatible avec', icon: Wrench, type: 'text', placeholder: 'Ex: Toyota Yaris 2010...' }
     ],
 
-    // === 2. IMMOBILIER ===
     'Vente Maison': [
         { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '120' },
         { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '4' },
@@ -127,7 +122,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'location', label: 'Emplacement', icon: MapPin, type: 'select', options: ['Bord de route', 'Centre-ville', 'Quartier calme'] }
     ],
 
-    // === 3. MODE ===
     'Chaussures': [
         { key: 'size', label: 'Pointure', icon: Ruler, type: 'number', placeholder: '42' },
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Nike, Adidas...' },
@@ -143,14 +137,13 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
     ],
     'Mariage & Tradition': [
         { key: 'type', label: 'Type', icon: Star, type: 'select', options: ['Robe Mariée', 'Tenue Traditionnelle', 'Costume', 'Accessoires'] },
-        { key: 'rental', label: 'Location/Vente', icon: DollarSign, type: 'select', options: ['Vente', 'Location'] }
+        { key: 'rental', label: 'Location/Vente', icon: Star, type: 'select', options: ['Vente', 'Location'] }
     ],
     'Montres & Bijoux': [
         { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué', 'Fantaisie'] },
         { key: 'brand', label: 'Marque', icon: Watch, type: 'text', placeholder: 'Rolex, Seiko, Casio...' }
     ],
 
-    // === 4. TECH ===
     'Téléphones': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, Apple, Huawei...' },
         { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go', '512 Go', '1 To'] },
@@ -176,7 +169,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
     ],
 
-    // === 5. MAISON ===
     'Meubles': [
         { key: 'material', label: 'Matière', icon: Layers, type: 'text', placeholder: 'Bois rouge, Métal, Verre...' },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
@@ -190,7 +182,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'age', label: 'Âge', icon: Clock, type: 'text', placeholder: '2 mois, 1 an...' }
     ],
 
-    // === 6. LOISIRS ===
     'Instruments de musique': [
         { key: 'type', label: 'Instrument', icon: Music, type: 'text', placeholder: 'Guitare, Piano...' },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
@@ -204,10 +195,9 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'date', label: 'Départ prévu', icon: Calendar, type: 'text', placeholder: 'JJ/MM/AAAA' }
     ],
 
-    // === 7. ALIMENTATION ===
     'Fruits & Légumes': [
         { key: 'origin', label: 'Origine', icon: MapPin, type: 'select', options: ['Local (Comores)', 'Importé'] },
-        { key: 'unit', label: 'Vendu par', icon: DollarSign, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
+        { key: 'unit', label: 'Vendu par', icon: Star, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
     ],
     'Épices & Vanille': [
         { key: 'type', label: 'Produit', icon: Sparkles, type: 'text', placeholder: 'Vanille, Girofle, Poivre...' },
@@ -221,7 +211,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé', 'Séché'] }
     ],
 
-    // === 8. SERVICES ===
     'Cours & Formations': [
         { key: 'level', label: 'Niveau', icon: GraduationCap, type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'] },
         { key: 'mode', label: 'Format', icon: Layers, type: 'select', options: ['En ligne', 'Présentiel'] }
@@ -235,7 +224,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'zone', label: 'Zone', icon: MapPin, type: 'text', placeholder: 'Moroni, Toute l\'île...' }
     ],
 
-    // === 9. BEAUTÉ ===
     'Parfums': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Dior, Sauvage...' },
         { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile', 'Encens/Oud'] },
@@ -249,7 +237,6 @@ const SPECIFIC_FIELDS: Record<string, FieldConfig[]> = {
         { key: 'type', label: 'Prestation', icon: Sparkles, type: 'select', options: ['Pose Gel', 'Semi-permanent', 'Manucure simple'] }
     ],
 
-    // === 10. EMPLOI ===
     'Offres d\'emploi': [
         { key: 'contract', label: 'Contrat', icon: Briefcase, type: 'select', options: ['CDI', 'CDD', 'Stage', 'Freelance'] },
         { key: 'sector', label: 'Secteur', icon: Layers, type: 'text', placeholder: 'Commerce, BTP, Santé...' }
@@ -281,7 +268,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
         ref={handleSetNodeRef} 
         {...attributes} 
         {...listeners} 
-        className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+        className={`relative w-24 h-24 bg-gray-100 dark:bg-slate-800 rounded-2xl shrink-0 overflow-hidden border border-gray-200 dark:border-slate-700 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
       >
         <Image src={url} alt="Aperçu de l'image" fill className="object-cover pointer-events-none" />
         
@@ -313,7 +300,6 @@ export default function ModifierPage() {
   const [isRephrasing, setIsRephrasing] = useState(false) 
   
   const [images, setImages] = useState<{ id: string, url: string }[]>([])
-  
   const [isPro, setIsPro] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -323,18 +309,13 @@ export default function ModifierPage() {
     location_island: 'Ngazidja', location_city: '', whatsapp_number: ''
   })
 
-  // AJOUT : Gestion de l'option "Autre"
   const [customSubCat, setCustomSubCat] = useState('')
-
   const [specs, setSpecs] = useState<Record<string, string>>({})
 
-  // Reset de l'option perso si on change de catégorie
   useEffect(() => {
       setCustomSubCat('')
-      // On ne reset pas formData.sub_category ici car cela écraserait le chargement initial
   }, [formData.category_id])
 
-  // Capteurs Drag & Drop
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 8 } })
@@ -343,7 +324,6 @@ export default function ModifierPage() {
   const currentSubCats = SUB_CATEGORIES[parseInt(formData.category_id)] || []
   const currentSpecFields = (SPECIFIC_FIELDS && SPECIFIC_FIELDS[formData.sub_category]) || []
 
-  // 1. CHARGEMENT DES DONNÉES
   useEffect(() => {
     const loadData = async () => {
         if (!params.id) { router.replace('/mes-annonces'); return }
@@ -371,7 +351,6 @@ export default function ModifierPage() {
             return
         }
 
-        // LOGIQUE POUR DÉTECTER SI C'EST UNE SOUS-CATÉGORIE "AUTRE"
         const categoryId = product.category_id || '1';
         const existingSub = product.sub_category || '';
         const allowedSubs = SUB_CATEGORIES[parseInt(categoryId)] || [];
@@ -379,7 +358,6 @@ export default function ModifierPage() {
         let subCategoryToSet = existingSub;
         let customSubToSet = '';
 
-        // Si la sous-catégorie enregistrée n'est pas dans la liste officielle, c'est une perso
         if (existingSub && !allowedSubs.includes(existingSub)) {
             subCategoryToSet = 'Autre';
             customSubToSet = existingSub;
@@ -397,7 +375,6 @@ export default function ModifierPage() {
         })
         setCustomSubCat(customSubToSet);
 
-        // Gestion des images
         try {
             const rawImages = JSON.parse(product.images)
             if (Array.isArray(rawImages)) {
@@ -413,8 +390,6 @@ export default function ModifierPage() {
     loadData()
   }, [router, supabase, params.id])
 
-
-  // 2. LOGIQUE IMAGES
   const addWatermark = (file: File): Promise<Blob> => {
       return new Promise((resolve) => {
           const img = new window.Image();
@@ -459,8 +434,8 @@ export default function ModifierPage() {
     
     setUploading(true)
     try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error("Session expirée")
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Session expirée")
 
       const newImages: { id: string, url: string }[] = []
       
@@ -516,23 +491,23 @@ export default function ModifierPage() {
     setIsRephrasing(true)
     try {
       const data = await rephraseText(formData.description);
-            const rewrittenText = data?.rephrased || data?.text
+      const rewrittenText = data?.rephrased || data?.text
       
-            if (rewrittenText) {
-                let clean = rewrittenText;
-        clean = clean.split('**').join('');
-        clean = clean.split('#').join('');
-        clean = clean.normalize("NFC");
+      if (rewrittenText) {
+          let clean = rewrittenText;
+          clean = clean.split('**').join('');
+          clean = clean.split('#').join('');
+          clean = clean.normalize("NFC");
 
-        setFormData(prev => ({ ...prev, description: clean }))
-        toast.success("Texte sublimé !")
-            } else {
-                toast.error("Aucune reformulation reçue.")
+          setFormData(prev => ({ ...prev, description: clean }))
+          toast.success("Texte sublimé !")
+      } else {
+          toast.error("Aucune reformulation reçue.")
       }
-        } catch (err) {
-            console.error('Rephrase error:', err)
-            toast.error("Erreur reformulation.")
-        } finally { setIsRephrasing(false) }
+    } catch (err) {
+        console.error('Rephrase error:', err)
+        toast.error("Erreur reformulation.")
+    } finally { setIsRephrasing(false) }
   }
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -542,7 +517,6 @@ export default function ModifierPage() {
         return
     }
 
-    // --- GESTION SOUS-CATÉGORIE PERSO ---
     let finalSubCategory = formData.sub_category;
     if (finalSubCategory === 'Autre') {
         if (!customSubCat.trim()) {
@@ -571,7 +545,6 @@ export default function ModifierPage() {
           finalDescription += specsText;
       }
 
-      // MODÉRATION
       const check = await moderateContent(formData.title, finalDescription, formData.price);
 
       if (!check.is_safe) {
@@ -587,7 +560,7 @@ export default function ModifierPage() {
             price: formData.price,
             description: finalDescription,
             category_id: formData.category_id,
-            sub_category: finalSubCategory, // Utilisation de la valeur corrigée
+            sub_category: finalSubCategory,
             location_island: formData.location_island,
             location_city: formData.location_city,
             images: JSON.stringify(images.map(img => img.url)),
@@ -597,7 +570,6 @@ export default function ModifierPage() {
 
       if (error) throw error
 
-      // 📊 TRACKING : Envoi de l'événement de mise à jour à GA4
       trackEvent('listing_updated', {
           listing_id: params.id,
           title: formData.title,
@@ -616,15 +588,14 @@ export default function ModifierPage() {
     }
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand dark:text-emerald-400" /></div>
 
   return (
-    // BG TRANSPARENT
-    <div className="min-h-screen bg-transparent font-sans pb-24">
-      <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
-        <button aria-label="Retour" onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
-        <h1 className="font-extrabold text-xl text-gray-900">Modifier</h1>
-        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+    <div className="min-h-screen bg-transparent dark:bg-slate-900 font-sans pb-24 text-gray-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="bg-white dark:bg-slate-900 px-4 py-4 sticky top-0 z-30 shadow-sm border-b border-gray-100 dark:border-slate-800 flex items-center gap-3 pt-safe">
+        <button aria-label="Retour" onClick={() => router.back()} className="p-2 -ml-2 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition"><ChevronLeft size={24} /></button>
+        <h1 className="font-extrabold text-xl text-gray-900 dark:text-slate-100">Modifier</h1>
+        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">
             {isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}
             {images.length} / {isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT}
         </div>
@@ -634,14 +605,14 @@ export default function ModifierPage() {
             {/* 1. PHOTOS */}
             <div className="space-y-2">
                 <div className="flex justify-between items-end px-1">
-                    <label className="text-sm font-bold text-gray-700">Photos (Maintenez pour déplacer)</label>
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Photos (Maintenez pour déplacer)</label>
                 </div>
                 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x select-none">
-                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Ajouter une photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
-                                {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-500" />}
+                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Ajouter une photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 dark:bg-slate-800 border-gray-300 dark:border-slate-700 cursor-pointer active:scale-95 hover:bg-gray-200/50 dark:hover:bg-slate-700/50">
+                                {uploading ? <Loader2 className="animate-spin text-brand dark:text-emerald-400" /> : <Camera className="text-gray-500 dark:text-slate-400" />}
                             </button>
                             {images.map((img) => (
                                 <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
@@ -653,7 +624,7 @@ export default function ModifierPage() {
             </div>
 
             {/* 2. INFOS PRINCIPALES */}
-            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
+            <div className="bg-white dark:bg-slate-800/90 p-5 rounded-card shadow-card border border-gray-100 dark:border-slate-700/60 space-y-4">
                 <UiInput
                     label="Titre"
                     type="text"
@@ -690,23 +661,21 @@ export default function ModifierPage() {
                     </UiSelect>
                 </div>
 
-                {/* CHAMP MAGIQUE "AUTRE" */}
                 {formData.sub_category === 'Autre' && (
                     <UiInput
                         wrapperClassName="animate-in slide-in-from-top-2 fade-in"
                         label="Précisez la sous-catégorie"
                         type="text"
-                        startAdornment={<PenTool size={18} className="text-brand" aria-hidden="true" />}
+                        startAdornment={<PenTool size={18} className="text-brand dark:text-emerald-400" aria-hidden="true" />}
                         placeholder="Ex: Drone, Tondeuse..."
                         value={customSubCat}
                         onChange={e => setCustomSubCat(e.target.value)}
                     />
                 )}
 
-                {/* 3. CHAMPS INTELLIGENTS DYNAMIQUES */}
                 {currentSpecFields.length > 0 && formData.sub_category !== 'Autre' && (
-                    <div className="animate-in slide-in-from-top-2 fade-in pt-4 border-t border-dashed border-gray-200 mt-2">
-                        <p className="text-xs font-black text-brand-700 uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
+                    <div className="animate-in slide-in-from-top-2 fade-in pt-4 border-t border-dashed border-gray-200 dark:border-slate-700 mt-2">
+                        <p className="text-xs font-black text-brand-700 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
                         <div className="grid grid-cols-2 gap-3">
                             {currentSpecFields.map((field) => {
                                 const wrapperClassName = field.key === 'fuel' || field.key === 'storage' ? 'col-span-2' : ''
@@ -743,7 +712,7 @@ export default function ModifierPage() {
             </div>
 
             {/* 4. LOCALISATION */}
-            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
+            <div className="bg-white dark:bg-slate-800/90 p-5 rounded-card shadow-card border border-gray-100 dark:border-slate-700/60 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <UiSelect
                         label="Île"
@@ -768,8 +737,8 @@ export default function ModifierPage() {
             {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
-                    <label htmlFor="listing-description" className="text-xs font-bold text-gray-700 uppercase tracking-wide">Description</label>
-                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Améliorer la description avec l'IA" className="flex items-center gap-1 text-[10px] font-black text-blue-700 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95 disabled:opacity-60">
+                    <label htmlFor="listing-description" className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide">Description</label>
+                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Améliorer la description avec l'IA" className="flex items-center gap-1 text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-900/50 transition-all active:scale-95 disabled:opacity-60">
                         {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
                         Sublimer
                     </button>

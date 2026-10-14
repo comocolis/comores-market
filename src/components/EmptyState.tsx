@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { LucideIcon } from 'lucide-react'
+import { LucideIcon, Heart, Search, ShoppingBag, MessageSquare, Bell, Star, Package } from 'lucide-react'
 
 interface EmptyStateProps {
   icon: LucideIcon
@@ -22,20 +22,16 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, action, secondaryAction }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
-      {/* Animated Icon Container */}
-      <div className="mb-6 p-6 bg-brand/5 rounded-full border-2 border-brand/10 shadow-lg shadow-brand/5 animate-bounce">
-        <Icon size={48} className="text-brand opacity-60" />
+      <div className="mb-6 p-6 bg-brand/5 dark:bg-brand/10 rounded-full border-2 border-brand/10 dark:border-brand/20 shadow-lg shadow-brand/5 animate-bounce">
+        <Icon size={48} className="text-brand dark:text-emerald-400 opacity-80" />
       </div>
 
-      {/* Title */}
-      <h3 className="text-xl font-black text-gray-900 mb-2 tracking-tight">{title}</h3>
+      <h3 className="text-xl font-black text-gray-900 dark:text-slate-100 mb-2 tracking-tight">{title}</h3>
 
-      {/* Description */}
       {description && (
-        <p className="text-sm text-gray-500 mb-6 max-w-sm leading-relaxed">{description}</p>
+        <p className="text-sm text-gray-500 dark:text-slate-400 mb-6 max-w-sm leading-relaxed">{description}</p>
       )}
 
-      {/* Actions */}
       <div className="flex flex-col gap-3 w-full max-w-xs">
         {action && (
           action.href ? (
@@ -51,11 +47,11 @@ export function EmptyState({ icon: Icon, title, description, action, secondaryAc
 
         {secondaryAction && (
           secondaryAction.href ? (
-            <Link href={secondaryAction.href} aria-label={secondaryAction.label} className="w-full bg-gray-100 text-gray-700 font-bold py-3 px-6 rounded-2xl hover:bg-gray-200 active:scale-95 transition">
+            <Link href={secondaryAction.href} aria-label={secondaryAction.label} className="w-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 font-bold py-3 px-6 rounded-2xl hover:bg-gray-200 dark:hover:bg-slate-700 active:scale-95 transition">
               {secondaryAction.label}
             </Link>
           ) : (
-            <button onClick={secondaryAction.onClick} aria-label={secondaryAction.label} className="w-full bg-gray-100 text-gray-700 font-bold py-3 px-6 rounded-2xl hover:bg-gray-200 active:scale-95 transition">
+            <button onClick={secondaryAction.onClick} aria-label={secondaryAction.label} className="w-full bg-gray-100 dark:bg-slate-800 text-gray-700 dark:text-slate-200 font-bold py-3 px-6 rounded-2xl hover:bg-gray-200 dark:hover:bg-slate-700 active:scale-95 transition">
               {secondaryAction.label}
             </button>
           )
@@ -144,9 +140,6 @@ export function EmptyStateReviews() {
     />
   )
 }
-
-// Import icons for empty states
-import { Heart, Search, ShoppingBag, MessageSquare, Bell, Star, Package } from 'lucide-react'
 
 export function EmptyStateDefault({ title = "Aucun résultat", description = "Essayez une autre recherche" }: { title?: string; description?: string }) {
   return (

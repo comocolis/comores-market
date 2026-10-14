@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
-  Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, CheckCircle, XCircle, Shield, ShieldAlert,
+  Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, XCircle, Shield, ShieldAlert,
   Send, MessageSquare, Mail, Inbox
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -14,7 +14,6 @@ import Link from 'next/link'
 import { UiInput } from '@/components/ui'
 import { generatePROReceipt } from '@/utils/generateReceipt'
 
-// Extracted sorting logic for reuse
 const sortProducts = (items: any[]) => {
   return [...items].sort((a: any, b: any) => {
     const now = new Date().getTime()
@@ -46,13 +45,11 @@ function AdminContent() {
   const currentTab = searchParams.get('tab')
   const [activeTab, setActiveTab] = useState(currentTab || 'dashboard')
   
-  // STATS
-  const [stats, setStats] = useState({ 
+  const [stats, setStats] = useState({
     users: 0, products: 0, pro: 0, banned: 0, reports: 0, reviews: 0, boosted: 0, lowQuality: 0, admins: 0,
     messages: 0
   })
 
-  // DONNÉES
   const [users, setUsers] = useState<any[]>([])
   const [products, setProducts] = useState<any[]>([])
   const [reports, setReports] = useState<any[]>([])
@@ -60,7 +57,6 @@ function AdminContent() {
   const [contactMessages, setContactMessages] = useState<any[]>([]) 
   const [searchTerm, setSearchTerm] = useState('')
 
-  // ETATS MESSAGERIE ADMIN (OUTGOING)
   const [targetId, setTargetId] = useState('')
   const [adminMsg, setAdminMsg] = useState('')
   const [sendingMsg, setSendingMsg] = useState(false)
@@ -102,7 +98,6 @@ function AdminContent() {
 
   const fetchData = async () => {
     try {
-        // Parallel fetching
         const [profilesRes, productsRes, reportsRes, reviewsRes, messagesRes] = await Promise.all([
             supabase.from('profiles').select('*').order('created_at', { ascending: false }),
             supabase.from('products').select('*, profiles(full_name, email)').order('created_at', { ascending: false }),
@@ -112,21 +107,11 @@ function AdminContent() {
         ])
 
         if (profilesRes.data) setUsers(profilesRes.data)
-        else console.error("Users error:", profilesRes.error)
-
-        if (productsRes.data) {
-            // Client-side Sort: Boosted > PRO > Date
-            setProducts(sortProducts(productsRes.data))
-        } else {
-            console.error("Products error:", productsRes.error)
-            toast.error("Erreur chargement produits")
-        }
-
+        if (productsRes.data) setProducts(sortProducts(productsRes.data))
         if (reportsRes.data) setReports(reportsRes.data)
         if (reviewsRes.data) setReviewsList(reviewsRes.data)
         if (messagesRes.data) setContactMessages(messagesRes.data)
 
-        // STATS
         if (profilesRes.data && productsRes.data) {
              const now = new Date()
              setStats({
@@ -152,8 +137,6 @@ function AdminContent() {
   }
   const closeConfirm = () => setConfirmModal({ ...confirmModal, isOpen: false })
   const executeAction = async (actionFn: () => Promise<void>) => { await actionFn(); closeConfirm() }
-
-  // --- ACTIONS ---
 
   const sendAdminMessage = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -221,7 +204,6 @@ function AdminContent() {
         newDate = now.toISOString()
     }
     
-    // OPTIMISTIC UPDATE
     const tempProducts = products.map(p => p.id === productId ? { ...p, boosted_until: newDate } : p)
     setProducts(sortProducts(tempProducts))
     setStats(prev => ({ ...prev, boosted: isCurrentlyBoosted ? Math.max(0, prev.boosted - 1) : prev.boosted + 1 }))
@@ -229,13 +211,11 @@ function AdminContent() {
     const { error } = await supabase.from('products').update({ boosted_until: newDate }).eq('id', productId)
     if (error) { 
         toast.error("Erreur serveur, annulation...")
-        fetchData() // Revert on error
+        fetchData()
     } else {
         toast.success(isCurrentlyBoosted ? "Boost retiré" : "Boost activé pour 24h")
     }
   }
-
-
 
   const addSubscriptionTime = async (userId: string, months: number, currentEndDate: string | null) => {
     const now = new Date()
@@ -299,17 +279,17 @@ function AdminContent() {
       return getDaysRemaining(dateString) > 40 ? "Abonnement Annuel" : "Abonnement Mensuel"
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-900"><Loader2 className="animate-spin text-brand dark:text-emerald-400" /></div>
 
   return (
-    <div className="min-h-screen bg-gray-100 font-sans pb-20">
+    <div className="min-h-screen bg-gray-100 dark:bg-slate-900 font-sans pb-20 text-gray-900 dark:text-slate-100 transition-colors duration-200">
       {confirmModal.isOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={closeConfirm}>
-            <div className={`bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4 ${confirmModal.isDanger ? 'border-t-red-500' : 'border-t-blue-500'}`} onClick={e => e.stopPropagation()}>
-                <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2"><AlertTriangle className={confirmModal.isDanger ? "text-red-500" : "text-blue-500"} /> {confirmModal.title}</h3>
-                <p className="text-sm text-gray-500">{confirmModal.message}</p>
+            <div className={`bg-white dark:bg-slate-800 w-full max-w-sm rounded-2xl shadow-2xl p-6 space-y-4 border-t-4 ${confirmModal.isDanger ? 'border-t-red-500' : 'border-t-blue-500'}`} onClick={e => e.stopPropagation()}>
+                <h3 className="font-bold text-lg text-gray-900 dark:text-slate-100 flex items-center gap-2"><AlertTriangle className={confirmModal.isDanger ? "text-red-500" : "text-blue-500"} /> {confirmModal.title}</h3>
+                <p className="text-sm text-gray-500 dark:text-slate-400">{confirmModal.message}</p>
                 <div className="flex gap-3 pt-2">
-                    <button onClick={closeConfirm} aria-label="Annuler l'action" className="flex-1 py-3 rounded-xl font-bold text-gray-600 bg-gray-100">Annuler</button>
+                    <button onClick={closeConfirm} aria-label="Annuler l'action" className="flex-1 py-3 rounded-xl font-bold text-gray-600 dark:text-slate-300 bg-gray-100 dark:bg-slate-700">Annuler</button>
                     <button onClick={() => executeAction(async () => confirmModal.action())} aria-label="Confirmer l'action" className={`flex-1 py-3 rounded-xl font-bold text-white shadow-lg ${confirmModal.isDanger ? 'bg-red-600' : 'bg-blue-600'}`}>Confirmer</button>
                 </div>
             </div>
@@ -317,7 +297,7 @@ function AdminContent() {
       )}
 
       {/* HEADER */}
-      <div className="bg-gray-900 text-white p-6 pt-safe shadow-lg">
+      <div className="bg-gray-900 dark:bg-slate-950 text-white p-6 pt-safe shadow-lg">
         <div className="flex justify-between items-center mb-6">
             <div>
                 <h1 className="text-2xl font-bold flex items-center gap-2 tracking-tighter">
@@ -339,45 +319,41 @@ function AdminContent() {
       </div>
 
       <div className="p-4">
-        {/* DASHBOARD */}
         {activeTab === 'dashboard' && (
             <div className="space-y-6 animate-in slide-in-from-bottom-2">
                 <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.users}</p><p className="text-xs text-gray-500 font-bold uppercase">Utilisateurs</p></div>
-                    <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100"><div className="bg-green-100 w-10 h-10 rounded-full flex items-center justify-center text-green-600 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900">{stats.products}</p><p className="text-xs text-gray-500 font-bold uppercase">Annonces</p></div>
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/60"><div className="bg-blue-100 dark:bg-blue-950/50 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3"><Users size={20} /></div><p className="text-2xl font-extrabold text-gray-900 dark:text-slate-100">{stats.users}</p><p className="text-xs text-gray-500 dark:text-slate-400 font-bold uppercase">Utilisateurs</p></div>
+                    <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/60"><div className="bg-green-100 dark:bg-emerald-950/50 w-10 h-10 rounded-full flex items-center justify-center text-green-600 dark:text-emerald-400 mb-3"><ShoppingBag size={20} /></div><p className="text-2xl font-extrabold text-gray-900 dark:text-slate-100">{stats.products}</p><p className="text-xs text-gray-500 dark:text-slate-400 font-bold uppercase">Annonces</p></div>
                     
-                    {/* ✅ CARTE MESSAGES PLEINE LARGEUR */}
-                    <div className="col-span-2 bg-purple-50 p-5 rounded-2xl shadow-sm border border-purple-100 flex items-center justify-between">
+                    <div className="col-span-2 bg-purple-50 dark:bg-purple-950/30 p-5 rounded-2xl shadow-sm border border-purple-100 dark:border-purple-900/40 flex items-center justify-between">
                         <div>
-                            <div className="bg-purple-100 w-10 h-10 rounded-full flex items-center justify-center text-purple-600 mb-2"><Inbox size={20} /></div>
-                            <p className="text-xs text-purple-600 font-bold uppercase">Boîte de réception</p>
+                            <div className="bg-purple-100 dark:bg-purple-900/50 w-10 h-10 rounded-full flex items-center justify-center text-purple-600 dark:text-purple-300 mb-2"><Inbox size={20} /></div>
+                            <p className="text-xs text-purple-600 dark:text-purple-300 font-bold uppercase">Boîte de réception</p>
                         </div>
-                        <p className="text-4xl font-extrabold text-purple-600">{stats.messages}</p>
+                        <p className="text-4xl font-extrabold text-purple-600 dark:text-purple-300">{stats.messages}</p>
                     </div>
 
-                    {/* ✅ CARTE PRO RÉINSÉRÉE */}
-                    <div className="p-5 rounded-2xl shadow-sm border border-amber-200 bg-amber-50/30">
-                        <div className="bg-amber-100 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 mb-3"><Crown size={20} /></div>
-                        <p className="text-2xl font-extrabold text-amber-600">{stats.pro}</p>
-                        <p className="text-xs text-gray-500 font-bold uppercase">Comptes Élite</p>
+                    <div className="p-5 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/20">
+                        <div className="bg-amber-100 dark:bg-amber-950/50 w-10 h-10 rounded-full flex items-center justify-center text-amber-600 dark:text-amber-400 mb-3"><Crown size={20} /></div>
+                        <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">{stats.pro}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 font-bold uppercase">Comptes Élite</p>
                     </div>
 
                     {currentUserRole === 'super_admin' ? (
-                        <div className="p-5 rounded-2xl shadow-sm border border-blue-200 bg-blue-50/30"><div className="bg-blue-100 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 mb-3"><Shield size={20} /></div><p className="text-2xl font-extrabold text-blue-600">{stats.admins}</p><p className="text-xs text-gray-500 font-bold uppercase">Admins</p></div>
+                        <div className="p-5 rounded-2xl shadow-sm border border-blue-200 dark:border-blue-900/40 bg-blue-50/30 dark:bg-blue-950/20"><div className="bg-blue-100 dark:bg-blue-950/50 w-10 h-10 rounded-full flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3"><Shield size={20} /></div><p className="text-2xl font-extrabold text-blue-600 dark:text-blue-400">{stats.admins}</p><p className="text-xs text-gray-500 dark:text-slate-400 font-bold uppercase">Admins</p></div>
                     ) : (
-                        <div className="p-5 rounded-2xl shadow-sm border border-red-200 bg-red-50/30"><div className="bg-red-100 w-10 h-10 rounded-full flex items-center justify-center text-red-600 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600">{stats.lowQuality}</p><p className="text-xs text-gray-500 font-bold uppercase">Qualité Faible</p></div>
+                        <div className="p-5 rounded-2xl shadow-sm border border-red-200 dark:border-red-900/40 bg-red-50/30 dark:bg-red-950/20"><div className="bg-red-100 dark:bg-red-950/50 w-10 h-10 rounded-full flex items-center justify-center text-red-600 dark:text-red-400 mb-3"><AlertTriangle size={20} /></div><p className="text-2xl font-extrabold text-red-600 dark:text-red-400">{stats.lowQuality}</p><p className="text-xs text-gray-500 dark:text-slate-400 font-bold uppercase">Qualité Faible</p></div>
                     )}
                 </div>
                 
-                {/* BLOC MESSAGERIE OUTGOING */}
-                <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-                    <h2 className="text-sm font-black text-gray-800 uppercase tracking-widest flex items-center gap-2 mb-4"><MessageSquare className="text-brand" size={16} /> Envoyer un Message</h2>
+                <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/60">
+                    <h2 className="text-sm font-black text-gray-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2 mb-4"><MessageSquare className="text-brand dark:text-emerald-400" size={16} /> Envoyer un Message</h2>
                     <form onSubmit={sendAdminMessage} className="space-y-3">
                         <div className="flex flex-col gap-2 sm:flex-row">
                             <UiInput id="admin-target-id" type="text" aria-label="ID Utilisateur" placeholder="ID Utilisateur (UUID)..." value={targetId} onChange={e => setTargetId(e.target.value)} wrapperClassName="sm:w-1/3!" className="font-mono text-sm"/>
                             <UiInput id="admin-message" type="text" aria-label="Message système" placeholder="Message système..." value={adminMsg} onChange={e => setAdminMsg(e.target.value)} wrapperClassName="sm:flex-1"/>
                         </div>
-                        <button disabled={sendingMsg} type="submit" aria-label="Envoyer le message" className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition">{sendingMsg ? <Loader2 size={16} className="animate-spin"/> : <><Send size={16}/> Envoyer</>}</button>
+                        <button disabled={sendingMsg} type="submit" aria-label="Envoyer le message" className="w-full bg-gray-900 dark:bg-brand text-white font-bold py-3 rounded-xl flex items-center justify-center gap-2 hover:bg-black transition">{sendingMsg ? <Loader2 size={16} className="animate-spin"/> : <><Send size={16}/> Envoyer</>}</button>
                     </form>
                 </div>
             </div>
@@ -386,29 +362,28 @@ function AdminContent() {
         {/* MESSAGES REÇUS */}
         {activeTab === 'messages' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                <h2 className="text-lg font-bold text-gray-800 px-2">Boîte de réception ({contactMessages.length})</h2>
-                {contactMessages.length === 0 ? <div className="text-center py-10 text-gray-500 font-medium">Aucun message reçu.</div> : contactMessages.map(msg => (
-                    <div key={msg.id} className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-lg font-bold text-gray-800 dark:text-slate-100 px-2">Boîte de réception ({contactMessages.length})</h2>
+                {contactMessages.length === 0 ? <div className="text-center py-10 text-gray-500 dark:text-slate-400 font-medium">Aucun message reçu.</div> : contactMessages.map(msg => (
+                    <div key={msg.id} className="bg-white dark:bg-slate-800 p-5 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/60">
                         <div className="flex justify-between items-start mb-2">
                              <div className="flex items-center gap-2">
-                                <div className="bg-purple-100 p-2 rounded-full text-purple-600"><Mail size={16} /></div>
+                                <div className="bg-purple-100 dark:bg-purple-950/50 p-2 rounded-full text-purple-600 dark:text-purple-300"><Mail size={16} /></div>
                                 <div>
-                                    <p className="font-bold text-sm text-gray-900">{msg.name}</p>
-                                    <p className="text-xs text-gray-500">{msg.email}</p>
+                                    <p className="font-bold text-sm text-gray-900 dark:text-slate-100">{msg.name}</p>
+                                    <p className="text-xs text-gray-500 dark:text-slate-400">{msg.email}</p>
                                 </div>
                              </div>
-                             <span className="text-[10px] bg-gray-100 text-gray-500 px-2 py-1 rounded font-bold">{new Date(msg.created_at).toLocaleDateString()}</span>
+                             <span className="text-[10px] bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 px-2 py-1 rounded font-bold">{new Date(msg.created_at).toLocaleDateString()}</span>
                         </div>
                         <div className="mt-3">
-                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase mb-1 inline-block ${msg.subject === 'data_deletion' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'}`}>
+                            <span className={`text-[10px] font-black px-2 py-0.5 rounded uppercase mb-1 inline-block ${msg.subject === 'data_deletion' ? 'bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300'}`}>
                                 {msg.subject === 'data_deletion' ? 'SUPPRESSION DONNÉES' : msg.subject}
                             </span>
-                            {/* ✅ CORRECTION CSS : break-all */}
-                            <p className="text-sm text-gray-700 mt-1 bg-gray-50 p-3 rounded-lg border border-gray-50 italic break-all">"{msg.message}"</p>
+                            <p className="text-sm text-gray-700 dark:text-slate-300 mt-1 bg-gray-50 dark:bg-slate-900/50 p-3 rounded-lg border border-gray-50 dark:border-slate-700/50 italic break-all">"{msg.message}"</p>
                         </div>
-                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
-                            <a href={`mailto:${msg.email}`} aria-label={`Répondre à ${msg.name}`} className="text-xs bg-blue-50 text-blue-600 px-3 py-2 rounded-lg font-bold hover:bg-blue-100 flex items-center gap-1"><Send size={12}/> Répondre</a>
-                            <button onClick={() => askConfirm("Supprimer ce message ?", "Irréversible.", () => deleteContactMessage(msg.id))} aria-label="Supprimer ce message" className="text-xs bg-red-50 text-red-600 px-3 py-2 rounded-lg font-bold hover:bg-red-100 flex items-center gap-1"><Trash2 size={12}/> Supprimer</button>
+                        <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50 dark:border-slate-700/50">
+                            <a href={`mailto:${msg.email}`} aria-label={`Répondre à ${msg.name}`} className="text-xs bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 px-3 py-2 rounded-lg font-bold hover:bg-blue-100 dark:hover:bg-blue-900/50 flex items-center gap-1"><Send size={12}/> Répondre</a>
+                            <button onClick={() => askConfirm("Supprimer ce message ?", "Irréversible.", () => deleteContactMessage(msg.id))} aria-label="Supprimer ce message" className="text-xs bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg font-bold hover:bg-red-100 dark:hover:bg-red-900/50 flex items-center gap-1"><Trash2 size={12}/> Supprimer</button>
                         </div>
                     </div>
                 ))}
@@ -422,26 +397,26 @@ function AdminContent() {
                 {users.filter(u => (u.full_name?.toLowerCase() || '').includes(searchTerm.toLowerCase())).map(u => {
                     const daysLeft = getDaysRemaining(u.subscription_end_date); const isProActive = u.is_pro && daysLeft > 0; const subType = getSubscriptionType(u.subscription_end_date);
                     return (
-                        <div key={u.id} className={`p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 bg-red-50' : 'bg-white border-gray-100'}`}>
+                        <div key={u.id} className={`p-4 rounded-xl shadow-sm border ${u.is_banned ? 'border-red-300 dark:border-red-900/60 bg-red-50 dark:bg-red-950/30' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/60'}`}>
                             <div className="flex items-center justify-between mb-3 gap-3">
                                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                                    <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500 shrink-0">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
+                                    <div className="w-10 h-10 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500 dark:text-slate-400 shrink-0">{u.avatar_url ? <Image src={u.avatar_url} alt="" width={40} height={40} /> : u.full_name?.[0]}</div>
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-bold text-sm text-gray-900 flex items-center gap-1 truncate">{u.full_name} {isProActive && <Crown size={12} className="text-amber-500 shrink-0" />}</p>
-                                        <p className="text-[10px] text-gray-500 font-bold flex items-center gap-2 truncate">{u.email} <button onClick={() => {setTargetId(u.id); setActiveTab('dashboard'); toast.info("ID copié")}} aria-label={`Envoyer un message à ${u.full_name}`} className="text-blue-500 hover:underline cursor-pointer shrink-0">Message</button></p>
+                                        <p className="font-bold text-sm text-gray-900 dark:text-slate-100 flex items-center gap-1 truncate">{u.full_name} {isProActive && <Crown size={12} className="text-amber-500 shrink-0" />}</p>
+                                        <p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold flex items-center gap-2 truncate">{u.email} <button onClick={() => {setTargetId(u.id); setActiveTab('dashboard'); toast.info("ID copié")}} aria-label={`Envoyer un message à ${u.full_name}`} className="text-blue-500 dark:text-blue-400 hover:underline cursor-pointer shrink-0">Message</button></p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2 shrink-0">
-                                    {isProActive && (<button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString(), description: subType })} aria-label="Générer facture" className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl border border-emerald-100 transition shadow-sm"><FileText size={18} /></button>)}
-                                    {currentUserRole === 'super_admin' && u.id !== currentUserId && (<button onClick={() => toggleAdminRole(u.id, u.role)} aria-label="Gérer droits admin" className={`p-2.5 rounded-xl border transition shadow-sm ${u.role === 'admin' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-gray-100 text-gray-500 border-gray-200'}`}><ShieldAlert size={18} /></button>)}
-                                    {currentUserRole === 'super_admin' && u.id !== currentUserId && (<button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Irréversible.", () => deleteUserAccount(u.id))} aria-label="Supprimer utilisateur" className="p-2.5 bg-red-50 text-red-600 rounded-xl border border-red-100 transition hover:bg-red-100"><Trash2 size={18} /></button>)}
+                                    {isProActive && (<button onClick={() => generatePROReceipt({ full_name: u.full_name, email: u.email, date: new Date().toISOString(), description: subType })} aria-label="Générer facture" className="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl border border-emerald-100 dark:border-emerald-900/50 transition shadow-sm"><FileText size={18} /></button>)}
+                                    {currentUserRole === 'super_admin' && u.id !== currentUserId && (<button onClick={() => toggleAdminRole(u.id, u.role)} aria-label="Gérer droits admin" className={`p-2.5 rounded-xl border transition shadow-sm ${u.role === 'admin' ? 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 border-blue-200' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400 border-gray-200'}`}><ShieldAlert size={18} /></button>)}
+                                    {currentUserRole === 'super_admin' && u.id !== currentUserId && (<button onClick={() => askConfirm("Supprimer DÉFINITIVEMENT ?", "Irréversible.", () => deleteUserAccount(u.id))} aria-label="Supprimer utilisateur" className="p-2.5 bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 rounded-xl border border-red-100 dark:border-red-900/50 transition hover:bg-red-100"><Trash2 size={18} /></button>)}
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} aria-label="Ajouter 1 mois" className="bg-gray-900 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
+                                <button onClick={() => addSubscriptionTime(u.id, 1, u.subscription_end_date)} aria-label="Ajouter 1 mois" className="bg-gray-900 dark:bg-brand text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 Mois</button>
                                 <button onClick={() => addSubscriptionTime(u.id, 12, u.subscription_end_date)} aria-label="Ajouter 1 an" className="bg-amber-500 text-white py-1.5 rounded-lg text-[10px] font-black uppercase">+1 An</button>
-                                <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} aria-label="Arrêter abonnement" className="bg-gray-100 text-gray-600 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>
-                                <button onClick={() => toggleBanUser(u.id, u.is_banned)} aria-label={u.is_banned ? "Débannir" : "Bannir"} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 text-green-700' : 'bg-red-50 text-red-600'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
+                                <button onClick={() => askConfirm("Arrêter ?", "L'utilisateur redeviendra particulier.", () => stopSubscription(u.id))} aria-label="Arrêter abonnement" className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 py-1.5 rounded-lg text-[10px] font-black uppercase">Stop</button>
+                                <button onClick={() => toggleBanUser(u.id, u.is_banned)} aria-label={u.is_banned ? "Débannir" : "Bannir"} className={`py-1.5 rounded-lg text-[10px] font-black uppercase border ${u.is_banned ? 'bg-green-100 dark:bg-emerald-950/50 text-green-700 dark:text-emerald-400' : 'bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400'}`}>{u.is_banned ? 'Unlock' : 'Ban'}</button>
                             </div>
                         </div>
                     )
@@ -456,19 +431,19 @@ function AdminContent() {
                     let img = null; try { img = JSON.parse(p.images)[0] } catch {}
                     const isBoosted = p.boosted_until && new Date(p.boosted_until) > new Date()
                     return (
-                        <div key={p.id} className={`p-3 rounded-2xl shadow-sm border transition-all ${isBoosted ? 'border-amber-400 bg-amber-50/20' : 'bg-white border-gray-100'}`}>
+                        <div key={p.id} className={`p-3 rounded-2xl shadow-sm border transition-all ${isBoosted ? 'border-amber-400 bg-amber-50/20 dark:bg-amber-950/20' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/60'}`}>
                             <div className="flex gap-3 mb-3">
-                                <div className="w-16 h-16 bg-gray-100 rounded-xl shrink-0 relative overflow-hidden">{img && <Image src={img} alt="" fill className="object-cover" />}</div>
+                                <div className="w-16 h-16 bg-gray-100 dark:bg-slate-900 rounded-xl shrink-0 relative overflow-hidden">{img && <Image src={img} alt="" fill className="object-cover" />}</div>
                                 <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2"><p className="font-bold text-sm text-gray-900 truncate">{p.title}</p> <span className="text-[10px] font-bold bg-gray-100 px-2 rounded">Score: {p.quality_score}/10</span></div>
-                                    <p className="text-[10px] text-gray-500 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
-                                    <p className="text-amber-600 font-black text-xs mt-1">{p.price} FC</p>
+                                    <div className="flex items-center gap-2"><p className="font-bold text-sm text-gray-900 dark:text-slate-100 truncate">{p.title}</p> <span className="text-[10px] font-bold bg-gray-100 dark:bg-slate-700 px-2 rounded">Score: {p.quality_score}/10</span></div>
+                                    <p className="text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase mt-1"><MapPin size={10} className="inline"/> {p.location_island}</p>
+                                    <p className="text-amber-600 dark:text-amber-400 font-black text-xs mt-1">{p.price} FC</p>
                                 </div>
-                                <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} aria-label={`Supprimer l'annonce ${p.title}`} className="text-red-500 p-2 rounded-lg hover:bg-red-50"><Trash2 size={18} /></button>
+                                <button onClick={() => askConfirm("Supprimer ?", "Irréversible.", () => deleteProduct(p.id))} aria-label={`Supprimer l'annonce ${p.title}`} className="text-red-500 p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-950/40"><Trash2 size={18} /></button>
                             </div>
-                            <div className="flex gap-2 border-t border-gray-100 pt-3 mt-2">
-                                <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 text-gray-500' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
-                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 text-gray-500 p-3 rounded-xl border hover:bg-gray-100"><Search size={16}/></Link>
+                            <div className="flex gap-2 border-t border-gray-100 dark:border-slate-700/50 pt-3 mt-2">
+                                <button onClick={() => toggleBoost(p.id, isBoosted)} aria-label={isBoosted ? "Arrêter le boost" : "Booster l'annonce"} className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-xl text-[10px] font-black uppercase ${isBoosted ? 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-300' : 'bg-amber-500 text-white'}`}><Zap size={12}/> {isBoosted ? 'Retirer Boost' : 'Booster 24h'}</button>
+                                <Link href={`/annonce/${p.id}`} target="_blank" aria-label={`Voir l'annonce ${p.title}`} className="bg-gray-50 dark:bg-slate-700 text-gray-500 dark:text-slate-300 p-3 rounded-xl border dark:border-slate-600 hover:bg-gray-100 dark:hover:bg-slate-600"><Search size={16}/></Link>
                             </div>
                         </div>
                     )
@@ -480,13 +455,13 @@ function AdminContent() {
         {activeTab === 'reports' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
                 {reports.map(r => (
-                    <div key={r.id} className={`p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 bg-red-50/50' : 'bg-white border-gray-100 opacity-60'}`}>
-                        <div className="flex justify-between items-start mb-2"><span className={`text-[10px] font-black px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'}`}>{r.status}</span><span className="text-[10px] text-gray-500 font-bold">{new Date(r.created_at).toLocaleDateString()}</span></div>
-                        <p className="text-sm font-bold text-gray-900 mb-2">Motif : <span className="text-red-600">"{r.reason}"</span></p>
-                        <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 mt-2">
-                            <button onClick={() => deleteReportOnly(r.id)} aria-label="Supprimer signalement" className="bg-gray-100 text-gray-600 p-2 rounded-lg hover:bg-gray-200"><Trash2 size={16}/></button>
-                            {r.product && <button onClick={() => askConfirm("Supprimer L'ANNONCE ?", "Irréversible.", () => deleteProduct(r.product_id))} aria-label="Supprimer l'annonce signalée" className="text-[10px] bg-red-100 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"><XCircle size={14}/> Supprimer l'annonce</button>}
-                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} aria-label="Marquer comme traité" className="text-[10px] bg-gray-800 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"><CheckCircle size={14}/> Traité</button>}
+                    <div key={r.id} className={`p-4 rounded-xl shadow-sm border ${r.status === 'pending' ? 'border-red-200 dark:border-red-900/60 bg-red-50/50 dark:bg-red-950/30' : 'bg-white dark:bg-slate-800 border-gray-100 dark:border-slate-700/60 opacity-60'}`}>
+                        <div className="flex justify-between items-start mb-2"><span className={`text-[10px] font-black px-2 py-1 rounded uppercase ${r.status === 'pending' ? 'bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400' : 'bg-gray-100 dark:bg-slate-700 text-gray-500 dark:text-slate-400'}`}>{r.status}</span><span className="text-[10px] text-gray-500 dark:text-slate-400 font-bold">{new Date(r.created_at).toLocaleDateString()}</span></div>
+                        <p className="text-sm font-bold text-gray-900 dark:text-slate-100 mb-2">Motif : <span className="text-red-600 dark:text-red-400">"{r.reason}"</span></p>
+                        <div className="flex gap-2 justify-end pt-2 border-t border-gray-100 dark:border-slate-700/50 mt-2">
+                            <button onClick={() => deleteReportOnly(r.id)} aria-label="Supprimer signalement" className="bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-300 p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-slate-600"><Trash2 size={16}/></button>
+                            {r.product && <button onClick={() => askConfirm("Supprimer L'ANNONCE ?", "Irréversible.", () => deleteProduct(r.product_id))} aria-label="Supprimer l'annonce signalée" className="text-[10px] bg-red-100 dark:bg-red-950/50 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-red-200"><XCircle size={14}/> Supprimer l'annonce</button>}
+                            {r.status === 'pending' && <button onClick={() => resolveReport(r.id)} aria-label="Marquer comme traité" className="text-[10px] bg-gray-800 dark:bg-slate-700 text-white px-3 py-2 rounded-lg font-black uppercase flex items-center gap-1 hover:bg-gray-700"><CheckCircle size={14}/> Traité</button>}
                         </div>
                     </div>
                 ))}
@@ -496,16 +471,16 @@ function AdminContent() {
         {/* REVIEWS */}
         {activeTab === 'reviews' && (
             <div className="space-y-4 animate-in slide-in-from-bottom-2">
-                {reviewsList.length === 0 ? <p className="text-center text-gray-500 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
-                    <div key={review.id} className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                {reviewsList.length === 0 ? <p className="text-center text-gray-500 dark:text-slate-400 text-sm font-bold py-10">Aucun avis.</p> : reviewsList.map(review => (
+                    <div key={review.id} className="bg-white dark:bg-slate-800 p-4 rounded-xl shadow-sm border border-gray-100 dark:border-slate-700/60">
                         <div className="flex justify-between items-start mb-3">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 bg-gray-100 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500">{review.reviewer?.avatar_url ? <Image src={review.reviewer.avatar_url} alt="" width={40} height={40} /> : (review.reviewer?.full_name?.[0] || 'U')}</div>
-                                <div><p className="font-bold text-sm text-gray-900">{review.reviewer?.full_name || 'Inconnu'}</p><div className="flex gap-1 mt-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={10} className={s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 text-gray-200"}/>)}</div></div>
+                                <div className="w-10 h-10 bg-gray-100 dark:bg-slate-700 rounded-full overflow-hidden flex items-center justify-center font-black text-gray-500 dark:text-slate-400">{review.reviewer?.avatar_url ? <Image src={review.reviewer.avatar_url} alt="" width={40} height={40} /> : (review.reviewer?.full_name?.[0] || 'U')}</div>
+                                <div><p className="font-bold text-sm text-gray-900 dark:text-slate-100">{review.reviewer?.full_name || 'Inconnu'}</p><div className="flex gap-1 mt-0.5">{[1,2,3,4,5].map(s => <Star key={s} size={10} className={s <= review.rating ? "fill-amber-400 text-amber-400" : "fill-gray-200 dark:fill-slate-700 text-gray-200 dark:text-slate-700"}/>)}</div></div>
                             </div>
                         </div>
-                        <div className="bg-gray-50 p-3 rounded-xl mb-3"><p className="text-sm text-gray-600 italic">"{review.comment}"</p></div>
-                        <div className="flex justify-between items-center"><span className="text-[10px] text-gray-500 font-bold">{new Date(review.created_at).toLocaleDateString()}</span><button onClick={() => deleteReview(review.id)} aria-label="Supprimer avis" className="text-[10px] bg-red-50 text-red-600 px-3 py-2 rounded-lg font-black uppercase flex gap-1 hover:bg-red-100"><Trash2 size={12}/> Supprimer</button></div>
+                        <div className="bg-gray-50 dark:bg-slate-900/50 p-3 rounded-xl mb-3"><p className="text-sm text-gray-600 dark:text-slate-300 italic">"{review.comment}"</p></div>
+                        <div className="flex justify-between items-center"><span className="text-[10px] text-gray-500 dark:text-slate-400 font-bold">{new Date(review.created_at).toLocaleDateString()}</span><button onClick={() => deleteReview(review.id)} aria-label="Supprimer avis" className="text-[10px] bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 px-3 py-2 rounded-lg font-black uppercase flex gap-1 hover:bg-red-100"><Trash2 size={12}/> Supprimer</button></div>
                     </div>
                 ))}
             </div>
@@ -518,7 +493,7 @@ function AdminContent() {
 
 export default function AdminClient() {
   return (
-    <Suspense fallback={<div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-brand" /></div>}>
+    <Suspense fallback={<div className="h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-900"><Loader2 className="animate-spin text-brand dark:text-emerald-400" /></div>}>
       <AdminContent />
     </Suspense>
   )

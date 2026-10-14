@@ -11,7 +11,7 @@ import {
   X, Crown, Sparkles, MessageCircle, Clock,
   AlertTriangle, ShieldCheck,
   Grid, Camera,
-  Calendar, Gauge, Fuel, Layers, Truck, Anchor, Ruler, Wrench, Maximize, Home, Shirt, Type, Gem, Watch, HardDrive, Zap, Music, Book, Plane, DollarSign, Utensils, GraduationCap, MapPin as MapPinIcon, Star, Briefcase, Lock, Scissors
+  Calendar, Gauge, Fuel, Layers, Truck, Anchor, Ruler, Wrench, Maximize, Home, Shirt, Type, Gem, HardDrive, Zap, Music, Book, Plane, DollarSign, GraduationCap, MapPin as MapPinIcon, Star, Briefcase, Lock, Scissors
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,7 +19,7 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch"
 import { formatDistanceToNow } from '@/utils/dateUtils'
 import { UiButton } from '@/components/ui'
 import { shareLink } from '@/utils/share'
-import PriceTag from '@/components/PriceTag'; // Ajoutez cette ligne
+import PriceTag from '@/components/PriceTag';
 import { 
   trackProductView, 
   trackAddToFavorites, 
@@ -27,6 +27,7 @@ import {
   trackEvent 
 } from '@/lib/analytics'
 import { getOrCreateVisitorId, trackProductClickHistory } from '@/lib/personalization'
+
 const WHATSAPP_PATH = "M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"
 
 function WhatsAppIcon({ size = 22 }: { size?: number }) {
@@ -37,10 +38,8 @@ function WhatsAppIcon({ size = 22 }: { size?: number }) {
   )
 }
 
-// Les descriptions sont parfois saisies entre guillemets : on les retire pour l'affichage.
 const cleanDescription = (value: string) => value.replace(/^[\s"”]+|[\s"”]+$/g, '').trim()
 
-// --- DICTIONNAIRE DES ICÔNES ---
 const ICON_MAP: Record<string, any> = {
     'Année': Calendar,
     'Kilométrage': Gauge,
@@ -98,7 +97,6 @@ const getOptimizedImage = (url: string | null, width = 800) => {
   return url;
 };
 
-// ✅ FONCTION DE TRACKING GOOGLE ADS
 declare global {
   interface Window {
     gtag_report_conversion?: (url?: string) => boolean;
@@ -117,7 +115,6 @@ function parseProductImages(raw: unknown): string[] {
 
 interface AnnonceClientProps {
   productId: string
-  // Annonce chargee cote serveur (SSR) : affichee immediatement, sans spinner.
   initialProduct?: any
 }
 
@@ -147,7 +144,6 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
   const minSwipeDistance = 50 
   const viewLogged = useRef(false)
 
-  // --- PARSING INTELLIGENT DE LA DESCRIPTION ---
   const descriptionParts = product?.description?.split('--- ✨ CARACTÉRISTIQUES ---') || []
   const mainDescription = descriptionParts[0]?.trim() || ''
   const rawSpecs = descriptionParts.length > 1 ? descriptionParts[1].trim() : null
@@ -165,7 +161,6 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
         return
     }
     
-    // Auth Check
     const { data: { user } } = await supabase.auth.getUser()
     setCurrentUser(user)
     
@@ -174,13 +169,11 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
        setFavorites(new Set(favs?.map((f: any) => f.product_id)))
     }
 
-    // Annonce deja fournie par le serveur : pas de second aller-retour.
     if (initialProduct) {
         setLoading(false)
         return
     }
 
-    // Fetch Product
     const { data: productData, error } = await supabase
         .from('products')
         .select(`
@@ -193,7 +186,6 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
     if (productData) {
         setProduct(productData)
     } else if (!productData && !error) {
-        // ID not found but no error (e.g. invalid status)
         setProduct(null)
     } else {
         console.error("Product fetch error:", error);
@@ -214,20 +206,17 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
     }
   }, [product])
 
-  // --- TRACKING VUE PRODUIT ---
   useEffect(() => {
     const logView = async () => {
         if (viewLogged.current || !product) return
         viewLogged.current = true
-      const visitorId = getOrCreateVisitorId()
+        const visitorId = getOrCreateVisitorId()
         
-        // 1. Tracking Supabase (Interne)
         if (currentUser?.id !== product.user_id) {
             await supabase.from('product_views').insert({ product_id: product.id, viewer_id: currentUser?.id || null })
-        trackProductClickHistory({ productId: product.id, source: 'product_page_view', visitorId })
+            trackProductClickHistory({ productId: product.id, source: 'product_page_view', visitorId })
         }
 
-        // 2. Tracking Google Analytics (GA4)
         trackProductView(
             product.id,
             product.title,
@@ -238,7 +227,6 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
     logView()
   }, [product, currentUser, supabase])
 
-  // --- INTELLIGENT PRODUCT SUGGESTIONS ---
   useEffect(() => {
     const fetchSuggestions = async () => {
       if (!product) return
@@ -363,12 +351,10 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
       return
     }
     
-    // ✅ TRACKING CONVERSION GOOGLE ADS
     if (typeof window !== 'undefined' && window.gtag_report_conversion) {
       window.gtag_report_conversion();
     }
 
-    // 📊 TRACKING ANALYTICS
     trackEvent('contact_whatsapp', {
         listing_id: product.id,
         listing_title: product.title,
@@ -395,8 +381,8 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
     form.querySelector('textarea')?.focus({ preventScroll: true })
   }
 
-  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={40} /></div>
-  if (!product) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Annonce introuvable ou chargement...</div>
+  if (loading) return <div className="min-h-dvh flex items-center justify-center bg-[#F8FAFC] dark:bg-slate-900"><Loader2 className="animate-spin text-brand" size={40} /></div>
+  if (!product) return <div className="min-h-dvh flex items-center justify-center text-gray-500 dark:text-slate-400 bg-[#F8FAFC] dark:bg-slate-900">Annonce introuvable ou chargement...</div>
 
   const isOwner = currentUser?.id === product.user_id
   const description = cleanDescription(mainDescription)
@@ -412,7 +398,7 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
   const isBoosted = product.boosted_until && new Date(product.boosted_until) > new Date();
 
   return (
-    <div className="min-h-dvh bg-[#F8FAFC] pb-12 font-sans text-gray-900 overflow-x-hidden flex flex-col relative">
+    <div className="min-h-dvh bg-[#F8FAFC] dark:bg-slate-900 pb-12 font-sans text-gray-900 dark:text-slate-100 overflow-x-hidden flex flex-col relative transition-colors duration-200">
       
       {/* HEADER ACTIONS */}
       <div className="sticky top-0 w-full h-0 overflow-visible z-10 pointer-events-none">
@@ -420,18 +406,18 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
             <button 
                 onClick={() => router.back()}
                 aria-label="Retour"
-                className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition pointer-events-auto"
+                className="p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full text-brand dark:text-emerald-400 shadow-lg border border-white dark:border-slate-700 active:scale-90 transition pointer-events-auto"
             >
                 <ArrowLeft size={22} strokeWidth={2.5} />
             </button>
             <div className="flex gap-2 pointer-events-auto">
-                <button onClick={handleShare} aria-label="Partager" className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
+                <button onClick={handleShare} aria-label="Partager" className="p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full text-brand dark:text-emerald-400 shadow-lg border border-white dark:border-slate-700 active:scale-90 transition">
                     <Share2 size={20} strokeWidth={2.5} />
                 </button>
-                <button onClick={toggleFavorite} aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} className="p-3 bg-white/90 backdrop-blur-md rounded-full text-brand shadow-lg border border-white active:scale-90 transition">
-                    <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand" : ""} />
+                <button onClick={toggleFavorite} aria-label={isFav ? "Retirer des favoris" : "Ajouter aux favoris"} className="p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full text-brand dark:text-emerald-400 shadow-lg border border-white dark:border-slate-700 active:scale-90 transition">
+                    <Heart size={20} strokeWidth={2.5} className={isFav ? "fill-brand text-brand dark:fill-emerald-400 dark:text-emerald-400" : ""} />
                 </button>
-                <button onClick={() => setShowReportModal(true)} aria-label="Signaler l'annonce" className="p-3 bg-white/90 backdrop-blur-md rounded-full text-red-500 shadow-lg border border-white active:scale-90 transition">
+                <button onClick={() => setShowReportModal(true)} aria-label="Signaler l'annonce" className="p-3 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-full text-red-500 shadow-lg border border-white dark:border-slate-700 active:scale-90 transition">
                     <Flag size={20} strokeWidth={2.5} />
                 </button>
             </div>
@@ -476,7 +462,7 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
       </div>
 
       {/* CONTENU INFO */}
-      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white rounded-t-4xl relative z-10 min-h-screen shadow-sm border-t border-white">
+      <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="px-6 py-10 -mt-10 bg-white dark:bg-slate-900 rounded-t-4xl relative z-10 min-h-screen shadow-sm border-t border-white dark:border-slate-800 transition-colors duration-200">
         <div className="max-w-2xl mx-auto">
             
             {isBoosted && (
@@ -487,26 +473,25 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
 
             <div className="flex justify-between items-start mb-8 gap-4">
                 <div className="flex-1">
-                    <h1 className="text-xl font-bold text-gray-900 leading-snug mb-2 tracking-tight flex items-center gap-2">
+                    <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100 leading-snug mb-2 tracking-tight flex items-center gap-2">
                         {product.title} 
                         {isProActive && <Crown size={20} className="text-amber-500 fill-amber-500" />}
                     </h1>
-                    {/* SOUS-CATÉGORIE */}
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                        <div className="bg-gray-100 text-gray-500 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-gray-200">
+                        <div className="bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border border-gray-200 dark:border-slate-700">
                             {product.sub_category || "Divers"}
                         </div>
-                        <div className="flex items-center gap-1.5 text-gray-500 text-[10px] font-black tracking-widest">
-                            <MapPin size={12} className="text-brand" aria-hidden="true" /> {locationLabel}
+                        <div className="flex items-center gap-1.5 text-gray-500 dark:text-slate-400 text-[10px] font-black tracking-widest">
+                            <MapPin size={12} className="text-brand dark:text-emerald-400" aria-hidden="true" /> {locationLabel}
                         </div>
                     </div>
                 </div>
                 <div className="text-right shrink-0">
                     <PriceTag 
-                    price={product.price} 
-                     className="text-2xl font-black text-brand-700 tracking-tighter" 
+                      price={product.price}
+                      className="text-2xl font-black text-brand-700 dark:text-emerald-400 tracking-tighter"
                     />
-                    <div className="flex items-center justify-end gap-1 text-[10px] text-gray-500 font-bold uppercase mt-1 tracking-tight">
+                    <div className="flex items-center justify-end gap-1 text-[10px] text-gray-500 dark:text-slate-400 font-bold uppercase mt-1 tracking-tight">
                         <Clock size={10} /> <span suppressHydrationWarning>{formatDistanceToNow(new Date(product.created_at), { addSuffix: true })}</span>
                     </div>
                 </div>
@@ -514,9 +499,9 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
 
             {/* PROFIL VENDEUR */}
             <div className="flex flex-col gap-4 mb-8">
-              <Link href={`/profil?id=${product.user_id}`} className="bg-gray-50 p-4 rounded-3xl border border-gray-100 flex items-center justify-between active:scale-[0.98] transition shadow-sm">
+              <Link href={`/profil?id=${product.user_id}`} className="bg-gray-50 dark:bg-slate-800/80 p-4 rounded-3xl border border-gray-100 dark:border-slate-700/60 flex items-center justify-between active:scale-[0.98] transition shadow-sm">
                   <div className="flex items-center gap-4">
-                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-2 border-white shadow-md bg-white">
+                      <div className="w-14 h-14 rounded-2xl flex items-center justify-center overflow-hidden relative border-2 border-white dark:border-slate-700 shadow-md bg-white dark:bg-slate-800">
                           {seller?.avatar_url ? (
                             <Image 
                                 src={getOptimizedImage(seller.avatar_url, 200)} 
@@ -526,25 +511,25 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
                                 sizes="64px"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={24} /></div>
+                            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-600"><User size={24} /></div>
                           )}
                       </div>
                       <div>
-                          <p className="font-black text-gray-900 text-sm tracking-tight flex items-center gap-1.5">
+                          <p className="font-black text-gray-900 dark:text-slate-100 text-sm tracking-tight flex items-center gap-1.5">
                             {seller?.full_name || "Utilisateur"} 
-                            {isProActive && <ShieldCheck size={16} className="text-brand fill-brand/10" />}
+                            {isProActive && <ShieldCheck size={16} className="text-brand dark:text-emerald-400 fill-brand/10" />}
                           </p>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500 mt-0.5">{isProActive ? 'Compte Pro' : 'Particulier'}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-gray-500 dark:text-slate-400 mt-0.5">{isProActive ? 'Compte Pro' : 'Particulier'}</p>
                       </div>
                   </div>
-                  <div className="bg-white p-3 rounded-2xl text-brand shadow-sm border border-gray-100"><ChevronRight size={20} /></div>
+                  <div className="bg-white dark:bg-slate-700 p-3 rounded-2xl text-brand dark:text-emerald-400 shadow-sm border border-gray-100 dark:border-slate-600"><ChevronRight size={20} /></div>
               </Link>
             </div>
 
             {/* FICHE TECHNIQUE */}
             {specsList.length > 0 && (
-                <div className="bg-[#F8FAFC] p-5 rounded-3xl border border-gray-100 mb-8">
-                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-4 flex items-center gap-2">
+                <div className="bg-[#F8FAFC] dark:bg-slate-800/50 p-5 rounded-3xl border border-gray-100 dark:border-slate-700/50 mb-8">
+                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400 mb-4 flex items-center gap-2">
                         <Grid size={14} /> Fiche Technique
                     </h2>
                     <div className="grid grid-cols-2 gap-3">
@@ -553,12 +538,12 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
                             const IconComponent = ICON_MAP[label] || Sparkles;
                             
                             return (
-                                <div key={i} className="bg-white p-4 rounded-2xl shadow-sm border border-white flex flex-col relative overflow-hidden">
-                                    <IconComponent className="absolute -right-2 -bottom-2 text-gray-50 opacity-20 rotate-[-15deg]" size={40} />
-                                    <span className="text-[9px] font-bold text-gray-500 uppercase mb-1 flex items-center gap-1.5">
+                                <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-white dark:border-slate-700/50 flex flex-col relative overflow-hidden">
+                                    <IconComponent className="absolute -right-2 -bottom-2 text-gray-50 dark:text-slate-700 opacity-20 rotate-[-15deg]" size={40} />
+                                    <span className="text-[9px] font-bold text-gray-500 dark:text-slate-400 uppercase mb-1 flex items-center gap-1.5">
                                         {label}
                                     </span>
-                                    <span className="text-sm font-bold text-gray-900 truncate relative z-10">{value}</span>
+                                    <span className="text-sm font-bold text-gray-900 dark:text-slate-100 truncate relative z-10">{value}</span>
                                 </div>
                             )
                         })}
@@ -568,8 +553,8 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
 
             {description && (
                 <div className="mb-10">
-                    <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-3">Description</h2>
-                    <p className="text-gray-700 text-[15px] leading-relaxed whitespace-pre-line border-l-4 border-brand-100 pl-4">
+                    <h2 className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-3">Description</h2>
+                    <p className="text-gray-700 dark:text-slate-300 text-[15px] leading-relaxed whitespace-pre-line border-l-4 border-brand-100 dark:border-brand-900 pl-4">
                       {description}
                     </p>
                 </div>
@@ -577,10 +562,10 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
 
             {!isOwner && (
                 <div className="space-y-4 pb-24">
-                    <div id="contact-form" className="bg-gray-50 p-5 rounded-3xl border border-gray-100 scroll-mt-24">
-                        <h4 className="text-[9px] font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand" /> Contacter en privé</h4>
+                    <div id="contact-form" className="bg-gray-50 dark:bg-slate-800/80 p-5 rounded-3xl border border-gray-100 dark:border-slate-700/50 scroll-mt-24">
+                        <h4 className="text-[9px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2"><MessageCircle size={14} className="text-brand dark:text-emerald-400" /> Contacter en privé</h4>
                         <form onSubmit={handleSendMessage} className="relative">
-                            <textarea className="w-full bg-white border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm" aria-label="Votre message au vendeur" placeholder="Bonjour, cette annonce est-elle toujours disponible ?" value={message} onChange={(e) => setMessage(e.target.value)} />
+                            <textarea className="w-full bg-white dark:bg-slate-800 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-brand/5 outline-none pr-16 transition-all min-h-25 resize-none shadow-sm text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" aria-label="Votre message au vendeur" placeholder="Bonjour, cette annonce est-elle toujours disponible ?" value={message} onChange={(e) => setMessage(e.target.value)} />
                             <button type="submit" disabled={sending || !message.trim()} className="absolute right-4 bottom-4 bg-brand text-white p-3.5 rounded-xl shadow-lg active:scale-90 transition disabled:opacity-30">
                                 {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
                             </button>
@@ -592,8 +577,8 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
             {/* SUGGESTIONS INTELLIGENTES */}
             {suggestedProducts.length > 0 && (
                 <div className="mt-12 mb-8">
-                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 mb-6 flex items-center gap-2">
-                        <Sparkles size={14} className="text-brand" /> Annonces similaires
+                    <h2 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-500 dark:text-slate-400 mb-6 flex items-center gap-2">
+                        <Sparkles size={14} className="text-brand dark:text-emerald-400" /> Annonces similaires
                     </h2>
                     <div className="grid grid-cols-2 gap-3">
                         {suggestedProducts.map((suggested: any) => {
@@ -605,9 +590,9 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
                                 <Link 
                                     key={suggested.id} 
                                     href={`/annonce/${suggested.id}`} 
-                                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md active:scale-[0.98] transition-all"
+                                    className="bg-white dark:bg-slate-800/90 rounded-2xl overflow-hidden shadow-sm border border-gray-100 dark:border-slate-700/50 hover:shadow-md active:scale-[0.98] transition-all"
                                 >
-                                    <div className="relative w-full aspect-square bg-gray-100">
+                                    <div className="relative w-full aspect-square bg-gray-100 dark:bg-slate-900">
                                         {img && (
                                             <Image 
                                                 src={img} 
@@ -627,12 +612,12 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
                                         </div>
                                     </div>
                                     <div className="p-3">
-                                        <h3 className="font-bold text-xs text-gray-900 truncate mb-1">{suggested.title}</h3>
+                                        <h3 className="font-bold text-xs text-gray-900 dark:text-slate-100 truncate mb-1">{suggested.title}</h3>
                                         <PriceTag 
-                                        price={suggested.price} 
-                                        className="text-sm font-black text-brand" 
+                                          price={suggested.price}
+                                          className="text-sm font-black text-brand dark:text-emerald-400"
                                         />
-                                        <p className="text-[9px] text-gray-500 font-bold uppercase mt-1 flex items-center gap-1">
+                                        <p className="text-[9px] text-gray-500 dark:text-slate-400 font-bold uppercase mt-1 flex items-center gap-1">
                                             <MapPin size={8} /> {suggested.location_city}
                                         </p>
                                     </div>
@@ -646,13 +631,13 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
         </div>
       </motion.div>
 
-      {/* BARRE DE CONTACT COLLANTE : l'action principale reste accessible pendant tout le defilement */}
+      {/* BARRE DE CONTACT COLLANTE */}
       {!isOwner && (
-        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-full max-w-120 -translate-x-1/2 border-t border-gray-100 bg-white/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur-md">
+        <div className="fixed bottom-[calc(4rem+env(safe-area-inset-bottom))] left-1/2 z-40 w-full max-w-120 -translate-x-1/2 border-t border-gray-100 dark:border-slate-800 bg-white/95 dark:bg-slate-900/95 px-4 py-3 shadow-[0_-8px_24px_-12px_rgba(16,24,40,0.25)] backdrop-blur-md transition-colors duration-200">
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-bold uppercase tracking-wide text-gray-500">{product.title}</p>
-              <p className="text-lg font-black leading-tight text-brand-700">{new Intl.NumberFormat('fr-KM').format(product.price)} FC</p>
+              <p className="truncate text-[11px] font-bold uppercase tracking-wide text-gray-500 dark:text-slate-400">{product.title}</p>
+              <p className="text-lg font-black leading-tight text-brand-700 dark:text-emerald-400">{new Intl.NumberFormat('fr-KM').format(product.price)} FC</p>
             </div>
             {isProActive && contactPhone ? (
               <>
@@ -671,6 +656,7 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
           </div>
         </div>
       )}
+
       {/* LIGHTBOX & MODAL */}
       <AnimatePresence>
         {lightboxIndex !== null && (
@@ -730,13 +716,13 @@ export default function AnnonceClient({ productId, initialProduct = null }: Anno
 
         {showReportModal && (
           <div className="fixed top-0 bottom-0 left-1/2 -translate-x-1/2 w-full max-w-120 z-1100 bg-black/60 backdrop-blur-md flex items-center justify-center p-6" onClick={() => setShowReportModal(false)}>
-              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white" onClick={e => e.stopPropagation()}>
-                  <div className="bg-red-50 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
-                  <h3 className="font-black text-xl mb-2 tracking-tighter">Signalement</h3>
-                  <textarea className="w-full bg-gray-50 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-30 resize-none mb-6 shadow-inner" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
+              <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white dark:border-slate-800" onClick={e => e.stopPropagation()}>
+                  <div className="bg-red-50 dark:bg-red-950/40 w-20 h-20 rounded-4xl flex items-center justify-center mx-auto mb-8 shadow-inner text-red-500"><AlertTriangle size={40} /></div>
+                  <h3 className="font-black text-xl mb-2 tracking-tighter dark:text-slate-100">Signalement</h3>
+                  <textarea className="w-full bg-gray-50 dark:bg-slate-800 border-none rounded-2xl p-5 text-sm font-medium focus:ring-4 focus:ring-red-100 outline-none min-h-30 resize-none mb-6 shadow-inner text-gray-900 dark:text-slate-100 placeholder:text-gray-400 dark:placeholder:text-slate-500" placeholder="Décrivez le problème..." value={reportReason} onChange={(e) => setReportReason(e.target.value)} />
                   <div className="flex flex-col gap-3">
                       <button onClick={submitReport} disabled={reporting || !reportReason.trim()} className="w-full py-5 rounded-2xl font-black text-white bg-red-600 active:scale-95 transition shadow-xl shadow-red-500/20 uppercase text-[10px] tracking-widest">{reporting ? <Loader2 size={18} className="animate-spin mx-auto" /> : "Envoyer l'alerte"}</button>
-                      <button onClick={() => setShowReportModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-500 bg-gray-50 active:scale-95 transition uppercase text-[10px] tracking-widest">Annuler</button>
+                      <button onClick={() => setShowReportModal(false)} className="w-full py-5 rounded-2xl font-black text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 active:scale-95 transition uppercase text-[10px] tracking-widest">Annuler</button>
                   </div>
               </motion.div>
           </div>

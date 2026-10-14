@@ -1,9 +1,7 @@
 @import "tailwindcss";
 
-/* NOTE : Les avertissements "@theme" et "@utility" sont normaux avec Tailwind v4.
-   Si VS Code les souligne, assurez-vous que le mode de langage (en bas à droite) 
-   est bien sur "Tailwind CSS" et non "CSS".
-*/
+/* Configuration de la variante dark pour Tailwind CSS v4 */
+@variant dark (&:where(.dark, .dark *));
 
 @theme {
   --color-brand: #16a34a;
@@ -11,7 +9,7 @@
   --color-mustard: #fbbf24;
   --color-mustard-dark: #d97706;
 
-  /* Calque 0 — echelle brand derivee (valeurs existantes inchangees) */
+  /* Calque 0 — echelle brand derivee */
   --color-brand-50: #f0fdf4;
   --color-brand-100: #dcfce7;
   --color-brand-200: #bbf7d0;
@@ -45,18 +43,27 @@
   --duration-slow: 350ms;
 
   --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
-  /* --font-display est fourni via next/font (variable --font-display) dans layout.tsx */
 }
 
-/* Calque 0 — utilitaire font-display branche sur la variable next/font.
-   @theme inline : aucune valeur statique emise, la variable est
-   resolue a l'usage depuis le <body> (classe --font-display). */
 @theme inline {
   --font-display: var(--font-display);
 }
 
-/* Tailwind v4 : `border` sans couleur utilise `currentColor` (bordures noires).
-   On restaure la couleur neutre de Tailwind v3 pour tout le site. */
+/* Definition des variables du Mode Sombre */
+.dark {
+  color-scheme: dark;
+
+  --color-ink: #f8fafc;
+  --color-ink-soft: #94a3b8;
+  --color-ink-faint: #64748b;
+  --color-surface: #0f172a;
+  --color-surface-soft: #1e293b;
+  --color-line: #334155;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 1px 3px rgb(0 0 0 / 0.4);
+  --shadow-pop: 0 12px 32px -12px rgb(0 0 0 / 0.6);
+}
+
 @layer base {
   *,
   ::after,
@@ -67,16 +74,11 @@
   }
 }
 
-/* 1. CONFIGURATION DU FOND ET DU TEXTE */
 :root {
   background-color: #374151;
-  color-scheme: light;
+  color-scheme: light dark;
 }
 
-/* Calque 0 — focus visible accessible et coherent avec la marque.
-   Dans @layer base : les utilitaires Tailwind (outline-none, ring-*) peuvent le surcharger
-   (une regle hors layer l'emportait et doublait l'anneau de focus des champs).
-   Pas de border-radius force : il deformait les elements arrondis au focus. */
 @layer base {
   :focus-visible {
     outline: 2px solid var(--color-brand-600);
@@ -90,23 +92,31 @@ html, body {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior-y: auto;
-  
-  /* Standard property + vendor prefix for maximum browser support */
-  -webkit-text-size-adjust: 100%; /* Safari, iOS Safari, Firefox Android */
-  text-size-adjust: 100%;          /* Standard for Chrome 54+, Edge 79+ */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
-/* 2. UX NATIVE (Bloquer la sélection) */
+.dark html, .dark body {
+  background-color: #030712;
+  color: #f8fafc;
+}
+
+main {
+  background-color: #F8FAFC;
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+.dark main {
+  background-color: #0f172a;
+  color: #f8fafc;
+}
+
+/* UX Native (Bloquer la selection) */
 *:not(input):not(textarea) {
-  /* Support complet Safari/iOS */
   -webkit-user-select: none;
-  /* Support Firefox */
   -moz-user-select: none;
-  /* Support IE/Edge */
   -ms-user-select: none;
-  /* Standard */
   user-select: none;
-  
   -webkit-touch-callout: none;
 }
 
@@ -120,21 +130,13 @@ input, textarea {
 }
 
 img {
-  /* CORRECTION : Prévention complète de la sélection et du drag */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
-  
-  /* Prevent image dragging */
   -webkit-user-drag: none;
   -moz-user-drag: none;
   pointer-events: none;
-}
-
-/* 3. STYLES SPÉCIFIQUES */
-main {
-  background-color: #F8FAFC;
 }
 
 #nprogress .bar {
@@ -144,18 +146,15 @@ main {
 }
 
 /* Utilitaires Scrollbar */
-/* Navigateurs WebKit (Chrome, Safari, Edge, Opera) */
 .scrollbar-hide::-webkit-scrollbar {
   display: none;
 }
-
-/* Navigateurs Standards & Firefox */
 .scrollbar-hide {
-  -ms-overflow-style: none; /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-/* Barre de progression du splash (CSS pur) */
+/* Barre de progression du splash */
 @keyframes cm-splash-fill {
   from { width: 0%; }
   to { width: 100%; }
@@ -169,7 +168,7 @@ main {
   html, body { scroll-behavior: auto; }
 }
 
-/* Utilitaires Safe Area (Tailwind v4) */
+/* Utilitaires Safe Area */
 @utility pb-safe {
   padding-bottom: env(safe-area-inset-bottom);
 }

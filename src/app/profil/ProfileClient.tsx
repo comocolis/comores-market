@@ -19,7 +19,6 @@ import { generatePROReceipt } from '@/utils/generateReceipt'
 import { SkeletonProfileHeader, SkeletonProductGrid } from '@/components/Skeleton'
 import { BLUR_PLACEHOLDERS } from '@/utils/blurPlaceholder'
 
-// --- INTERFACES STRICTES ---
 interface UserProfile {
   id: string
   email?: string
@@ -203,8 +202,8 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
 
   if (loading) {
     return (
-      <div className="min-h-dvh w-full bg-[#F8FAFC] pb-24">
-        <div className="relative h-72 w-full overflow-hidden bg-gray-200 animate-pulse" />
+      <div className="min-h-dvh w-full bg-[#F8FAFC] dark:bg-slate-900 pb-24">
+        <div className="relative h-72 w-full overflow-hidden bg-gray-200 dark:bg-slate-800 animate-pulse" />
         <div className="max-w-4xl mx-auto px-5">
           <SkeletonProfileHeader />
           <div className="mt-10 space-y-4">
@@ -215,17 +214,17 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
     )
   }
   
-  if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 bg-[#F8FAFC]">Profil introuvable.</div>
+  if (!profile && !loading) return <div className="min-h-dvh flex items-center justify-center text-gray-500 dark:text-slate-400 bg-[#F8FAFC] dark:bg-slate-900">Profil introuvable.</div>
 
   const daysRemaining = profile?.subscription_end_date 
     ? Math.ceil((new Date(profile.subscription_end_date).getTime() - new Date().getTime()) / (1000 * 3600 * 24))
     : 0;
   const isProActive = profile?.is_pro && daysRemaining > 0;
 
-  const headerButtonStyle = "p-3 bg-white rounded-full text-brand shadow-lg border border-gray-100 active:scale-90 transition pointer-events-auto"
+  const headerButtonStyle = "p-3 bg-white dark:bg-slate-800 rounded-full text-brand dark:text-emerald-400 shadow-lg border border-gray-100 dark:border-slate-700 active:scale-90 transition pointer-events-auto"
 
   return (
-    <div className="min-h-dvh w-full bg-[#F8FAFC] pb-24 font-sans text-gray-900 overflow-x-hidden relative">
+    <div className="min-h-dvh w-full bg-[#F8FAFC] dark:bg-slate-900 pb-24 font-sans text-gray-900 dark:text-slate-100 overflow-x-hidden relative transition-colors duration-200">
       
       {/* SECTION COUVERTURE */}
       <div className="relative h-72 w-full overflow-hidden bg-gray-900 group">
@@ -239,8 +238,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
             placeholder="blur"
             blurDataURL={BLUR_PLACEHOLDERS.cover}
         />
-        {/* FIX: gradient au lieu de linear */}
-        <div className="absolute inset-0 bg-linear-to-t from-[#F8FAFC] via-transparent to-black/50" />
+        <div className="absolute inset-0 bg-linear-to-t from-[#F8FAFC] dark:from-slate-900 via-transparent to-black/50" />
 
         <div className="absolute top-12 left-0 w-full px-6 flex justify-between items-center z-50">
             <button 
@@ -276,10 +274,10 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
       </div>
 
       <div className="max-w-4xl mx-auto px-5">
-        <div className="bg-white -mt-24 rounded-[3rem] shadow-xl relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50">
+        <div className="bg-white dark:bg-slate-800/90 -mt-24 rounded-[3rem] shadow-xl relative z-10 p-8 pt-0 flex flex-col items-center text-center border border-white/50 dark:border-slate-700/50">
           
           <div className="relative -mt-16 mb-4">
-            <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50' : 'bg-gray-100'}`}>
+            <div className={`w-32 h-32 rounded-[2.5rem] border-[6px] border-white dark:border-slate-800 shadow-2xl overflow-hidden relative ${isProActive ? 'bg-amber-50 dark:bg-amber-950/40' : 'bg-gray-100 dark:bg-slate-800'}`}>
                 {profile?.avatar_url ? (
                     <Image 
                         src={profile.avatar_url} 
@@ -289,36 +287,36 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                         sizes="(max-width: 768px) 33vw, 128px"
                         placeholder="blur"
                         blurDataURL={BLUR_PLACEHOLDERS.avatar}
-                        priority={true} // 🚀 LCP Optimization
+                        priority={true}
                     />
                 ) : (
-                    <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={48} /></div>
+                    <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-600"><User size={48} /></div>
                 )}
             </div>
             {isProActive && (
-              <div className="absolute -bottom-2 -right-2 bg-amber-50 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white flex items-center justify-center">
+              <div className="absolute -bottom-2 -right-2 bg-amber-50 dark:bg-slate-800 text-amber-600 p-2 rounded-2xl shadow-lg border-4 border-white dark:border-slate-800 flex items-center justify-center">
                 <Crown size={18} className="fill-amber-500 text-amber-500" />
               </div>
             )}
           </div>
 
           <div className="space-y-1">
-            <h1 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2">
+            <h1 className="text-2xl font-black tracking-tight flex items-center justify-center gap-2 dark:text-slate-100">
               {profile?.full_name || "Utilisateur"} 
               {isProActive && <Crown size={22} className="text-amber-500 fill-amber-500" />}
             </h1>
-            <div className="flex items-center justify-center gap-1.5 text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full w-fit mx-auto mt-2">
+            <div className="flex items-center justify-center gap-1.5 text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-1 rounded-full w-fit mx-auto mt-2">
                 <Clock size={12} strokeWidth={3} />
                 <span className="text-[10px] font-black uppercase tracking-tight">{responseTimeLabel}</span>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100">
-            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900">{products.length}</span><span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Annonces</span></div>
-            <div className="flex flex-col items-center border-x border-gray-100 px-4"><div className="flex items-center gap-1 text-brand"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand" /></div><span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Confiance</span></div>
+          <div className="grid grid-cols-3 w-full max-w-sm mt-8 py-6 border-y border-gray-100 dark:border-slate-700/60">
+            <div className="flex flex-col items-center"><span className="text-lg font-black text-gray-900 dark:text-slate-100">{products.length}</span><span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">Annonces</span></div>
+            <div className="flex flex-col items-center border-x border-gray-100 dark:border-slate-700/60 px-4"><div className="flex items-center gap-1 text-brand dark:text-emerald-400"><span className="text-lg font-black">{averageRating || "—"}</span><Star size={14} className="fill-brand dark:fill-emerald-400" /></div><span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">Confiance</span></div>
             <div className="flex flex-col items-center">
-                <span className="text-lg font-black text-gray-900">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-widest">Depuis</span>
+                <span className="text-lg font-black text-gray-900 dark:text-slate-100">{new Date(profile?.created_at || Date.now()).getFullYear()}</span>
+                <span className="text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest">Depuis</span>
             </div>
           </div>
 
@@ -337,7 +335,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                       customEndDate: profile?.subscription_end_date || undefined
                     })
                 }}
-                className="flex items-center gap-2 text-emerald-600 font-black text-[10px] uppercase tracking-[0.2em] bg-white px-8 py-4 rounded-3xl shadow-sm border border-emerald-100 active:scale-95 transition-all hover:bg-emerald-50"
+                className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-8 py-4 rounded-3xl shadow-sm border border-emerald-100 dark:border-emerald-900/50 active:scale-95 transition-all hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
               >
                 <FileText size={14} /> Ma facture Prestige
               </button>
@@ -346,12 +344,12 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
             {isProActive && (profile?.facebook_url || profile?.instagram_url) && (
               <div className="flex justify-center gap-3">
                 {profile?.facebook_url && (
-                  <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-3.5 bg-blue-50 text-blue-600 rounded-2xl hover:bg-blue-100 transition-all active:scale-90 border border-blue-100">
+                  <a href={profile.facebook_url} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="p-3.5 bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 rounded-2xl hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-all active:scale-90 border border-blue-100 dark:border-blue-900/50">
                     <Facebook size={20} fill="currentColor" />
                   </a>
                 )}
                 {profile?.instagram_url && (
-                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-3.5 bg-pink-50 text-pink-600 rounded-2xl hover:bg-pink-100 transition-all active:scale-90 border border-pink-100">
+                  <a href={profile.instagram_url} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="p-3.5 bg-pink-50 dark:bg-pink-950/40 text-pink-600 dark:text-pink-400 rounded-2xl hover:bg-pink-100 dark:hover:bg-pink-900/50 transition-all active:scale-90 border border-pink-100 dark:border-pink-900/50">
                     <Instagram size={20} />
                   </a>
                 )}
@@ -360,23 +358,23 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
           </div>
 
           <div className="mt-6 space-y-4 w-full">
-            <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500">
-                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand" /> {profile?.city || 'Comores'}</span>
-                <span className="flex items-center gap-1.5 bg-gray-50/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand" /> Vérifié</span>
+            <div className="flex items-center justify-center gap-4 text-xs font-bold text-gray-500 dark:text-slate-400">
+                <span className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-slate-800/50 px-4 py-2 rounded-full"><MapPin size={14} className="text-brand dark:text-emerald-400" /> {profile?.city || 'Comores'}</span>
+                <span className="flex items-center gap-1.5 bg-gray-50/50 dark:bg-slate-800/50 px-4 py-2 rounded-full"><Award size={14} className="text-brand dark:text-emerald-400" /> Vérifié</span>
             </div>
             
             {profile?.description && (
-                <div className="bg-gray-50/50 p-6 rounded-3xl mt-4">
-                    <p className="text-sm text-gray-700 leading-relaxed font-medium text-left whitespace-pre-wrap">
+                <div className="bg-gray-50/50 dark:bg-slate-800/50 p-6 rounded-3xl mt-4">
+                    <p className="text-sm text-gray-700 dark:text-slate-300 leading-relaxed font-medium text-left whitespace-pre-wrap">
                         {profile.description}
                     </p>
                 </div>
             )}
           </div>
 
-          <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 rounded-3xl">
-              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'listings' ? 'bg-white text-brand shadow-md' : 'text-gray-500'}`}>Showroom</button>
-              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white text-brand shadow-md' : 'text-gray-500'}`}>Avis clients</button>
+          <div className="flex w-full mt-10 gap-2 p-1.5 bg-gray-100/80 dark:bg-slate-900/80 rounded-3xl">
+              <button onClick={() => setActiveTab('listings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'listings' ? 'bg-white dark:bg-slate-800 text-brand dark:text-emerald-400 shadow-md' : 'text-gray-500 dark:text-slate-400'}`}>Showroom</button>
+              <button onClick={() => setActiveTab('reviews')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest rounded-3xl transition-all duration-300 ${activeTab === 'reviews' ? 'bg-white dark:bg-slate-800 text-brand dark:text-emerald-400 shadow-md' : 'text-gray-500 dark:text-slate-400'}`}>Avis clients</button>
           </div>
         </div>
 
@@ -384,7 +382,7 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
           <AnimatePresence mode="wait">
             {activeTab === 'listings' ? (
                 <motion.div key="listings" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="grid grid-cols-2 gap-4">
-                    {products.map((p, index) => { // 🚀 Ajout de l'index pour la priorité
+                    {products.map((p, index) => {
                         let img = null; try { img = JSON.parse(p.images)[0] } catch { img = p.images }
                         const boostedUntil = p.boosted_until || '';
                         const isBoosted = boostedUntil && new Date(boostedUntil).getTime() > new Date().getTime();
@@ -392,8 +390,8 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                         return (
                           <div key={p.id} className="flex flex-col gap-3">
                             <Link href={`/annonce/${p.id}`} className="group relative">
-                              <div className={`bg-white rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100' : 'border-white'}`}>
-                                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50">
+                              <div className={`bg-white dark:bg-slate-800/90 rounded-xl p-3 shadow-sm border transition-all duration-500 ${isBoosted ? 'border-amber-400 ring-4 ring-amber-100 dark:ring-amber-900/30' : 'border-white dark:border-slate-700/60'}`}>
+                                  <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-50 dark:bg-slate-900">
                                     {img && (
                                         <Image 
                                             src={img} 
@@ -403,20 +401,19 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                                             sizes="(max-width: 768px) 50vw, 300px"
                                             placeholder="blur"
                                             blurDataURL={BLUR_PLACEHOLDERS.product}
-                                            priority={index < 4} // 🚀 LCP Optimization (les 4 premiers produits)
+                                            priority={index < 4}
                                         />
                                     )}
                                     {isBoosted && (
-                                      // FIX: gradient au lieu de linear
                                       <div className="absolute top-2 left-2 bg-linear-to-r from-amber-500 to-orange-500 text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1 shadow-lg border border-white/20">
                                           <Sparkles size={10} className="animate-pulse" /> Boosté
                                       </div>
                                     )}
-                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} FC</div>
+                                    <div className="absolute top-2 right-2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md px-2 py-1 rounded text-[10px] font-black text-brand dark:text-emerald-400 shadow-sm">{new Intl.NumberFormat('fr-KM').format(p.price)} FC</div>
                                   </div>
                                   <div className="pt-3 px-1">
-                                    <h3 className="font-bold text-sm truncate text-gray-800">{p.title}</h3>
-                                    <div className="flex items-center gap-1 mt-1 text-[11px] text-gray-500 font-bold uppercase tracking-widest">
+                                    <h3 className="font-bold text-sm truncate text-gray-800 dark:text-slate-100">{p.title}</h3>
+                                    <div className="flex items-center gap-1 mt-1 text-[11px] text-gray-500 dark:text-slate-400 font-bold uppercase tracking-widest">
                                       <ShoppingBag size={10} /> {p.location_city || 'Moroni'}
                                     </div>
                                   </div>
@@ -425,13 +422,12 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
 
                             {isOwner && (
                               isBoosted && boostedUntil ? (
-                                <div className="w-full bg-amber-50 text-amber-700 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100">
+                                <div className="w-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-2 border border-amber-100 dark:border-amber-900/40">
                                   <Clock size={12} /> {Math.ceil((new Date(boostedUntil).getTime() - new Date().getTime()) / (1000 * 3600))}h rest.
                                 </div>
                               ) : (
                                 <Link 
                                   href={`/boost?id=${p.id}`}
-                                  // FIX: gradient au lieu de linear
                                   className="w-full flex items-center justify-center gap-2 bg-linear-to-r from-amber-400 to-amber-600 text-white py-2.5 rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 active:scale-95 transition-all group"
                                 >
                                   <Zap size={14} fill="currentColor" className="group-hover:rotate-12 transition-transform" />
@@ -446,17 +442,17 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
             ) : (
                 <motion.div key="reviews" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
                     {currentUser && currentUser.id !== profileId && (
-                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white border-2 border-dashed border-gray-200 text-gray-500 font-bold py-6 rounded-4xl flex items-center justify-center gap-2 hover:border-brand/30 hover:text-brand transition-all">
+                        <button onClick={() => setShowReviewModal(true)} className="w-full bg-white dark:bg-slate-800/90 border-2 border-dashed border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 font-bold py-6 rounded-4xl flex items-center justify-center gap-2 hover:border-brand/30 dark:hover:border-emerald-500/30 hover:text-brand dark:hover:text-emerald-400 transition-all">
                           <Plus size={18} /> Partager un avis
                         </button>
                     )}
                     {reviews.map(r => {
                           const reviewer = r.reviewer;
                           return (
-                        <div key={r.id} className="bg-white p-7 rounded-4xl shadow-sm border border-white space-y-4">
+                        <div key={r.id} className="bg-white dark:bg-slate-800/90 p-7 rounded-4xl shadow-sm border border-white dark:border-slate-700/50 space-y-4">
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 shadow-inner">
+                                    <div className="w-10 h-10 rounded-2xl overflow-hidden relative bg-gray-50 dark:bg-slate-900 shadow-inner">
                                         {reviewer?.avatar_url ? (
                                             <Image 
                                                 src={reviewer.avatar_url} 
@@ -468,14 +464,14 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
                                                 blurDataURL={BLUR_PLACEHOLDERS.thumbnail}
                                             />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center text-gray-300"><User size={20} /></div>
+                                            <div className="w-full h-full flex items-center justify-center text-gray-300 dark:text-slate-600"><User size={20} /></div>
                                         )}
                                     </div>
-                                    <div><p className="font-black text-sm text-gray-900">{reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 fill-gray-100"} />))}</div></div>
+                                    <div><p className="font-black text-sm text-gray-900 dark:text-slate-100">{reviewer?.full_name || 'Anonyme'}</p><div className="flex text-yellow-400 mt-1 gap-0.5">{[...Array(5)].map((_, i) => (<Star key={i} size={10} className={i < r.rating ? "fill-current" : "text-gray-100 dark:text-slate-700 fill-gray-100 dark:fill-slate-700"} />))}</div></div>
                                 </div>
-                                <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
+                                <span className="text-[10px] font-black text-gray-500 dark:text-slate-400 uppercase tracking-widest">{new Date(r.created_at).toLocaleDateString()}</span>
                             </div>
-                            {r.comment && <div className="bg-[#F5F7F9] p-5 rounded-3xl"><p className="text-gray-600 text-sm leading-relaxed">"{r.comment}"</p></div>}
+                            {r.comment && <div className="bg-[#F5F7F9] dark:bg-slate-800/50 p-5 rounded-3xl"><p className="text-gray-600 dark:text-slate-300 text-sm leading-relaxed">"{r.comment}"</p></div>}
                         </div>
                     )})}
                 </motion.div>
@@ -487,9 +483,9 @@ export default function ProfileClient({ initialData, id: propId }: ProfileClient
       <AnimatePresence>
         {showReviewModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-200 bg-black/40 backdrop-blur-md flex items-center justify-center p-6">
-              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white">
-                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 rounded-full text-gray-500"><X size={20}/></button></div>
-                  <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} aria-label={`Noter ${s} étoiles`} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 fill-gray-100"} /></button>))}</div>
+              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] p-8 space-y-6 shadow-2xl border border-white dark:border-slate-800">
+                  <div className="flex justify-between items-center"><h3 className="font-black text-xl tracking-tight dark:text-slate-100">Noter le vendeur</h3><button onClick={() => setShowReviewModal(false)} aria-label="Fermer" className="p-2 bg-gray-50 dark:bg-slate-800 rounded-full text-gray-500 dark:text-slate-400"><X size={20}/></button></div>
+                  <div className="flex justify-center gap-3 py-4">{[1, 2, 3, 4, 5].map((s) => (<button key={s} onClick={() => setNewRating(s)} aria-label={`Noter ${s} étoiles`} className="transition-transform active:scale-90"><Star size={36} className={s <= newRating ? "fill-yellow-400 text-yellow-400" : "text-gray-100 dark:text-slate-800 fill-gray-100 dark:fill-slate-800"} /></button>))}</div>
                   <UiTextarea aria-label="Votre avis" placeholder="Votre avis..." rows={4} value={newComment} onChange={e => setNewComment(e.target.value)} />
                   <button onClick={handleAddReview} disabled={submittingReview} className="w-full bg-brand text-white font-black py-5 rounded-3xl shadow-xl shadow-brand/20 active:scale-95 transition">{submittingReview ? <Loader2 className="animate-spin mx-auto" /> : "Publier l'avis"}</button>
               </motion.div>

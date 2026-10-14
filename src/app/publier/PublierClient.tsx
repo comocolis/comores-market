@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image' 
 import { 
-  Camera, Loader2, DollarSign, Type, X, ChevronLeft, Lock, Crown, 
+  Camera, Loader2, Type, X, ChevronLeft, Lock, Crown,
   Phone, Ban, Sparkles, ShieldCheck, GripHorizontal,
   Calendar, Gauge, Fuel, HardDrive, Home, Maximize, Layers,
   Ruler, Shirt, Briefcase, Zap, Scissors, Truck, Anchor, Watch, Gem, 
@@ -22,11 +22,9 @@ import { CSS } from '@dnd-kit/utilities'
 
 import { compressImage } from '@/utils/compressImage'
 import { containsContactInfo } from '@/utils/contentSafety'
-// IMPORT DU TRACKING ANALYTICS
-import { trackListingCreated, trackAdsConversion } from '@/lib/analytics'
+import { trackListingCreated } from '@/lib/analytics'
 import { rephraseText, moderateContent } from '@/lib/edge-functions'
 
-// --- CONSTANTES GLOBALES ---
 const FREE_ADS_LIMIT = 3
 const FREE_PHOTOS_LIMIT = 3
 const PRO_PHOTOS_LIMIT = 10
@@ -38,7 +36,6 @@ const CATEGORIES_LIST = [
   { id: 10, label: 'Emploi' },
 ]
 
-// --- LISTE COMPLÈTE ÉLARGIE ---
 const SUB_CATEGORIES: { [key: number]: string[] } = {
   1: ['Voitures', 'Motos & Scooters', 'Pièces Détachées', 'Location Véhicules', 'Camions & Poids Lourds', 'Bateaux & Nautisme', 'Engins BTP', 'Vélos & Trottinettes'],
   2: ['Vente Maison', 'Vente Terrain', 'Vente Appartement', 'Location Maison', 'Location Appartement', 'Bureaux & Commerces', 'Location Vacances', 'Terrains Agricoles', 'Colocation'],
@@ -53,7 +50,6 @@ const SUB_CATEGORIES: { [key: number]: string[] } = {
 }
 
 const SPECIFIC_FIELDS: Record<string, any[]> = {
-    // === 1. VÉHICULES ===
     'Voitures': [
         { key: 'year', label: 'Année', icon: Calendar, type: 'number', placeholder: 'Ex: 2018' },
         { key: 'mileage', label: 'Kilométrage', icon: Gauge, type: 'number', placeholder: 'Ex: 85000' },
@@ -83,7 +79,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'compatibility', label: 'Compatible avec', icon: Wrench, type: 'text', placeholder: 'Ex: Toyota Yaris 2010...' }
     ],
 
-    // === 2. IMMOBILIER ===
     'Vente Maison': [
         { key: 'surface', label: 'Surface (m²)', icon: Maximize, type: 'number', placeholder: '120' },
         { key: 'rooms', label: 'Pièces', icon: Home, type: 'number', placeholder: '4' },
@@ -121,7 +116,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'location', label: 'Emplacement', icon: MapPin, type: 'select', options: ['Bord de route', 'Centre-ville', 'Quartier calme'] }
     ],
 
-    // === 3. MODE ===
     'Chaussures': [
         { key: 'size', label: 'Pointure', icon: Ruler, type: 'number', placeholder: '42' },
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Nike, Adidas...' },
@@ -137,14 +131,13 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
     ],
     'Mariage & Tradition': [
         { key: 'type', label: 'Type', icon: Star, type: 'select', options: ['Robe Mariée', 'Tenue Traditionnelle', 'Costume', 'Accessoires'] },
-        { key: 'rental', label: 'Location/Vente', icon: DollarSign, type: 'select', options: ['Vente', 'Location'] }
+        { key: 'rental', label: 'Location/Vente', icon: Star, type: 'select', options: ['Vente', 'Location'] }
     ],
     'Montres & Bijoux': [
         { key: 'material', label: 'Matière', icon: Gem, type: 'select', options: ['Or', 'Argent', 'Acier', 'Cuir', 'Plaqué', 'Fantaisie'] },
         { key: 'brand', label: 'Marque', icon: Watch, type: 'text', placeholder: 'Rolex, Seiko, Casio...' }
     ],
 
-    // === 4. TECH ===
     'Téléphones': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Samsung, Apple, Huawei...' },
         { key: 'storage', label: 'Stockage', icon: HardDrive, type: 'select', options: ['32 Go', '64 Go', '128 Go', '256 Go', '512 Go', '1 To'] },
@@ -170,7 +163,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
     ],
 
-    // === 5. MAISON ===
     'Meubles': [
         { key: 'material', label: 'Matière', icon: Layers, type: 'text', placeholder: 'Bois rouge, Métal, Verre...' },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Très bon état', 'Bon état'] }
@@ -184,7 +176,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'age', label: 'Âge', icon: Clock, type: 'text', placeholder: '2 mois, 1 an...' }
     ],
 
-    // === 6. LOISIRS ===
     'Instruments de musique': [
         { key: 'type', label: 'Instrument', icon: Music, type: 'text', placeholder: 'Guitare, Piano...' },
         { key: 'condition', label: 'État', icon: Sparkles, type: 'select', options: ['Neuf', 'Occasion'] }
@@ -198,10 +189,9 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'date', label: 'Départ prévu', icon: Calendar, type: 'text', placeholder: 'JJ/MM/AAAA' }
     ],
 
-    // === 7. ALIMENTATION ===
     'Fruits & Légumes': [
         { key: 'origin', label: 'Origine', icon: MapPin, type: 'select', options: ['Local (Comores)', 'Importé'] },
-        { key: 'unit', label: 'Vendu par', icon: DollarSign, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
+        { key: 'unit', label: 'Vendu par', icon: Star, type: 'select', options: ['Kilo', 'Tas', 'Sac', 'Carton'] }
     ],
     'Épices & Vanille': [
         { key: 'type', label: 'Produit', icon: Sparkles, type: 'text', placeholder: 'Vanille, Girofle, Poivre...' },
@@ -215,7 +205,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'preservation', label: 'Conservation', icon: Lock, type: 'select', options: ['Frais', 'Congelé', 'Séché'] }
     ],
 
-    // === 8. SERVICES ===
     'Cours & Formations': [
         { key: 'level', label: 'Niveau', icon: GraduationCap, type: 'select', options: ['Débutant', 'Intermédiaire', 'Avancé'] },
         { key: 'mode', label: 'Format', icon: Layers, type: 'select', options: ['En ligne', 'Présentiel'] }
@@ -229,7 +218,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'zone', label: 'Zone', icon: MapPin, type: 'text', placeholder: 'Moroni, Toute l\'île...' }
     ],
 
-    // === 9. BEAUTÉ ===
     'Parfums': [
         { key: 'brand', label: 'Marque', icon: Type, type: 'text', placeholder: 'Dior, Sauvage...' },
         { key: 'type', label: 'Type', icon: Sparkles, type: 'select', options: ['Eau de Parfum', 'Eau de Toilette', 'Huile', 'Encens/Oud'] },
@@ -243,7 +231,6 @@ const SPECIFIC_FIELDS: Record<string, any[]> = {
         { key: 'type', label: 'Prestation', icon: Sparkles, type: 'select', options: ['Pose Gel', 'Semi-permanent', 'Manucure simple'] }
     ],
 
-    // === 10. EMPLOI ===
     'Offres d\'emploi': [
         { key: 'contract', label: 'Contrat', icon: Briefcase, type: 'select', options: ['CDI', 'CDD', 'Stage', 'Freelance'] },
         { key: 'sector', label: 'Secteur', icon: Layers, type: 'text', placeholder: 'Commerce, BTP, Santé...' }
@@ -275,7 +262,7 @@ function SortableImage({ url, id, onRemove }: { url: string, id: string, onRemov
         ref={handleSetNodeRef} 
         {...attributes} 
         {...listeners} 
-        className={`relative w-24 h-24 bg-gray-100 rounded-2xl shrink-0 overflow-hidden border border-gray-200 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
+        className={`relative w-24 h-24 bg-gray-100 dark:bg-slate-800 rounded-2xl shrink-0 overflow-hidden border border-gray-200 dark:border-slate-700 group select-none shadow-sm ${isDragging ? 'opacity-50' : 'opacity-100'}`}
       >
         <Image src={url} alt="Product photo" fill className="object-cover pointer-events-none" />
         
@@ -395,8 +382,8 @@ export default function PublierClient() {
     
     setUploading(true)
     try {
-            const { data: { user } } = await supabase.auth.getUser()
-            if (!user) throw new Error("Session expirée")
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error("Session expirée")
 
       const newImages: { id: string, url: string }[] = []
       
@@ -562,14 +549,14 @@ export default function PublierClient() {
     }
   }
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand" /></div>
+  if (loading) return <div className="h-screen flex items-center justify-center bg-transparent"><Loader2 className="animate-spin text-brand dark:text-emerald-400" /></div>
 
   if (isBanned) {
     return (
-        <div className="min-h-screen bg-red-50 flex flex-col items-center justify-center p-6 text-center font-sans">
-            <Ban size={32} className="text-red-600 mx-auto mb-4" />
-            <h1 className="text-2xl font-black mb-2">Compte Suspendu</h1>
-            <p className="text-gray-500 mb-6 text-sm font-medium">Contactez le support.</p>
+        <div className="min-h-screen bg-red-50 dark:bg-red-950/30 flex flex-col items-center justify-center p-6 text-center font-sans">
+            <Ban size={32} className="text-red-600 dark:text-red-400 mx-auto mb-4" />
+            <h1 className="text-2xl font-black mb-2 dark:text-slate-100">Compte Suspendu</h1>
+            <p className="text-gray-500 dark:text-slate-400 mb-6 text-sm font-medium">Contactez le support.</p>
         </div>
     )
   }
@@ -577,11 +564,11 @@ export default function PublierClient() {
   const adsLimitReached = !isPro && adsCount >= FREE_ADS_LIMIT
 
   return (
-    <div className="min-h-screen bg-transparent font-sans pb-24">
-      <div className="bg-white px-4 py-4 sticky top-0 z-30 shadow-sm flex items-center gap-3 pt-safe">
-        <button onClick={() => router.back()} aria-label="Go back" className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full transition"><ChevronLeft size={24} /></button>
-        <h1 className="font-extrabold text-xl text-gray-900">Publier</h1>
-        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+    <div className="min-h-screen bg-transparent dark:bg-slate-900 font-sans pb-24 text-gray-900 dark:text-slate-100 transition-colors duration-200">
+      <div className="bg-white dark:bg-slate-900 px-4 py-4 sticky top-0 z-30 shadow-sm border-b border-gray-100 dark:border-slate-800 flex items-center gap-3 pt-safe">
+        <button onClick={() => router.back()} aria-label="Go back" className="p-2 -ml-2 text-gray-600 dark:text-slate-300 hover:bg-gray-100 dark:hover:bg-slate-800 rounded-full transition"><ChevronLeft size={24} /></button>
+        <h1 className="font-extrabold text-xl text-gray-900 dark:text-slate-100">Publier</h1>
+        <div className="ml-auto flex items-center gap-1 text-xs font-bold text-gray-500 dark:text-slate-400 bg-gray-100 dark:bg-slate-800 px-3 py-1 rounded-full">
           {isPro ? <Crown size={12} className="text-yellow-600" /> : <Lock size={12} />}
           {adsCount} / {isPro ? '∞' : FREE_ADS_LIMIT}
         </div>
@@ -589,9 +576,9 @@ export default function PublierClient() {
 
       {adsLimitReached ? (
         <div className="p-6 mt-10 text-center space-y-4">
-            <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600"><Lock size={32} /></div>
+            <div className="w-16 h-16 bg-amber-50 dark:bg-amber-950/40 rounded-full flex items-center justify-center mx-auto text-amber-600 dark:text-amber-400"><Lock size={32} /></div>
             <h2 className="text-xl font-black">Limite atteinte</h2>
-            <p className="text-sm text-gray-500 font-medium">Vous avez atteint votre limite de {FREE_ADS_LIMIT} annonces gratuites.</p>
+            <p className="text-sm text-gray-500 dark:text-slate-400 font-medium">Vous avez atteint votre limite de {FREE_ADS_LIMIT} annonces gratuites.</p>
             <Link href="/pro" className={uiButtonClasses('primary', 'lg', 'w-full')}>Devenir Vendeur Élite 🚀</Link>
         </div>
       ) : (
@@ -599,15 +586,15 @@ export default function PublierClient() {
             {/* 1. PHOTOS */}
             <div className="space-y-2">
                 <div className="flex justify-between items-end px-1">
-                    <label className="text-sm font-bold text-gray-700">Photos (Maintenez pour déplacer)</label>
-                    <span className="text-[10px] font-bold text-gray-500">{images.length} / {isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT}</span>
+                    <label className="text-sm font-bold text-gray-700 dark:text-slate-300">Photos (Maintenez pour déplacer)</label>
+                    <span className="text-[10px] font-bold text-gray-500 dark:text-slate-400">{images.length} / {isPro ? PRO_PHOTOS_LIMIT : FREE_PHOTOS_LIMIT}</span>
                 </div>
                 
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                     <SortableContext items={images.map(i => i.id)} strategy={horizontalListSortingStrategy}>
                         <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide items-center touch-pan-x select-none">
-                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Add photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 border-gray-300 cursor-pointer active:scale-95 hover:bg-gray-200/50">
-                                {uploading ? <Loader2 className="animate-spin text-brand" /> : <Camera className="text-gray-500" />}
+                            <button type="button" onClick={() => fileInputRef.current?.click()} aria-label="Add photo" className="w-24 h-24 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center shrink-0 transition bg-gray-100 dark:bg-slate-800 border-gray-300 dark:border-slate-700 cursor-pointer active:scale-95 hover:bg-gray-200/50 dark:hover:bg-slate-700/50">
+                                {uploading ? <Loader2 className="animate-spin text-brand dark:text-emerald-400" /> : <Camera className="text-gray-500 dark:text-slate-400" />}
                             </button>
                             {images.map((img) => (
                                 <SortableImage key={img.id} id={img.id} url={img.url} onRemove={() => setImages(items => items.filter(i => i.id !== img.id))} />
@@ -619,7 +606,7 @@ export default function PublierClient() {
             </div>
 
             {/* 2. INFOS PRINCIPALES */}
-            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
+            <div className="bg-white dark:bg-slate-800/90 p-5 rounded-card shadow-card border border-gray-100 dark:border-slate-700/60 space-y-4">
                 <UiInput
                     label="Titre"
                     type="text"
@@ -658,13 +645,12 @@ export default function PublierClient() {
                     </UiSelect>
                 </div>
 
-                {/* CHAMP MAGIQUE "AUTRE" */}
                 {formData.sub_category === 'Autre' && (
                     <UiInput
                         wrapperClassName="animate-in slide-in-from-top-2 fade-in"
                         label="Précisez la sous-catégorie"
                         type="text"
-                        startAdornment={<PenTool size={18} className="text-brand" aria-hidden="true" />}
+                        startAdornment={<PenTool size={18} className="text-brand dark:text-emerald-400" aria-hidden="true" />}
                         placeholder="Ex: Drone, Tondeuse, Groupe électrogène..."
                         value={customSubCat}
                         onChange={e => setCustomSubCat(e.target.value)}
@@ -672,10 +658,9 @@ export default function PublierClient() {
                     />
                 )}
 
-                {/* 3. CHAMPS INTELLIGENTS DYNAMIQUES */}
                 {currentSpecFields.length > 0 && formData.sub_category !== 'Autre' && (
-                    <div className="animate-in slide-in-from-top-2 fade-in pt-4 border-t border-dashed border-gray-200 mt-2">
-                        <p className="text-xs font-black text-brand-700 uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
+                    <div className="animate-in slide-in-from-top-2 fade-in pt-4 border-t border-dashed border-gray-200 dark:border-slate-700 mt-2">
+                        <p className="text-xs font-black text-brand-700 dark:text-emerald-400 uppercase tracking-widest mb-3 flex items-center gap-1"><Sparkles size={12}/> Détails {formData.sub_category}</p>
                         <div className="grid grid-cols-2 gap-3">
                             {currentSpecFields.map((field: any) => {
                                 const wrapperClassName = field.key === 'fuel' || field.key === 'storage' ? 'col-span-2' : ''
@@ -712,7 +697,7 @@ export default function PublierClient() {
             </div>
 
             {/* 4. LOCALISATION */}
-            <div className="bg-white p-5 rounded-card shadow-card border border-gray-100 space-y-4">
+            <div className="bg-white dark:bg-slate-800/90 p-5 rounded-card shadow-card border border-gray-100 dark:border-slate-700/60 space-y-4">
                 <div className="grid grid-cols-2 gap-3">
                     <UiSelect
                         label="Île"
@@ -734,8 +719,8 @@ export default function PublierClient() {
                 </div>
                 <div>
                     <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs font-bold uppercase tracking-wide text-gray-700">WhatsApp</span>
-                        <Link href="/compte" className="text-[11px] text-brand-700 hover:underline flex items-center gap-1 font-bold"><AlertCircle size={11} aria-hidden="true" /> Modifier</Link>
+                        <span className="text-xs font-bold uppercase tracking-wide text-gray-700 dark:text-slate-300">WhatsApp</span>
+                        <Link href="/compte" className="text-[11px] text-brand-700 dark:text-emerald-400 hover:underline flex items-center gap-1 font-bold"><AlertCircle size={11} aria-hidden="true" /> Modifier</Link>
                     </div>
                     <UiInput
                         aria-label="Numéro WhatsApp (modifiable depuis votre compte)"
@@ -751,8 +736,8 @@ export default function PublierClient() {
             {/* 5. DESCRIPTION */}
             <div className="space-y-2">
                 <div className="flex justify-between items-center mb-1 px-1">
-                    <label htmlFor="listing-description" className="text-xs font-bold text-gray-700 uppercase tracking-wide">Description Prestige</label>
-                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Améliorer la description avec l'IA" className="flex items-center gap-1 text-[10px] font-black text-blue-700 uppercase bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100 transition-all active:scale-95 disabled:opacity-60">
+                    <label htmlFor="listing-description" className="text-xs font-bold text-gray-700 dark:text-slate-300 uppercase tracking-wide">Description Prestige</label>
+                    <button type="button" onClick={handleRephrase} disabled={isRephrasing} aria-label="Améliorer la description avec l'IA" className="flex items-center gap-1 text-[10px] font-black text-blue-700 dark:text-blue-400 uppercase bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-full border border-blue-100 dark:border-blue-900/50 transition-all active:scale-95 disabled:opacity-60">
                         {isRephrasing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
                         Sublimer
                     </button>
@@ -766,11 +751,11 @@ export default function PublierClient() {
                 />
             </div>
 
-            <div className="bg-amber-50/50 border border-amber-100 rounded-2xl p-4 flex items-start gap-3">
-                <ShieldCheck className="text-amber-600 mt-0.5" size={20} />
+            <div className="bg-amber-50/50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/40 rounded-2xl p-4 flex items-start gap-3">
+                <ShieldCheck className="text-amber-600 dark:text-amber-400 mt-0.5" size={20} />
                 <div>
-                    <p className="text-amber-900 text-[10px] font-black uppercase tracking-tight">Audit Sentinelle Actif</p>
-                    <p className="text-amber-800 text-[11px] font-medium leading-tight mt-0.5">La conformité et le prestige de votre annonce sont vérifiés en temps réel.</p>
+                    <p className="text-amber-900 dark:text-amber-300 text-[10px] font-black uppercase tracking-tight">Audit Sentinelle Actif</p>
+                    <p className="text-amber-800 dark:text-amber-400 text-[11px] font-medium leading-tight mt-0.5">La conformité et le prestige de votre annonce sont vérifiés en temps réel.</p>
                 </div>
             </div>
 

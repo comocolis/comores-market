@@ -5,14 +5,12 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronDown, ChevronUp, Mail } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-// AJOUT : Import du tracking
 import { trackEvent } from '@/lib/analytics'
 
-// Données de la FAQ
 const faqData = [
   {
     question: "Comment devenir vendeur Pro ?",
-    answer: "Pour obtenir le badge 'Expert Pro' et débloquer les réseaux sociaux, rendez-vous dans votre espace Compte et cliquez sur 'Devenir Pro'. L'abonnement vous offre une visibilité maximale."
+    answer: "Pour obtenir le badge 'Expert Pro' et débloquer les réseaux sociaux, rendez-vous dans votre espace Compte et cliquez sur 'Devenir Pro'. L'abonnement vous offre une visibilité maximale. Cependant, si vous êtes un nouveau inscrit, vous bénéficierez d'une période d'essai d'un an, entièrement gratuite avant de souscrire à l'abonnement."
   },
   {
     question: "Est-ce gratuit de publier ?",
@@ -63,13 +61,12 @@ const faqData = [
 export default function FaqClient() {
   const router = useRouter()
   const [openIndex, setOpenIndex] = useState<number | null>(0)
-  // Fonction pour gérer l'ouverture et le tracking
+
   const handleToggle = (index: number) => {
     if (openIndex === index) {
         setOpenIndex(null)
     } else {
         setOpenIndex(index)
-        // 📊 TRACKING : Savoir quelle question intéresse le plus l'utilisateur
         trackEvent('faq_question_opened', {
             question_index: index,
             question_title: faqData[index].question
@@ -77,40 +74,38 @@ export default function FaqClient() {
     }
   }
 
-    const handleContactClick = () => {
-      // 📊 TRACKING : Savoir que quelqu'un cherche de l'aide
+  const handleContactClick = () => {
       trackEvent('contact_support_click', {
           source: 'faq_page'
       })
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 font-sans pb-24">
+    <div className="min-h-screen bg-gray-50 dark:bg-slate-900 p-6 font-sans pb-24 text-gray-900 dark:text-slate-100 transition-colors duration-200">
       
       {/* HEADER */}
       <div className="flex items-center gap-4 mb-8 pt-safe">
         <button 
           onClick={() => router.back()} 
           aria-label="Retour"
-          className="bg-white p-2 rounded-full shadow-sm hover:bg-gray-100 transition"
+          className="bg-white dark:bg-slate-800 p-2 rounded-full shadow-sm hover:bg-gray-100 dark:hover:bg-slate-700 transition"
         >
-            <ArrowLeft size={20} className="text-gray-700" />
+            <ArrowLeft size={20} className="text-gray-700 dark:text-slate-200" />
         </button>
-        <h1 className="text-xl font-bold text-gray-900">Aide & FAQ</h1>
+        <h1 className="text-xl font-bold text-gray-900 dark:text-slate-100">Aide & FAQ</h1>
       </div>
 
       <div className="space-y-4">
-        {/* LISTE DES QUESTIONS */}
         {faqData.map((item, i) => (
-          <div key={i} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <div key={i} className="bg-white dark:bg-slate-800/90 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-700/60 overflow-hidden">
             <button 
               onClick={() => handleToggle(i)}
-              className="w-full flex justify-between items-center p-5 text-left active:bg-gray-50 transition"
+              className="w-full flex justify-between items-center p-5 text-left active:bg-gray-50 dark:active:bg-slate-800 transition"
             >
-              <span className={`text-sm font-bold pr-4 ${openIndex === i ? 'text-brand' : 'text-gray-800'}`}>
+              <span className={`text-sm font-bold pr-4 ${openIndex === i ? 'text-brand dark:text-emerald-400' : 'text-gray-800 dark:text-slate-200'}`}>
                 {item.question}
               </span>
-              {openIndex === i ? <ChevronUp size={18} className="text-brand shrink-0" /> : <ChevronDown size={18} className="text-gray-500 shrink-0" />}
+              {openIndex === i ? <ChevronUp size={18} className="text-brand dark:text-emerald-400 shrink-0" /> : <ChevronDown size={18} className="text-gray-500 dark:text-slate-400 shrink-0" />}
             </button>
             
             <AnimatePresence>
@@ -121,7 +116,7 @@ export default function FaqClient() {
                   exit={{ height: 0, opacity: 0 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-5 pb-5 pt-0 text-sm text-gray-600 leading-relaxed border-t border-gray-50 mt-2">
+                  <div className="px-5 pb-5 pt-0 text-sm text-gray-600 dark:text-slate-300 leading-relaxed border-t border-gray-50 dark:border-slate-700/50 mt-2">
                     {item.answer}
                   </div>
                 </motion.div>
@@ -131,19 +126,19 @@ export default function FaqClient() {
         ))}
 
         {/* SECTION CONTACT */}
-        <section className="bg-white p-6 rounded-2xl shadow-sm mt-8 border border-gray-100 text-center">
-            <h2 className="text-gray-900 font-bold mb-2">Une autre question ?</h2>
-            <p className="text-sm text-gray-500 mb-4">Notre équipe est là pour vous aider.</p>
+        <section className="bg-white dark:bg-slate-800/90 p-6 rounded-2xl shadow-sm mt-8 border border-gray-100 dark:border-slate-700/60 text-center">
+            <h2 className="text-gray-900 dark:text-slate-100 font-bold mb-2">Une autre question ?</h2>
+            <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">Notre équipe est là pour vous aider.</p>
             <Link 
               href="/contact"
-                onClick={handleContactClick}
-                className="flex items-center gap-2 text-brand font-bold bg-brand/5 p-3 rounded-xl hover:bg-brand/10 transition justify-center text-sm"
+              onClick={handleContactClick}
+              className="flex items-center gap-2 text-brand dark:text-emerald-400 font-bold bg-brand/5 dark:bg-emerald-950/40 p-3 rounded-xl hover:bg-brand/10 dark:hover:bg-emerald-900/50 transition justify-center text-sm"
             >
                 <Mail size={18} /> Contacter le support
             </Link>
         </section>
 
-        <div className="pt-8 text-xs text-center text-gray-500">
+        <div className="pt-8 text-xs text-center text-gray-500 dark:text-slate-400">
             © 2025 Comores Market. Tous droits réservés.
         </div>
       </div>

@@ -8,7 +8,7 @@ import Image from 'next/image'
 import { 
   MessageCircle, User, Loader2, ArrowLeft, Send, 
   ShoppingBag, Check, MoreVertical, Phone, Trash2, ExternalLink, AlertTriangle,
-  Camera, X, CheckCircle2, Sparkles, Search, ShieldCheck, LifeBuoy
+  Camera, X, Sparkles, Search, ShieldCheck, LifeBuoy
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { sendNewMessageEmail } from '@/app/actions/email'
@@ -17,7 +17,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { EmptyState } from '@/components/EmptyState'
 import { UiInput } from '@/components/ui'
 
-// UTILITAIRE
 const getOptimizedImage = (url: string | null, width = 200) => {
   if (!url) return null;
   if (url.includes('supabase.co')) {
@@ -52,7 +51,7 @@ const containsPhoneNumber = (cleanText: string) => /\d{7,}/.test(cleanText);
 
 export default function MessagesPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center items-center h-dvh bg-[#F8FAFC]"><Loader2 className="animate-spin text-brand" size={32} /></div>}>
+    <Suspense fallback={<div className="flex justify-center items-center h-dvh bg-[#F8FAFC] dark:bg-slate-900"><Loader2 className="animate-spin text-brand" size={32} /></div>}>
       <MessagesContent />
     </Suspense>
   )
@@ -87,7 +86,6 @@ function MessagesContent() {
     conv.productTitle.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // 1. CHARGEMENT DES MESSAGES
   const fetchAndGroupMessages = useCallback(async (userId: string) => {
     const { data, error } = await supabase
         .from('messages')
@@ -153,24 +151,19 @@ function MessagesContent() {
     setLoading(false)
   }, [supabase])
 
-  // 2. FONCTION ROBUSTE : MARQUER COMME LU
   const markAsRead = useCallback(async (conv: Conversation) => {
     if (!currentUser) return;
 
-    // Mise à jour visuelle immédiate (Optimistic UI)
     setConversations(prev => prev.map(c => c.id === conv.id ? { ...c, unreadCount: 0 } : c));
     
-    // Mise à jour Base de données
     if (conv.isSystem) {
-        // Pour les messages système (product_id est null)
         await supabase.from('messages')
             .update({ is_read: true })
             .eq('receiver_id', currentUser.id)
             .eq('sender_id', conv.counterpartId)
             .is('product_id', null)
-            .eq('is_read', false); // Seulement ceux non lus
+            .eq('is_read', false);
     } else {
-        // Pour les messages produits
         await supabase.from('messages')
             .update({ is_read: true })
             .eq('receiver_id', currentUser.id)
@@ -180,15 +173,12 @@ function MessagesContent() {
     }
   }, [currentUser, supabase]);
 
-  // 3. EFFET : SURVEILLANCE ACTIVE CONV (Pour le temps réel)
-  // Si je reçois un nouveau message alors que la conversation est ouverte -> Je le marque lu direct
   useEffect(() => {
     if (view === 'chat' && activeConv && activeConv.unreadCount > 0) {
         markAsRead(activeConv);
     }
-  }, [activeConv, view, markAsRead]); // Se déclenche quand activeConv change (donc quand un msg arrive)
+  }, [activeConv, view, markAsRead]);
 
-  // 4. GESTION NAVIGATION ET URL
   useEffect(() => {
     const handleParams = async () => {
         const convId = searchParams.get('id')
@@ -200,13 +190,11 @@ function MessagesContent() {
             if (found) { 
                 setActiveConv(found); 
                 setView('chat'); 
-                // Appel immédiat à markAsRead à l'ouverture
-                if (found.unreadCount > 0) markAsRead(found); 
+                if (found.unreadCount > 0) markAsRead(found);
                 return 
             }
         } 
         
-        // Logique "Contacter le vendeur" depuis une annonce
         if (targetUserId && targetProductId) {
             const compositeKey = `${targetProductId}-${targetUserId}`
             const existing = conversations.find(c => c.id === compositeKey)
@@ -234,7 +222,6 @@ function MessagesContent() {
     handleParams()
   }, [searchParams, conversations, markAsRead, supabase])
 
-  // 5. INITIALISATION & REALTIME
   useEffect(() => {
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -246,8 +233,7 @@ function MessagesContent() {
       
       await fetchAndGroupMessages(user.id)
       
-      // On s'abonne aux changements. Quand ça change, on recharge tout et on met à jour activeConv si besoin
-      const channel = supabase.channel('chat-room').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async () => { 
+      const channel = supabase.channel('chat-room').on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async () => {
           await fetchAndGroupMessages(user.id);
       }).subscribe()
       
@@ -256,15 +242,13 @@ function MessagesContent() {
     init()
   }, [router, supabase, fetchAndGroupMessages])
 
-  // Scroll automatique
-  useEffect(() => { 
+  useEffect(() => {
     if(view === 'chat' && activeConv) {
         setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'auto' }), 100)
     }
   }, [activeConv?.messages, view])
 
   const openConversation = (conv: Conversation) => { 
-      // On marque lu avant même de naviguer pour l'UX
       if(conv.unreadCount > 0) markAsRead(conv);
       router.push(`/messages?id=${conv.id}`) 
   }
@@ -334,10 +318,9 @@ function MessagesContent() {
     if (!error && !activeConv.isSystem) sendNewMessageEmail(activeConv.counterpartId, currentUser.user_metadata?.full_name || 'Utilisateur', content, activeConv.productId!)
   }
 
-  // --- VUE LISTE ---
   if (view === 'list') {
     return (
-        <div className="min-h-screen bg-[#F8FAFC] pb-24 font-sans text-gray-900 overflow-x-hidden flex flex-col">
+        <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-900 pb-24 font-sans text-gray-900 dark:text-slate-100 overflow-x-hidden flex flex-col transition-colors duration-200">
             <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-120 bg-brand pt-safe px-4 pb-6 z-30 shadow-md rounded-b-[2.5rem]">
                 <div className="flex justify-between items-center mb-5 pt-4 px-2">
                     <div>
@@ -366,7 +349,7 @@ function MessagesContent() {
             </div>
 
             <div className="flex-1 overflow-y-auto pt-44 pb-24 px-5 space-y-4">
-                {loading ? (<div className="flex justify-center pt-10"><Loader2 className="animate-spin text-brand" size={32} /></div>) : filteredConvs.length === 0 ? (
+                {loading ? (<div className="flex justify-center pt-10"><Loader2 className="animate-spin text-brand dark:text-emerald-400" size={32} /></div>) : filteredConvs.length === 0 ? (
                     searchTerm.trim() ? (
                         <EmptyState icon={Search} title="Aucun contact trouvé" description={`Aucune conversation ne correspond à « ${searchTerm.trim()} ».`} />
                     ) : (
@@ -381,8 +364,8 @@ function MessagesContent() {
                     <AnimatePresence>
                         {filteredConvs.map((conv, idx) => (
                             <motion.div key={idx} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} onClick={() => openConversation(conv)} role="button" tabIndex={0} aria-label={`Ouvrir la conversation avec ${conv.counterpartName}`} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openConversation(conv) } }}
-                            className={`p-4 rounded-4xl shadow-sm border flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-lg group ${conv.isSystem ? 'bg-amber-50 border-amber-100' : 'bg-white border-white'}`}>
-                                <div className={`w-16 h-16 rounded-2xl shrink-0 relative overflow-hidden shadow-inner flex items-center justify-center ${conv.isSystem ? 'bg-amber-100 text-amber-600' : 'bg-gray-50 text-gray-200'}`}>
+                            className={`p-4 rounded-4xl shadow-sm border flex gap-4 items-center active:scale-[0.98] transition cursor-pointer hover:shadow-lg group ${conv.isSystem ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/40' : 'bg-white dark:bg-slate-800/90 border-white dark:border-slate-700/60'}`}>
+                                <div className={`w-16 h-16 rounded-2xl shrink-0 relative overflow-hidden shadow-inner flex items-center justify-center ${conv.isSystem ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-600 dark:text-amber-300' : 'bg-gray-50 dark:bg-slate-900 text-gray-200 dark:text-slate-600'}`}>
                                     {conv.isSystem ? (
                                         <LifeBuoy size={28} strokeWidth={2.5} />
                                     ) : conv.productImage ? (
@@ -393,19 +376,19 @@ function MessagesContent() {
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-center mb-1">
-                                        <p className={`text-[14px] truncate flex items-center gap-1.5 tracking-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'font-bold text-gray-500'}`}>
+                                        <p className={`text-[14px] truncate flex items-center gap-1.5 tracking-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900 dark:text-slate-100' : 'font-bold text-gray-500 dark:text-slate-400'}`}>
                                             {conv.counterpartName} 
-                                            {conv.counterpartIsPro && <ShieldCheck size={12} className="text-brand fill-brand/10" />}
+                                            {conv.counterpartIsPro && <ShieldCheck size={12} className="text-brand dark:text-emerald-400 fill-brand/10" />}
                                             {conv.isSystem && <ShieldCheck size={12} className="text-amber-500 fill-amber-500/20" />}
                                         </p>
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${conv.unreadCount > 0 ? 'text-brand-700' : 'text-gray-500'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {day:'numeric', month:'short'})}</span>
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${conv.unreadCount > 0 ? 'text-brand-700 dark:text-emerald-400' : 'text-gray-500 dark:text-slate-400'}`}>{new Date(conv.lastDate).toLocaleDateString(undefined, {day:'numeric', month:'short'})}</span>
                                     </div>
                                     <div className="flex justify-between items-end">
                                         <div className="flex flex-col min-w-0 pr-2">
-                                            <p className={`text-[10px] font-black tracking-widest truncate mb-0.5 ${conv.isSystem ? 'text-amber-700' : 'text-brand-700'}`}>{conv.productTitle}</p>
-                                            <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900' : 'text-gray-500 font-medium'}`}>{conv.lastMessage}</p>
+                                            <p className={`text-[10px] font-black tracking-widest truncate mb-0.5 ${conv.isSystem ? 'text-amber-700 dark:text-amber-300' : 'text-brand-700 dark:text-emerald-400'}`}>{conv.productTitle}</p>
+                                            <p className={`text-[13px] truncate leading-tight ${conv.unreadCount > 0 ? 'font-black text-gray-900 dark:text-slate-100' : 'text-gray-500 dark:text-slate-400 font-medium'}`}>{conv.lastMessage}</p>
                                         </div>
-                                        {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand rounded-lg flex items-center justify-center text-[10px] text-white font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
+                                        {conv.unreadCount > 0 && (<div className="w-5 h-5 bg-brand text-white rounded-lg flex items-center justify-center text-[10px] font-black shadow-lg shadow-brand/20 shrink-0">{conv.unreadCount}</div>)}
                                     </div>
                                 </div>
                             </motion.div>
@@ -417,9 +400,8 @@ function MessagesContent() {
     )
   }
 
-  // --- VUE CHAT ---
   return (
-    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-120 h-dvh bg-[#F8FAFC] font-sans text-gray-900 flex flex-col z-200 shadow-2xl border-x border-gray-100/50">
+    <div className="fixed top-0 left-1/2 -translate-x-1/2 w-full max-w-120 h-dvh bg-[#F8FAFC] dark:bg-slate-900 font-sans text-gray-900 dark:text-slate-100 flex flex-col z-200 shadow-2xl border-x border-gray-100 dark:border-slate-800 transition-colors duration-200">
         <div className={`absolute top-0 left-0 w-full px-4 pb-6 pt-safe shadow-md z-150 rounded-b-[2.5rem] transition-colors ${activeConv?.isSystem ? 'bg-gray-900' : 'bg-brand'}`}>
             <div className="flex items-center gap-3 pt-4">
                 <button onClick={closeConversation} aria-label="Fermer" className="p-3 bg-white/10 backdrop-blur-md rounded-2xl text-white border border-white/10 active:scale-90 transition">
@@ -450,11 +432,11 @@ function MessagesContent() {
                 </div>
             </div>
             {showMenu && (
-                <div className="absolute top-full right-6 mt-2 bg-white shadow-2xl rounded-4xl border border-gray-100 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
+                <div className="absolute top-full right-6 mt-2 bg-white dark:bg-slate-800 shadow-2xl rounded-4xl border border-gray-100 dark:border-slate-700 w-52 py-3 z-200 animate-in fade-in slide-in-from-top-2">
                     {activeConv?.productId && !activeConv.isSystem && (
-                        <Link href={`/annonce/${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 font-black uppercase tracking-widest hover:bg-gray-50 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
+                        <Link href={`/annonce/${activeConv.productId}`} className="flex items-center gap-3 px-5 py-4 text-[10px] text-gray-700 dark:text-slate-200 font-black uppercase tracking-widest hover:bg-gray-50 dark:hover:bg-slate-700 transition"><ExternalLink size={16}/> Voir l'annonce</Link>
                     )}
-                    <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 hover:bg-red-50 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
+                    <button onClick={() => { setShowMenu(false); setShowDeleteModal(true) }} className="w-full flex items-center gap-3 px-5 py-4 text-[10px] text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition text-left font-black uppercase tracking-widest"><Trash2 size={16} /> Supprimer</button>
                 </div>
             )}
         </div>
@@ -462,7 +444,7 @@ function MessagesContent() {
         <div className="flex-1 overflow-y-auto px-4 pt-32 pb-28 scroll-smooth" onClick={() => setShowMenu(false)}>
             <div className="flex flex-col justify-end min-h-full gap-4 max-w-2xl mx-auto">
                 {activeConv?.isSystem && (
-                    <div className="bg-amber-50 p-4 rounded-3xl text-center text-xs text-amber-800 font-medium mb-4 border border-amber-100">
+                    <div className="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-3xl text-center text-xs text-amber-800 dark:text-amber-300 font-medium mb-4 border border-amber-100 dark:border-amber-900/40">
                         Ceci est un message officiel de l'équipe Comores Market.
                     </div>
                 )}
@@ -473,19 +455,19 @@ function MessagesContent() {
                         return (
                             <motion.div key={msg.id || i} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className={`flex items-end gap-2.5 ${isMe ? 'justify-end' : 'justify-start'}`}>
                                 {!isMe && (
-                                  <div className="w-8 h-8 rounded-xl bg-white overflow-hidden relative shrink-0 mb-1 border border-white shadow-sm flex items-center justify-center">
+                                  <div className="w-8 h-8 rounded-xl bg-white dark:bg-slate-800 overflow-hidden relative shrink-0 mb-1 border border-white dark:border-slate-700 shadow-sm flex items-center justify-center">
                                     {activeConv.isSystem ? (
                                         <LifeBuoy size={16} className="text-amber-500" />
                                     ) : msg.sender_avatar ? (
                                       <Image src={getOptimizedImage(msg.sender_avatar, 80) || '/placeholder.jpg'} alt="" fill className="object-cover" />
                                     ) : (
-                                      <User size={14} className="text-gray-200" />
+                                      <User size={14} className="text-gray-200 dark:text-slate-600" />
                                     )}
                                   </div>
                                 )}
-                                <div className={`max-w-[82%] relative overflow-hidden ${isMe ? 'bg-brand text-white rounded-[1.8rem] rounded-tr-none shadow-xl shadow-brand/10' : (activeConv.isSystem && !isMe ? 'bg-gray-900 text-white shadow-lg' : 'bg-white text-gray-800 border border-white shadow-sm')} rounded-[1.8rem] ${!isMe && 'rounded-tl-none'}`}>
+                                <div className={`max-w-[82%] relative overflow-hidden ${isMe ? 'bg-brand text-white rounded-[1.8rem] rounded-tr-none shadow-xl shadow-brand/10' : (activeConv.isSystem && !isMe ? 'bg-gray-900 dark:bg-slate-800 text-white shadow-lg' : 'bg-white dark:bg-slate-800 text-gray-800 dark:text-slate-100 border border-white dark:border-slate-700/60 shadow-sm')} rounded-[1.8rem] ${!isMe && 'rounded-tl-none'}`}>
                                     {isImg ? (
-                                      <div className="cursor-pointer bg-gray-50" onClick={() => setPreviewImage(msg.content)}>
+                                      <div className="cursor-pointer bg-gray-50 dark:bg-slate-900" onClick={() => setPreviewImage(msg.content)}>
                                         <Image src={getOptimizedImage(msg.content, 400) || '/placeholder.jpg'} alt="Photo" width={300} height={300} className="object-cover w-60 h-60" />
                                       </div>
                                     ) : (
@@ -493,7 +475,7 @@ function MessagesContent() {
                                           {msg.content.replace('[ADMIN]', '').trim()}
                                       </div>
                                     )}
-                                    <div className={`flex items-center justify-end gap-1.5 pb-2 pr-4 text-[10px] font-black uppercase tracking-tighter ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/30 p-2 text-white' : (isMe || (activeConv.isSystem && !isMe) ? 'text-white/70' : 'text-gray-500')}`}>
+                                    <div className={`flex items-center justify-end gap-1.5 pb-2 pr-4 text-[10px] font-black uppercase tracking-tighter ${isImg ? 'absolute bottom-0 right-0 w-full bg-black/30 p-2 text-white' : (isMe || (activeConv.isSystem && !isMe) ? 'text-white/70' : 'text-gray-500 dark:text-slate-400')}`}>
                                         <span>{new Date(msg.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                         {isMe && (msg.pending ? <Loader2 size={8} className="animate-spin" /> : (msg.is_read ? <Check size={10} strokeWidth={4} /> : <Check size={10} strokeWidth={4} className="opacity-40" />))}
                                     </div>
@@ -506,13 +488,13 @@ function MessagesContent() {
             </div>
         </div>
 
-        <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] to-transparent pt-4">
-            <div className="flex items-end gap-3 bg-white p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 border border-white mb-4">
+        <div className="absolute bottom-0 left-0 w-full px-4 pb-safe z-150 bg-linear-to-t from-[#F8FAFC] dark:from-slate-900 to-transparent pt-4">
+            <div className="flex items-end gap-3 bg-white dark:bg-slate-800 p-3 rounded-[2.5rem] shadow-2xl shadow-black/10 dark:shadow-black/40 border border-white dark:border-slate-700 mb-4">
                 <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" aria-label="Joindre" />
-                <button onClick={() => fileInputRef.current?.click()} aria-label="Photo" className={`p-4 text-gray-500 bg-gray-50 rounded-2xl active:scale-90 transition hover:bg-gray-100 ${activeConv?.isSystem ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isUploading || activeConv?.isSystem}>
+                <button onClick={() => fileInputRef.current?.click()} aria-label="Photo" className={`p-4 text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-700/60 rounded-2xl active:scale-90 transition hover:bg-gray-100 dark:hover:bg-slate-700 ${activeConv?.isSystem ? 'opacity-50 cursor-not-allowed' : ''}`} disabled={isUploading || activeConv?.isSystem}>
                     {isUploading ? <Loader2 className="animate-spin" size={20} /> : <Camera size={20} />}
                 </button>
-                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-base font-semibold max-h-32 min-h-13 py-4 px-2 resize-none placeholder:text-gray-500" aria-label="Votre message" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                <textarea ref={inputRef} className="flex-1 bg-transparent border-none outline-none focus:ring-0 text-base font-semibold max-h-32 min-h-13 py-4 px-2 resize-none text-gray-900 dark:text-slate-100 placeholder:text-gray-500 dark:placeholder:text-slate-400" aria-label="Votre message" placeholder="Votre message..." rows={1} value={replyContent} onChange={e => setReplyContent(e.target.value)} onKeyDown={(e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
                 <button onClick={handleSend} disabled={!replyContent.trim()} aria-label="Envoyer" className="bg-brand text-white p-4 rounded-2xl shadow-xl shadow-brand/20 active:scale-90 transition disabled:opacity-20"><Send size={24} /></button>
             </div>
         </div>
@@ -528,13 +510,13 @@ function MessagesContent() {
 
         {showDeleteModal && (
             <div className="fixed inset-0 z-500 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-in fade-in" onClick={() => setShowDeleteModal(false)}>
-                <div className="bg-white w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center" onClick={e => e.stopPropagation()}>
-                    <div className="bg-red-50 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8"><AlertTriangle size={32} className="text-red-500" /></div>
-                    <h3 className="font-black text-xl mb-2 uppercase tracking-tight">Supprimer ?</h3>
-                    <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest mb-8 leading-relaxed">Cette conversation sera effacée pour vous.</p>
+                <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-[3rem] shadow-2xl p-10 text-center border border-white dark:border-slate-800" onClick={e => e.stopPropagation()}>
+                    <div className="bg-red-50 dark:bg-red-950/40 w-20 h-20 rounded-3xl flex items-center justify-center mx-auto mb-8"><AlertTriangle size={32} className="text-red-500" /></div>
+                    <h3 className="font-black text-xl mb-2 uppercase tracking-tight dark:text-slate-100">Supprimer ?</h3>
+                    <p className="text-gray-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8 leading-relaxed">Cette conversation sera effacée pour vous.</p>
                     <div className="flex flex-col gap-3">
                         <button onClick={handleDeleteConversation} aria-label="Confirmer" className="w-full py-4 rounded-2xl font-black text-white bg-red-600 shadow-xl shadow-red-500/20 text-[10px] uppercase tracking-widest active:scale-95 transition">Confirmer</button>
-                        <button onClick={() => setShowDeleteModal(false)} aria-label="Annuler" className="w-full py-4 rounded-2xl font-black text-gray-500 bg-gray-50 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
+                        <button onClick={() => setShowDeleteModal(false)} aria-label="Annuler" className="w-full py-4 rounded-2xl font-black text-gray-500 dark:text-slate-400 bg-gray-50 dark:bg-slate-800 text-[10px] uppercase tracking-widest active:scale-95 transition">Annuler</button>
                     </div>
                 </div>
             </div>

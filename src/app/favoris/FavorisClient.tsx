@@ -14,7 +14,6 @@ export default function FavorisClient() {
   const router = useRouter()
   const [favorites, setFavorites] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  // Fige a l'ouverture de la page : Date.now() ne doit pas etre appele pendant le rendu.
   const [now] = useState(() => Date.now())
 
   useEffect(() => {
@@ -35,7 +34,7 @@ export default function FavorisClient() {
   }, [supabase, router])
 
   return (
-    <div className="min-h-screen bg-[#F0F2F5] pb-24 font-sans text-gray-900">
+    <div className="min-h-screen bg-[#F0F2F5] dark:bg-slate-900 pb-24 font-sans text-gray-900 dark:text-slate-100 transition-colors duration-200">
       
       {/* --- HEADER --- */}
       <div className="bg-brand pt-safe px-4 pb-6 sticky top-0 z-40 shadow-md rounded-b-4xl">
@@ -77,7 +76,7 @@ export default function FavorisClient() {
                                     isPro={Boolean(product.profiles?.is_pro)}
                                     isBoosted={isBoosted}
                                     overlay={
-                                        <span className="flex p-2 rounded-full bg-white/90 backdrop-blur-md text-red-500 shadow-sm" aria-hidden="true">
+                                        <span className="flex p-2 rounded-full bg-white/90 dark:bg-slate-800/90 text-red-500 shadow-sm" aria-hidden="true">
                                             <Heart size={14} fill="currentColor" />
                                         </span>
                                     }
