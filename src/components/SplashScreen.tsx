@@ -35,7 +35,7 @@ export default function SplashScreen() {
   return (
     <div
       aria-hidden="true"
-      className={`fixed inset-0 z-9999 flex flex-col items-center justify-center bg-white dark:bg-slate-900 transition-opacity ease-out ${
+      className={`fixed inset-0 z-9999 flex flex-col items-center justify-center bg-white transition-opacity ease-out ${
         phase === 'fading' ? 'opacity-0' : 'opacity-100'
       }`}
       style={{ transitionDuration: `${FADE_MS}ms` }}
@@ -53,16 +53,16 @@ export default function SplashScreen() {
           />
         </div>
         <div className="text-center space-y-6">
-          <h1 className="text-4xl font-black text-gray-900 dark:text-slate-100 tracking-tighter">
+          <h1 className="text-4xl font-black text-gray-900 tracking-tighter">
             Comores<span className="text-[#22c55e]">Market</span>
           </h1>
-          <div className="w-32 h-1.5 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden mx-auto relative">
+          <div className="w-32 h-1.5 bg-gray-100 rounded-full overflow-hidden mx-auto relative">
             <div className="h-full bg-yellow-500 rounded-full cm-splash-bar" />
           </div>
         </div>
       </div>
       <div className="absolute bottom-16 left-0 w-full text-center px-8 z-10">
-        <p className="text-[10px] font-bold tracking-[0.3em] text-gray-400 dark:text-slate-500 uppercase mb-3">Bienvenue sur</p>
+        <p className="text-[10px] font-bold tracking-[0.3em] text-gray-400 uppercase mb-3">Bienvenue sur</p>
         <p className="text-sm font-bold text-yellow-500 tracking-wide leading-relaxed font-sans italic">
           &quot;Le marché comorien en ligne,<br />pour les Comoriens.&quot;
         </p>
