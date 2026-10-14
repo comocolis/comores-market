@@ -6,7 +6,7 @@ import { useEffect, useState, Suspense } from 'react'
 import { 
   Loader2, Users, ShoppingBag, ShieldCheck, Search, Trash2, LogOut, 
   Flag, AlertTriangle, Star, Zap, FileText, MapPin, Crown, XCircle, Shield, ShieldAlert,
-  Send, MessageSquare, Mail, Inbox
+  Send, MessageSquare, Mail, Inbox, CheckCircle
 } from 'lucide-react'
 import { toast } from 'sonner'
 import Image from 'next/image'
