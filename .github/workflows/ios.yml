@@ -1,0 +1,54 @@
+name: Build iOS Application
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build iOS App (macOS & Xcode)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Check Xcode Version
+        run: xcodebuild -version
+
+      - name: Build iOS App (Simulator / Release)
+        run: |
+          if [ -d "ios/ComoresMarket.xcodeproj" ]; then
+            xcodebuild -project ios/ComoresMarket.xcodeproj \
+                       -scheme ComoresMarket \
+                       -sdk iphonesimulator \
+                       -configuration Release \
+                       CODE_SIGN_IDENTITY="" \
+                       CODE_SIGNING_REQUIRED=NO \
+                       CODE_SIGNING_ALLOWED=NO \
+                       build
+          else
+            echo "Dossier ios/ComoresMarket.xcodeproj non trouvé."
+          fi
+
+      - name: Package iOS App
+        run: |
+          mkdir -p build/ios-output
+          if [ -d "ios/build/Release-iphonesimulator/ComoresMarket.app" ]; then
+            cp -R ios/build/Release-iphonesimulator/ComoresMarket.app build/ios-output/
+          else
+            find ~/Library/Developer/Xcode/DerivedData -name "ComoresMarket.app" -exec cp -R {} build/ios-output/ \; 2>/dev/null || true
+          fi
+          if [ -d "build/ios-output/ComoresMarket.app" ]; then
+            cd build/ios-output && zip -r ../ComoresMarket-iOS-Simulator.zip ComoresMarket.app
+          fi
+
+      - name: Upload iOS App Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ComoresMarket-iOS-Simulator
+          path: build/ComoresMarket-iOS-Simulator.zip
+          retention-days: 14
