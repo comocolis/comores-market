@@ -62,7 +62,7 @@ function computeInterestScore(
   let score = 0
   const normalizedTitle = product.title.toLowerCase()
 
-  score += getFrequencyScore(snapshot.categoryMap, product.category_id, 18)
+  score += getFrequencyScore(snapshot.categoryMap, Number(product.category_id), 18)
   score += getFrequencyScore(snapshot.subCategoryMap, product.sub_category, 24)
   score += getFrequencyScore(snapshot.islandMap, product.location_island, 12)
 
@@ -96,8 +96,8 @@ export async function getRankedHomepageProducts(filters: HomepageFilters = {}, v
   const proPoolLimit = Math.max(PRO_POOL_LIMIT, requiredItems + 20)
 
   const applyFilters = (query: any) => {
-    if (filters.selectedCategory && filters.selectedCategory !== 0) {
-      query = query.eq('category_id', filters.selectedCategory)
+    if (filters.selectedCategory && Number(filters.selectedCategory) !== 0) {
+      query = query.eq('category_id', Number(filters.selectedCategory))
       if (filters.selectedSubCategory && filters.selectedSubCategory !== 'Tout') {
         query = query.eq('sub_category', filters.selectedSubCategory)
       }
@@ -122,27 +122,25 @@ export async function getRankedHomepageProducts(filters: HomepageFilters = {}, v
     return query
   }
 
-  let boostedQuery = supabase
-    .from('products_with_details')
-    .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-    .gte('boosted_until', new Date().toISOString())
+  let boostedQuery = applyFilters(
+    supabase
+      .from('products_with_details')
+      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+      .gte('boosted_until', new Date().toISOString())
+  )
 
-  let proQuery = supabase
-    .from('products_with_details')
-    .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-    .eq('is_pro', true)
-    .order('created_at', { ascending: false })
-    .limit(proPoolLimit)
+  let proQuery = applyFilters(
+    supabase
+      .from('products_with_details')
+      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+      .eq('is_pro', true)
+  ).order('created_at', { ascending: false }).limit(proPoolLimit)
 
-  let recentQuery = supabase
-    .from('products_with_details')
-    .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
-    .order('created_at', { ascending: false })
-    .limit(recentPoolLimit)
-
-  boostedQuery = applyFilters(boostedQuery)
-  proQuery = applyFilters(proQuery)
-  recentQuery = applyFilters(recentQuery)
+  let recentQuery = applyFilters(
+    supabase
+      .from('products_with_details')
+      .select('id, title, price, images, location_island, location_city, is_pro, boosted_until, created_at, category_id, sub_category')
+  ).order('created_at', { ascending: false }).limit(recentPoolLimit)
 
   const [boostedRes, proRes, recentRes, snapshotRes] = await Promise.all([
     boostedQuery,
@@ -163,10 +161,47 @@ export async function getRankedHomepageProducts(filters: HomepageFilters = {}, v
     productMap.set(product.id, product)
   })
 
+  // SÉCURITÉ ET STRICT-FILTERING : Élimine à 100% tout produit ne correspondant pas aux filtres actifs
+  const validProducts = Array.from(productMap.values()).filter(product => {
+    if (filters.selectedCategory && Number(filters.selectedCategory) !== 0) {
+      if (Number(product.category_id) !== Number(filters.selectedCategory)) {
+        return false
+      }
+      if (filters.selectedSubCategory && filters.selectedSubCategory !== 'Tout') {
+        if (product.sub_category?.trim() !== filters.selectedSubCategory.trim()) {
+          return false
+        }
+      }
+    }
+
+    if (filters.selectedIsland && filters.selectedIsland !== 'Tout') {
+      if (product.location_island !== filters.selectedIsland) {
+        return false
+      }
+    }
+
+    if (filters.searchTerm?.trim()) {
+      const term = filters.searchTerm.trim().toLowerCase()
+      if (!product.title?.toLowerCase().includes(term)) {
+        return false
+      }
+    }
+
+    if (filters.priceMin && product.price < Number.parseInt(filters.priceMin, 10)) {
+      return false
+    }
+
+    if (filters.priceMax && product.price > Number.parseInt(filters.priceMax, 10)) {
+      return false
+    }
+
+    return true
+  })
+
   const snapshot = normalizeSnapshot((snapshotRes.data as PersonalizationSnapshot | null) || null, filters.searchTerm)
   const now = Date.now()
 
-  const sortedProducts = Array.from(productMap.values())
+  const sortedProducts = validProducts
     .sort((a, b) => {
       const isBoostedA = a.boosted_until ? new Date(a.boosted_until).getTime() > now : false
       const isBoostedB = b.boosted_until ? new Date(b.boosted_until).getTime() > now : false
